@@ -1,0 +1,21 @@
+POST /api/auth/login
+
+- Request Body
+{
+  "username": "jihun123",
+  "password": "Passwd1!"
+}
+
+- Response (200 OK)
+{
+  "access_token": "eyJhbGciOiJIUzI1NiIs...",
+  "token_type": "bearer",
+  "user": {
+    "id": 1,
+    "username": "jihun123",
+    "nickname": "지훈"
+  }
+}
+
+- 에러 케이스
+401 — 아이디 없음 또는 비밀번호 불일치

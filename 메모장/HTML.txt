@@ -1,0 +1,20 @@
+HTML
+CSS
+JavaScript
+Bootstrap
+React
+React Router 페이지 이동 처리
+
+
+python
+FastAPI
+Rest API
+SQLAlchemy 파이썬 코드로 DB 조작
+JWT 로그인 인증
+
+PostgreSQL
+
+Git
+Doker 실행 환경을 통째로 묶어줌
+Vercel React 배포
+Render/Railway

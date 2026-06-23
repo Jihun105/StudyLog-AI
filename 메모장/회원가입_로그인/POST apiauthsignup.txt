@@ -1,0 +1,53 @@
+POST /api/auth/signup
+
+- Request Body
+{
+  "username": "jihun123",
+  "email": "user@example.com",
+  "password": "Passwd1!",
+  "nickname": "지훈"
+}
+
+- Response (201 Created)
+{
+  "id": 1,
+  "username": "jihun123",
+  "email": "user@example.com",
+  "nickname": "지훈",
+  "created_at": "2026-06-19T12:00:00Z"
+}
+
+- 에러 케이스
+400 — validation 실패 (비밀번호 8자 미만, 특수문자 없음 등)
+409 — username, 닉네임, 이메일 중 하나라도 중복
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

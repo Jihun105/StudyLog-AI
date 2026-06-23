@@ -1,0 +1,16 @@
+GET /api/posts/{id}
+상세 조회, 전체 content 반환
+
+Response (200 OK)
+{
+  "id": 1,
+  "title": "Attention 메커니즘 정리",
+  "content": "전체 내용...",
+  "nickname": "지훈",
+  "tags": ["딥러닝", "NLP"],
+  "created_at": "2026-06-19T12:00:00Z",
+  "updated_at": "2026-06-19T12:00:00Z"
+}
+
+에러 케이스
+404 — 존재하지 않는 게시글
