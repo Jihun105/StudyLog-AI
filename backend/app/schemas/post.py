@@ -1,16 +1,18 @@
 from pydantic import BaseModel
 from datetime import datetime
-from typing import List
+from typing import List, Optional
 
 class PostCreateRequest(BaseModel):
     title: str
     content: str
     tags: List[str] = []
+    category_id: Optional[int] = None
 
 class PostUpdateRequest(BaseModel):
     title: str
     content: str
     tags: List[str] = []
+    category_id: Optional[int] = None
 
 class PostListItem(BaseModel):
     id: int

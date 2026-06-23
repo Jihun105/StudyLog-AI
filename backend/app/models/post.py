@@ -24,6 +24,7 @@ class Post(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    category_id = Column(Integer, ForeignKey("categories.id", ondelete="SET NULL"), nullable=True)
     title = Column(String(255), nullable=False)
     content = Column(Text, nullable=False)
     created_at = Column(DateTime, server_default=func.now())
@@ -31,5 +32,21 @@ class Post(Base):
 
     user = relationship("User", backref="posts")
     tags = relationship("Tag", secondary=post_tags, back_populates="posts")
+    category = relationship("Category")
+
+class Category(Base):
+    __tablename__ = "categories"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(50), nullable=False)
+    # 부모 카테고리 ID (NULL이면 최상위 폴더)
+    parent_id = Column(Integer, ForeignKey("categories.id", ondelete="CASCADE"), nullable=True)
+    # 카테고리 소유자
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+
+    # 자기 자신을 참조하는 관계 (하위 카테고리 목록)
+    children = relationship("Category", back_populates="parent", cascade="all, delete-orphan")
+    parent = relationship("Category", back_populates="children", remote_side=[id])
 
 # relationship() : SQLAlchemy에서 테이블 간 관계를 Python 객체로 표현
+
