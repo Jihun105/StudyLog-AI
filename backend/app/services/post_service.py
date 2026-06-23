@@ -158,8 +158,19 @@ async def delete_post(post_id: int, current_user: User, db: AsyncSession) -> Non
     await db.delete(post)
     await db.commit()
 
-async def get_all_tags(db: AsyncSession) -> list[str]:
-    # tags 테이블에서 전체 태그 이름을 알파벳/가나다 순으로 조회
-    result = await db.execute(select(Tag).order_by(Tag.name))
+async def get_all_tags(db: AsyncSession, user_id: int = None, category_id: int = None) -> list[str]:
+    query = select(Tag).join(Tag.posts)
+
+    if user_id:
+        query = query.where(Post.user_id == user_id)
+
+    if category_id is not None:
+        if category_id == 0:
+            query = query.where(Post.category_id == None)
+        else:
+            query = query.where(Post.category_id == category_id)
+
+    query = query.distinct().order_by(Tag.name)
+    result = await db.execute(query)
     tags = result.scalars().all()
     return [tag.name for tag in tags]

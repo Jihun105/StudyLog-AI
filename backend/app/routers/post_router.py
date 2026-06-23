@@ -51,5 +51,9 @@ async def remove_post(
     await delete_post(post_id, current_user, db)
 
 @router.get("/tags/all")
-async def read_all_tags(db: AsyncSession = Depends(get_db)):
-    return await get_all_tags(db)
+async def read_all_tags(
+    category_id: Optional[int] = None,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)  # 인증 추가
+):
+    return await get_all_tags(db, current_user.id, category_id)
