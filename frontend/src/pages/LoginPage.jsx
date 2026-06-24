@@ -1,139 +1,121 @@
-// useState: 컴포넌트 안에서 변하는 값(상태)을 관리하는 훅
-// 예: 입력창에 타이핑할 때마다 값이 바뀌는 것을 추적합니다.
 import { useState } from "react";
-
-// useNavigate: 특정 URL로 이동시켜주는 훅
 import { useNavigate, Link } from "react-router-dom";
-
-// 로그인 API 호출 함수
 import { login } from "../api/auth";
-
-// 로그인 상태 관리 훅
 import { useAuth } from "../context/AuthContext";
 
 function LoginPage() {
-  // 입력창 상태 관리
-  // useState("") 는 초기값이 빈 문자열이라는 뜻입니다.
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-
-  // 에러 메시지 상태 (로그인 실패 시 화면에 표시)
   const [errorMessage, setErrorMessage] = useState("");
-
-  // 로딩 상태 (API 호출 중일 때 버튼 비활성화)
   const [loading, setLoading] = useState(false);
-
   const { loginAction } = useAuth();
   const navigate = useNavigate();
 
-  // 로그인 버튼 클릭 시 실행되는 함수
   const handleLogin = async () => {
-    // 빈 값 체크
     if (!username || !password) {
       setErrorMessage("아이디와 비밀번호를 입력해주세요.");
-      return; // 함수 종료 (API 호출 안 함)
+      return;
     }
-
-    setLoading(true);      // 로딩 시작
-    setErrorMessage("");   // 이전 에러 메시지 초기화
-
+    setLoading(true);
+    setErrorMessage("");
     try {
-      // 로그인 API 호출
       const data = await login(username, password);
-
-      // 성공 시 토큰과 유저 정보를 Context에 저장
       loginAction(data.access_token, data.user);
-
-      // 홈으로 이동
       navigate("/");
     } catch (error) {
-      // 실패 시 백엔드가 보내준 에러 메시지를 화면에 표시
-      // error.response?.data?.detail 은 백엔드의 HTTPException detail 값입니다.
-      // ?. 는 optional chaining으로, 값이 없으면 undefined를 반환해서 에러를 방지합니다.
-      setErrorMessage(
-        error.response?.data?.detail || "로그인에 실패했습니다."
-      );
+      setErrorMessage(error.response?.data?.detail || "로그인에 실패했습니다.");
     } finally {
-      // 성공이든 실패든 로딩 종료
       setLoading(false);
     }
   };
 
   return (
-    // 화면 전체를 flex로 중앙 정렬합니다.
-    // min-h-screen: 최소 높이를 화면 전체로 설정
-    // bg-gray-50: 연한 회색 배경
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-      {/* 로그인 카드 */}
-      {/* w-full max-w-md: 최대 너비 제한 / bg-white: 흰 배경 / rounded-lg: 둥근 모서리 */}
-      {/* shadow-md: 그림자 / p-8: 내부 패딩 */}
-      <div className="w-full max-w-md bg-white rounded-lg shadow-md p-8">
-        <h1 className="text-2xl font-bold text-center text-gray-800 mb-6">
-          로그인
-        </h1>
-
-        {/* 에러 메시지 (errorMessage가 있을 때만 표시) */}
-        {errorMessage && (
-          <div className="bg-red-50 text-red-500 px-4 py-3 rounded mb-4 text-sm">
-            {errorMessage}
+    <div className="min-h-screen bg-gray-50 flex">
+      {/* 왼쪽 브랜딩 패널 */}
+      <div className="hidden lg:flex w-1/2 bg-blue-600 flex-col justify-between p-12">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center text-blue-600 font-bold text-sm">S</div>
+          <span className="text-white font-bold text-lg">StudyBrain AI</span>
+        </div>
+        <div>
+          <h1 className="text-4xl font-bold text-white mb-4 leading-tight">
+            Your personal<br />AI-powered<br />knowledge base.
+          </h1>
+          <p className="text-blue-200 text-sm leading-relaxed">
+            공부한 내용을 기록하고, AI가 기억해서<br />퀴즈와 요약으로 학습 효과를 높여보세요.
+          </p>
+        </div>
+        <div className="flex items-center gap-4">
+          <div className="bg-blue-500 rounded-xl p-4 text-white text-xs">
+            <div className="font-bold text-lg mb-1">1.2k+</div>
+            <div className="text-blue-200">Vectors Embedded</div>
           </div>
-        )}
-
-        {/* 아이디 입력창 */}
-        <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            아이디
-          </label>
-          <input
-            type="text"
-            // value: 입력창의 현재 값 (state와 연결)
-            value={username}
-            // onChange: 타이핑할 때마다 state를 업데이트
-            // e.target.value는 현재 입력창의 값입니다.
-            onChange={(e) => setUsername(e.target.value)}
-            className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            placeholder="아이디를 입력하세요"
-          />
+          <div className="bg-blue-500 rounded-xl p-4 text-white text-xs">
+            <div className="font-bold text-lg mb-1">124</div>
+            <div className="text-blue-200">Notes Summarized</div>
+          </div>
+          <div className="bg-blue-500 rounded-xl p-4 text-white text-xs">
+            <div className="font-bold text-lg mb-1">42</div>
+            <div className="text-blue-200">Quizzes Taken</div>
+          </div>
         </div>
+      </div>
 
-        {/* 비밀번호 입력창 */}
-        <div className="mb-6">
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            비밀번호
-          </label>
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            placeholder="비밀번호를 입력하세요"
-            // 엔터 키를 눌러도 로그인되게 합니다.
-            onKeyDown={(e) => e.key === "Enter" && handleLogin()}
-          />
+      {/* 오른쪽 로그인 폼 */}
+      <div className="flex-1 flex items-center justify-center p-8">
+        <div className="w-full max-w-md">
+          <div className="mb-8">
+            <h2 className="text-2xl font-bold text-gray-800 mb-2">Welcome back</h2>
+            <p className="text-gray-500 text-sm">StudyBrain AI에 로그인하세요</p>
+          </div>
+
+          {errorMessage && (
+            <div className="bg-red-50 text-red-500 px-4 py-3 rounded-lg mb-4 text-sm">
+              {errorMessage}
+            </div>
+          )}
+
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">아이디</label>
+            <input
+              type="text"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleLogin()}
+              className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="아이디를 입력하세요"
+            />
+          </div>
+
+          <div className="mb-6">
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">비밀번호</label>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleLogin()}
+              className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="비밀번호를 입력하세요"
+            />
+          </div>
+
+          <button
+            onClick={handleLogin}
+            disabled={loading}
+            className={`w-full py-2.5 rounded-lg text-white font-medium text-sm transition-colors ${
+              loading ? "bg-blue-300 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700"
+            }`}
+          >
+            {loading ? "로그인 중..." : "로그인"}
+          </button>
+
+          <p className="text-center text-sm text-gray-500 mt-6">
+            계정이 없으신가요?{" "}
+            <Link to="/signup" className="text-blue-600 font-medium hover:underline">
+              회원가입
+            </Link>
+          </p>
         </div>
-
-        {/* 로그인 버튼 */}
-        <button
-          onClick={handleLogin}
-          // loading 중이면 버튼 비활성화 및 색상 변경
-          disabled={loading}
-          className={`w-full py-2 rounded text-white font-medium ${
-            loading
-              ? "bg-blue-300 cursor-not-allowed"
-              : "bg-blue-500 hover:bg-blue-600"
-          }`}
-        >
-          {/* loading 중이면 텍스트 변경 */}
-          {loading ? "로그인 중..." : "로그인"}
-        </button>
-
-        {/* 회원가입 링크 */}
-        <p className="text-center text-sm text-gray-500 mt-4">
-          계정이 없으신가요?{" "}
-          <Link to="/signup" className="text-blue-500 hover:underline">
-            회원가입
-          </Link>
-        </p>
       </div>
     </div>
   );

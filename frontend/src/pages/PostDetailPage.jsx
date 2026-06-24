@@ -1,159 +1,182 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { getPost, deletePost } from "../api/posts";
 import { useAuth } from "../context/AuthContext";
-import hljs from "highlight.js/lib/core";
-import python from "highlight.js/lib/languages/python";
-import javascript from "highlight.js/lib/languages/javascript";
-import css from "highlight.js/lib/languages/css";
-import sql from "highlight.js/lib/languages/sql";
-import bash from "highlight.js/lib/languages/bash";
-
-hljs.registerLanguage("python", python);
-hljs.registerLanguage("javascript", javascript);
-hljs.registerLanguage("css", css);
-hljs.registerLanguage("sql", sql);
-hljs.registerLanguage("bash", bash);
+import hljs from "highlight.js";
+import {
+  Sparkles, MessageSquare, BrainCircuit, Calendar, Lock, ChevronRight, Send
+} from "lucide-react";
 
 function PostDetailPage() {
-  // URL에서 id를 가져옵니다.
-  // App.js에서 path="/posts/:id" 로 설정했기 때문에 id로 접근합니다.
   const { id } = useParams();
-
-  // 게시글 데이터 상태
   const [post, setPost] = useState(null);
-
-  // 로딩/에러 상태
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
-
-  const { user, token } = useAuth();
+  const [aiQuestion, setAiQuestion] = useState("");
+  const { token, user } = useAuth();
   const navigate = useNavigate();
 
-  // 게시글 상세 데이터를 불러오는 함수
-  const fetchPost = async () => {
-    setLoading(true);
-    try {
-      const data = await getPost(id);
-      setPost(data);
-    } catch (error) {
-      setErrorMessage("게시글을 불러오는데 실패했습니다.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // 컴포넌트가 처음 렌더링될 때 게시글을 불러옵니다.
   useEffect(() => {
+    const fetchPost = async () => {
+      try {
+        const data = await getPost(id);
+        setPost(data);
+      } catch (error) {
+        setErrorMessage("게시글을 불러오는데 실패했습니다.");
+      } finally {
+        setLoading(false);
+      }
+    };
     fetchPost();
   }, [id]);
 
   useEffect(() => {
-    if (!post) return;
-    document.querySelectorAll("pre code").forEach((block) => {
-      hljs.highlightElement(block);
-    });
+    if (post) {
+      document.querySelectorAll(".prose pre code").forEach((block) => {
+        hljs.highlightElement(block);
+      });
+    }
   }, [post]);
 
-  // 삭제 버튼 클릭 시 실행되는 함수
   const handleDelete = async () => {
-    // 삭제 전 확인 창을 띄웁니다.
     if (!window.confirm("정말 삭제하시겠습니까?")) return;
-
     try {
       await deletePost(id, token);
-      // 삭제 성공 시 홈으로 이동
       navigate("/");
     } catch (error) {
       setErrorMessage("삭제에 실패했습니다.");
     }
   };
 
-  // 로딩 중일 때
-  if (loading) {
-    return (
-      <div className="text-center text-gray-500 py-12">불러오는 중...</div>
-    );
-  }
-
-  // 에러 발생 시
-  if (errorMessage) {
-    return (
-      <div className="max-w-4xl mx-auto px-4 py-8">
-        <div className="bg-red-50 text-red-500 px-4 py-3 rounded">
-          {errorMessage}
-        </div>
-      </div>
-    );
-  }
-
-  // 데이터가 없을 때 (아직 로딩 전)
+  if (loading) return (
+    <div className="flex items-center justify-center h-full text-gray-400">불러오는 중...</div>
+  );
+  if (errorMessage) return (
+    <div className="p-8 text-red-500">{errorMessage}</div>
+  );
   if (!post) return null;
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8">
-      {/* 게시글 헤더 */}
-      <div className="bg-white rounded-lg shadow p-8 mb-4">
-        {/* 제목 */}
-        <h1 className="text-3xl font-bold text-gray-800 mb-4">{post.title}</h1>
-
-        {/* 작성자 / 날짜 */}
-        <div className="flex justify-between text-sm text-gray-400 mb-4">
-          <span>{post.nickname}</span>
-          <span>{new Date(post.created_at).toLocaleDateString("ko-KR")}</span>
+    <div className="flex flex-1 min-h-screen">
+      {/* 메인 본문 */}
+      <div className="flex-1 min-w-0 overflow-y-auto">
+        {/* 상단 헤더 */}
+        <div className="sticky top-0 bg-white border-b border-gray-100 px-8 py-4 flex items-center justify-between z-10">
+          <div className="flex items-center gap-1.5 text-sm text-gray-400">
+            <button onClick={() => navigate("/")} className="hover:text-blue-600">All Notes</button>
+            {post.category_id && (
+              <>
+                <ChevronRight size={14} className="text-gray-300" />
+                <span className="text-gray-700 font-medium">{post.category_id}</span>
+              </>
+            )}
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1.5 bg-green-50 text-green-600 text-xs font-medium px-3 py-1.5 rounded-full">
+              <span className="w-1.5 h-1.5 bg-green-500 rounded-full"></span>
+              AI Status: Online
+            </div>
+            {user && user.nickname === post.nickname && (
+              <div className="flex gap-2">
+                <button
+                  onClick={() => navigate(`/posts/${id}/edit`)}
+                  className="text-sm text-gray-500 border border-gray-200 px-3 py-1.5 rounded-lg hover:bg-gray-50"
+                >
+                  수정
+                </button>
+                <button
+                  onClick={handleDelete}
+                  className="text-sm text-red-400 border border-red-200 px-3 py-1.5 rounded-lg hover:bg-red-50"
+                >
+                  삭제
+                </button>
+              </div>
+            )}
+          </div>
         </div>
-
-        {/* 태그 목록 */}
-        <div className="flex flex-wrap gap-2 mb-6">
-          {post.tags.map((tag) => (
-            <span
-              key={tag}
-              className="bg-blue-50 text-blue-600 text-xs px-2 py-1 rounded"
-            >
-              #{tag}
-            </span>
-          ))}
-        </div>
-
-        {/* 구분선 */}
-        <hr className="mb-6" />
 
         {/* 본문 */}
-        {/* whitespace-pre-wrap: 줄바꿈과 공백을 그대로 표시합니다. */}
-        <div
-  className="prose max-w-none text-gray-700 leading-relaxed"
-  dangerouslySetInnerHTML={{ __html: post.content }}
-/>
+        <div className="px-8 py-8">
+          <h1 className="text-3xl font-bold text-gray-800 mb-3">{post.title}</h1>
+          <div className="flex items-center gap-4 text-sm text-gray-400 mb-4">
+            <span className="flex items-center gap-1.5">
+              <Calendar size={13} />
+              {new Date(post.created_at).toLocaleDateString("ko-KR", { year: "numeric", month: "long", day: "numeric" })}
+            </span>
+            <span className="flex items-center gap-1.5">
+              <Lock size={13} />
+              Private Notes
+            </span>
+          </div>
+          <div className="flex flex-wrap gap-2 mb-8">
+            {post.tags.map((tag) => (
+              <span key={tag} className="text-xs bg-gray-100 text-gray-500 px-2.5 py-1 rounded-full">
+                # {tag}
+              </span>
+            ))}
+          </div>
+          <hr className="mb-8 border-gray-100" />
+          <div
+            className="prose max-w-none text-gray-700 leading-relaxed"
+            dangerouslySetInnerHTML={{ __html: post.content }}
+          />
+        </div>
       </div>
 
-      {/* 버튼 영역 */}
-      <div className="flex justify-between">
-        {/* 목록으로 버튼 */}
-        <button
-          onClick={() => navigate("/")}
-          className="text-gray-500 hover:text-gray-700"
-        >
-          ← 목록으로
-        </button>
+      {/* 우측 AI 패널 */}
+      <div className="w-72 shrink-0 border-l border-gray-100 bg-white p-5 flex flex-col gap-4 sticky top-0 h-screen overflow-y-auto">
 
-        {/* 본인 글일 때만 수정/삭제 버튼 표시 */}
-        {/* user?.nickname === post.nickname 으로 본인 글 여부 확인 */}
-        {user && user.nickname === post.nickname && (
-          <div className="flex gap-3">
-            <button
-              onClick={() => navigate(`/posts/${id}/edit`)}
-              className="bg-gray-100 text-gray-600 px-4 py-2 rounded hover:bg-gray-200"
-            >
-              수정
-            </button>
-            <button
-              onClick={handleDelete}
-              className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
-            >
-              삭제
+        {/* AI Summary */}
+        <div className="bg-blue-50 rounded-xl p-4">
+          <div className="flex items-center gap-2 text-blue-600 font-semibold text-sm mb-3">
+            <Sparkles size={15} /> AI Summary
+          </div>
+          <p className="text-sm text-gray-500 leading-relaxed">
+            AI 요약 기능은 곧 추가될 예정입니다.
+          </p>
+        </div>
+
+        {/* Ask AI */}
+        <div className="border border-gray-100 rounded-xl overflow-hidden">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+            <div className="flex items-center gap-2 text-sm font-semibold text-gray-700">
+              <MessageSquare size={15} /> Ask StudyBrain AI
+            </div>
+            <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+          </div>
+
+          <div className="p-4 min-h-32 bg-gray-50">
+            <div className="flex items-start gap-2">
+              <div className="w-7 h-7 bg-blue-600 rounded-full flex items-center justify-center text-white text-xs shrink-0 font-medium">
+                AI
+              </div>
+              <div className="bg-white rounded-lg px-3 py-2 text-sm text-gray-600 shadow-sm leading-relaxed">
+                이 노트를 기반으로 질문에 답변할 준비가 됐어요. 무엇이 궁금하신가요?
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 px-3 py-2.5 border-t border-gray-100">
+            <input
+              type="text"
+              value={aiQuestion}
+              onChange={(e) => setAiQuestion(e.target.value)}
+              placeholder="Ask about this topic..."
+              className="flex-1 text-sm text-gray-600 focus:outline-none bg-transparent"
+            />
+            <button className="text-blue-600 hover:text-blue-700">
+              <Send size={14} />
             </button>
           </div>
-        )}
+        </div>
+
+        {/* Generate Quiz 버튼 */}
+        <button
+          onClick={() => navigate("/quiz")}
+          className="w-full flex items-center justify-center gap-2 bg-blue-600 text-white text-sm font-medium px-4 py-3 rounded-xl hover:bg-blue-700 transition-colors mt-auto"
+        >
+          <BrainCircuit size={16} /> Generate Quiz from Notes
+        </button>
       </div>
     </div>
   );
