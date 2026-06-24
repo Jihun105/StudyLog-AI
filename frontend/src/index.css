@@ -3,6 +3,9 @@
 @tailwind components;
 @tailwind utilities;
 
+* {
+  font-family: 'Inter', sans-serif;
+}
 
 /* TipTap 에디터 스타일 */
 .ProseMirror {
@@ -18,9 +21,9 @@
   height: 0;
 }
 
-.ProseMirror h1 { font-size: 1.8rem; font-weight: bold; margin: 1rem 0 0.5rem; }
-.ProseMirror h2 { font-size: 1.4rem; font-weight: bold; margin: 1rem 0 0.5rem; }
-.ProseMirror h3 { font-size: 1.2rem; font-weight: bold; margin: 1rem 0 0.5rem; }
+.ProseMirror h1 { font-size: 1.8rem; font-weight: 700; margin: 1rem 0 0.5rem; }
+.ProseMirror h2 { font-size: 1.4rem; font-weight: 600; margin: 1rem 0 0.5rem; }
+.ProseMirror h3 { font-size: 1.2rem; font-weight: 600; margin: 1rem 0 0.5rem; }
 .ProseMirror ul { list-style-type: disc; padding-left: 1.5rem; margin: 0.5rem 0; }
 .ProseMirror ol { list-style-type: decimal; padding-left: 1.5rem; margin: 0.5rem 0; }
 .ProseMirror blockquote { border-left: 3px solid #d1d5db; padding-left: 1rem; color: #6b7280; margin: 0.5rem 0; }
@@ -28,14 +31,34 @@
 .ProseMirror pre { background: #1e1e1e; color: #d4d4d4; padding: 1rem; border-radius: 6px; overflow-x: auto; margin: 0.5rem 0; }
 .ProseMirror pre code { background: none; padding: 0; color: inherit; }
 .ProseMirror hr { border: none; border-top: 2px solid #e5e7eb; margin: 1rem 0; }
+.ProseMirror a { color: #3b82f6; text-decoration: underline; }
+.ProseMirror table { border-collapse: collapse; width: 100%; margin: 1rem 0; }
+.ProseMirror th { background: #f3f4f6; font-weight: bold; border: 1px solid #d1d5db; padding: 0.5rem; }
+.ProseMirror td { border: 1px solid #d1d5db; padding: 0.5rem; }
 
-/* Syntax highlighting */
-.ProseMirror pre .hljs-keyword, .prose pre .hljs-keyword { color: #569cd6; }
-.ProseMirror pre .hljs-string,  .prose pre .hljs-string  { color: #ce9178; }
-.ProseMirror pre .hljs-comment, .prose pre .hljs-comment { color: #6a9955; }
-.ProseMirror pre .hljs-number,  .prose pre .hljs-number  { color: #b5cea8; }
-.ProseMirror pre .hljs-function,.prose pre .hljs-function{ color: #dcdcaa; }
-.ProseMirror pre .hljs-built_in,.prose pre .hljs-built_in{ color: #4ec9b0; }
+/* Syntax highlighting - 에디터 & 상세 페이지 공통 */
+.ProseMirror pre .hljs-keyword,
+.prose pre .hljs-keyword { color: #569cd6; }
+.ProseMirror pre .hljs-string,
+.prose pre .hljs-string { color: #ce9178; }
+.ProseMirror pre .hljs-comment,
+.prose pre .hljs-comment { color: #6a9955; }
+.ProseMirror pre .hljs-number,
+.prose pre .hljs-number { color: #b5cea8; }
+.ProseMirror pre .hljs-function,
+.prose pre .hljs-function { color: #dcdcaa; }
+.ProseMirror pre .hljs-built_in,
+.prose pre .hljs-built_in { color: #4ec9b0; }
+.ProseMirror pre .hljs-title,
+.prose pre .hljs-title { color: #dcdcaa; }
+.ProseMirror pre .hljs-params,
+.prose pre .hljs-params { color: #9cdcfe; }
+.ProseMirror pre .hljs-attr,
+.prose pre .hljs-attr { color: #9cdcfe; }
+.ProseMirror pre .hljs-variable,
+.prose pre .hljs-variable { color: #9cdcfe; }
+.ProseMirror pre .hljs-type,
+.prose pre .hljs-type { color: #4ec9b0; }
 
 /* 표 스타일 */
 .ProseMirror table { border-collapse: collapse; width: 100%; margin: 1rem 0; }
@@ -46,9 +69,9 @@
 .ProseMirror a { color: #3b82f6; text-decoration: underline; cursor: pointer; }
 
 /* 게시글 상세 페이지 본문 스타일 */
-.prose h1 { font-size: 1.8rem; font-weight: bold; margin: 1rem 0 0.5rem; }
-.prose h2 { font-size: 1.4rem; font-weight: bold; margin: 1rem 0 0.5rem; }
-.prose h3 { font-size: 1.2rem; font-weight: bold; margin: 1rem 0 0.5rem; }
+.prose h1 { font-size: 1.8rem; font-weight: 700; margin: 1rem 0 0.5rem; }
+.prose h2 { font-size: 1.4rem; font-weight: 600; margin: 1rem 0 0.5rem; }
+.prose h3 { font-size: 1.2rem; font-weight: 600; margin: 1rem 0 0.5rem; }
 .prose ul { list-style-type: disc; padding-left: 1.5rem; margin: 0.5rem 0; }
 .prose ol { list-style-type: decimal; padding-left: 1.5rem; margin: 0.5rem 0; }
 .prose blockquote { border-left: 3px solid #d1d5db; padding-left: 1rem; color: #6b7280; margin: 0.5rem 0; }
@@ -60,3 +83,9 @@
 .prose table { border-collapse: collapse; width: 100%; margin: 1rem 0; }
 .prose th { background: #f3f4f6; font-weight: bold; border: 1px solid #d1d5db; padding: 0.5rem; }
 .prose td { border: 1px solid #d1d5db; padding: 0.5rem; }
+
+/* 스크롤바 스타일 */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: #f1f1f1; }
+::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #9ca3af; }

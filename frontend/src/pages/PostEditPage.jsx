@@ -4,8 +4,8 @@ import { getPost, updatePost } from "../api/posts";
 import { getCategories } from "../api/categories";
 import { useAuth } from "../context/AuthContext";
 import RichTextEditor from "../components/RichTextEditor";
+import { Lightbulb, FileText, ChevronRight } from "lucide-react";
 
-// 트리 구조 카테고리를 flat 배열로 변환
 function flattenCategories(categories, depth = 0) {
   const result = [];
   for (const cat of categories) {
@@ -30,7 +30,6 @@ function PostEditPage() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // 게시글 정보와 카테고리 목록을 동시에 불러옴
     const fetchData = async () => {
       try {
         const [postData, categoryData] = await Promise.all([
@@ -40,7 +39,7 @@ function PostEditPage() {
         setTitle(postData.title);
         setContent(postData.content);
         setTagInput(postData.tags.join(", "));
-        setCategoryId(postData.category_id);  // 기존 카테고리 세팅
+        setCategoryId(postData.category_id);
         setCategories(flattenCategories(categoryData));
       } catch (error) {
         setErrorMessage("데이터를 불러오는데 실패했습니다.");
@@ -68,75 +67,101 @@ function PostEditPage() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold text-gray-800 mb-8">게시글 수정</h1>
-      <div className="bg-white rounded-lg shadow p-8">
-        {errorMessage && (
-          <div className="bg-red-50 text-red-500 px-4 py-3 rounded mb-4 text-sm">{errorMessage}</div>
-        )}
-
-        {/* 카테고리 선택 */}
-        <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700 mb-1">카테고리</label>
-          <select
-            value={categoryId ?? ""}
-            onChange={(e) => setCategoryId(e.target.value ? Number(e.target.value) : null)}
-            className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="">기본 (미분류)</option>
-            {categories.map((cat) => (
-              <option key={cat.id} value={cat.id}>
-                {"　".repeat(cat.depth)}📁 {cat.name}
-              </option>
-            ))}
-          </select>
+    <div className="flex h-full">
+      {/* 메인 작성 영역 */}
+      <div className="flex-1 overflow-y-auto">
+        {/* 상단 헤더 */}
+        <div className="sticky top-0 bg-white border-b border-gray-100 px-8 py-4 flex items-center justify-between z-10">
+          <div className="flex items-center gap-1.5 text-sm text-gray-400">
+            <button onClick={() => navigate("/")} className="hover:text-blue-600">All Notes</button>
+            <ChevronRight size={14} className="text-gray-300" />
+            <button onClick={() => navigate(`/posts/${id}`)} className="hover:text-blue-600 truncate max-w-32">
+              {title || "게시글"}
+            </button>
+            <ChevronRight size={14} className="text-gray-300" />
+            <span className="text-gray-700 font-medium">Edit</span>
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1.5 bg-green-50 text-green-600 text-xs font-medium px-3 py-1.5 rounded-full">
+              <span className="w-1.5 h-1.5 bg-green-500 rounded-full"></span>
+              AI Status: Online
+            </div>
+            <button
+              onClick={handleUpdate}
+              disabled={loading}
+              className={`text-sm font-medium px-4 py-1.5 rounded-lg transition-colors ${
+                loading ? "bg-blue-300 text-white cursor-not-allowed" : "bg-blue-600 text-white hover:bg-blue-700"
+              }`}
+            >
+              {loading ? "저장 중..." : "Save Post"}
+            </button>
+            <button
+              onClick={() => navigate(`/posts/${id}`)}
+              className="text-sm text-gray-500 border border-gray-200 px-4 py-1.5 rounded-lg hover:bg-gray-50"
+            >
+              Cancel
+            </button>
+          </div>
         </div>
 
-        {/* 제목 */}
-        <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700 mb-1">제목</label>
+        {/* 수정 폼 */}
+        <div className="px-8 py-8">
+          {errorMessage && (
+            <div className="bg-red-50 text-red-500 px-4 py-3 rounded-lg mb-4 text-sm">{errorMessage}</div>
+          )}
+
           <input
             type="text"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="Post Title"
+            className="w-full text-3xl font-bold text-gray-800 placeholder-gray-300 border-none outline-none mb-6 bg-transparent"
           />
+
+          <div className="flex items-center gap-3 mb-6">
+            <select
+              value={categoryId ?? ""}
+              onChange={(e) => setCategoryId(e.target.value ? Number(e.target.value) : null)}
+              className="text-sm text-gray-500 border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+            >
+              <option value="">📁 Select Category...</option>
+              {categories.map((cat) => (
+                <option key={cat.id} value={cat.id}>
+                  {"　".repeat(cat.depth)}📁 {cat.name}
+                </option>
+              ))}
+            </select>
+            <input
+              type="text"
+              value={tagInput}
+              onChange={(e) => setTagInput(e.target.value)}
+              placeholder="🏷 Add tags (comma separated)"
+              className="flex-1 text-sm text-gray-500 border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+
+          <RichTextEditor content={content} onChange={setContent} />
+        </div>
+      </div>
+
+      {/* 우측 AI 패널 */}
+      <div className="w-72 shrink-0 border-l border-gray-100 bg-white overflow-y-auto p-5 flex flex-col gap-4">
+        <div className="border border-gray-100 rounded-xl p-4">
+          <div className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-3">
+            <Lightbulb size={15} className="text-yellow-500" /> AI Context
+          </div>
+          <p className="text-xs text-gray-400 italic">
+            AI 기능 추가 후 수정 가이드를 제공할 예정입니다.
+          </p>
         </div>
 
-        {/* 내용 */}
-        <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700 mb-1">내용</label>
-          <RichTextEditor
-            content={content}
-            onChange={setContent}
-          />
-        </div>
-
-        {/* 태그 */}
-        <div className="mb-6">
-          <label className="block text-sm font-medium text-gray-700 mb-1">태그</label>
-          <input
-            type="text"
-            value={tagInput}
-            onChange={(e) => setTagInput(e.target.value)}
-            className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            placeholder="쉼표로 구분하여 입력하세요 (예: 딥러닝, NLP)"
-          />
-        </div>
-
-        <div className="flex justify-between">
-          <button onClick={() => navigate(`/posts/${id}`)} className="text-gray-500 hover:text-gray-700">
-            취소
-          </button>
-          <button
-            onClick={handleUpdate}
-            disabled={loading}
-            className={`px-6 py-2 rounded text-white font-medium ${
-              loading ? "bg-blue-300 cursor-not-allowed" : "bg-blue-500 hover:bg-blue-600"
-            }`}
-          >
-            {loading ? "저장 중..." : "수정 완료"}
-          </button>
+        <div className="border border-gray-100 rounded-xl p-4">
+          <div className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-3">
+            <FileText size={15} className="text-blue-500" /> Related Notes
+          </div>
+          <p className="text-xs text-gray-400 italic">
+            관련 노트는 AI 기능 추가 후 자동으로 표시됩니다.
+          </p>
         </div>
       </div>
     </div>

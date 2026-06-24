@@ -1,3 +1,4 @@
+import re
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
@@ -5,6 +6,9 @@ from fastapi import HTTPException
 from app.models.post import Post, Tag
 from app.models.user import User
 from app.schemas.post import PostCreateRequest, PostUpdateRequest
+
+def strip_html(html: str) -> str:
+    return re.sub(r'<[^>]+>', '', html or '')
 
 async def get_posts(page: int, limit: int, db: AsyncSession, keyword: str = None, tags: list[str] = None, current_user_id: int = None, category_id: int = None) -> dict:
     offset = (page - 1) * limit
@@ -55,7 +59,7 @@ async def get_posts(page: int, limit: int, db: AsyncSession, keyword: str = None
             {
                 "id": post.id,
                 "title": post.title,
-                "preview": post.content[:100],
+                "preview": strip_html(post.content)[:100],
                 "nickname": post.user.nickname,
                 "tags": [tag.name for tag in post.tags],
                 "created_at": post.created_at,
