@@ -37,8 +37,9 @@ class PostDetailResponse(BaseModel):
     content: str
     nickname: str
     tags: List[str]
+    category_id: Optional[int] = None
     created_at: datetime
-    updated_at:datetime
-    
-    class Config: 
+    updated_at: datetime
+
+    class Config:
         from_attributes = True

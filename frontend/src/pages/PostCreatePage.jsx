@@ -5,6 +5,7 @@ import { getCategories } from "../api/categories";
 import { useAuth } from "../context/AuthContext";
 import RichTextEditor from "../components/RichTextEditor";
 import { Lightbulb, FileText, ChevronRight } from "lucide-react";
+import ResizableRightPanel from "../components/ResizableRightPanel";
 
 function flattenCategories(categories, depth = 0) {
   const result = [];
@@ -57,7 +58,7 @@ function PostCreatePage() {
   };
 
   return (
-    <div className="flex h-full">
+    <div className="flex h-full w-full">
       {/* 메인 작성 영역 */}
       <div className="flex-1 overflow-y-auto">
         {/* 상단 헤더 */}
@@ -91,7 +92,7 @@ function PostCreatePage() {
         </div>
 
         {/* 작성 폼 */}
-        <div className="px-8 py-8">
+        <div className="px-8 py-8 max-w-4xl">
           {errorMessage && (
             <div className="bg-red-50 text-red-500 px-4 py-3 rounded-lg mb-4 text-sm">{errorMessage}</div>
           )}
@@ -126,12 +127,12 @@ function PostCreatePage() {
             />
           </div>
 
-          <RichTextEditor content={content} onChange={setContent} />
+          <RichTextEditor initialContent={content} onChange={setContent} />
         </div>
       </div>
 
       {/* 우측 AI 패널 */}
-      <div className="w-72 shrink-0 border-l border-gray-100 bg-white overflow-y-auto p-5 flex flex-col gap-4">
+      <ResizableRightPanel className="p-5 flex flex-col gap-4">
         <div className="border border-gray-100 rounded-xl p-4">
           <div className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-3">
             <Lightbulb size={15} className="text-yellow-500" /> AI Context
@@ -153,7 +154,7 @@ function PostCreatePage() {
             관련 노트는 AI 기능 추가 후 자동으로 표시됩니다.
           </p>
         </div>
-      </div>
+      </ResizableRightPanel>
     </div>
   );
 }
