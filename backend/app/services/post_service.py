@@ -89,6 +89,7 @@ async def get_post(post_id: int, db: AsyncSession) -> dict:
         "content": post.content,
         "nickname": post.user.nickname,
         "tags": [tag.name for tag in post.tags],
+        "category_id": post.category_id,
         "created_at": post.created_at,
         "updated_at": post.updated_at,
     }

@@ -1,11 +1,16 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { getPost, deletePost } from "../api/posts";
 import { useAuth } from "../context/AuthContext";
-import hljs from "highlight.js";
+import { useCreateBlockNote } from "@blocknote/react";
+import { BlockNoteView } from "@blocknote/mantine";
+import "@blocknote/core/fonts/inter.css";
+import "@blocknote/mantine/style.css";
+import { codeBlockConfig } from "../lib/editorSchema";
 import {
   Sparkles, MessageSquare, BrainCircuit, Calendar, Lock, ChevronRight, Send
 } from "lucide-react";
+import ResizableRightPanel from "../components/ResizableRightPanel";
 
 function PostDetailPage() {
   const { id } = useParams();
@@ -15,6 +20,9 @@ function PostDetailPage() {
   const [aiQuestion, setAiQuestion] = useState("");
   const { token, user } = useAuth();
   const navigate = useNavigate();
+
+  // 읽기 전용 BlockNote 에디터
+  const editor = useCreateBlockNote({ codeBlock: codeBlockConfig });
 
   useEffect(() => {
     const fetchPost = async () => {
@@ -30,13 +38,23 @@ function PostDetailPage() {
     fetchPost();
   }, [id]);
 
+  // post 로드 후 콘텐츠를 에디터에 주입 (JSON or HTML fallback)
   useEffect(() => {
-    if (post) {
-      document.querySelectorAll(".prose pre code").forEach((block) => {
-        hljs.highlightElement(block);
-      });
+    if (!editor || !post?.content) return;
+    async function loadContent() {
+      try {
+        const parsed = JSON.parse(post.content);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          editor.replaceBlocks(editor.document, parsed);
+          return;
+        }
+      } catch {}
+      // 기존 TipTap HTML 포스트 fallback
+      const blocks = await editor.tryParseHTMLToBlocks(post.content);
+      editor.replaceBlocks(editor.document, blocks);
     }
-  }, [post]);
+    loadContent();
+  }, [editor, post]);
 
   const handleDelete = async () => {
     if (!window.confirm("정말 삭제하시겠습니까?")) return;
@@ -116,15 +134,12 @@ function PostDetailPage() {
             ))}
           </div>
           <hr className="mb-8 border-gray-100" />
-          <div
-            className="prose max-w-none text-gray-700 leading-relaxed"
-            dangerouslySetInnerHTML={{ __html: post.content }}
-          />
+          <BlockNoteView editor={editor} editable={false} theme="light" />
         </div>
       </div>
 
       {/* 우측 AI 패널 */}
-      <div className="w-72 shrink-0 border-l border-gray-100 bg-white p-5 flex flex-col gap-4 sticky top-0 h-screen overflow-y-auto">
+      <ResizableRightPanel className="p-5 flex flex-col gap-4 sticky top-0 h-screen">
 
         {/* AI Summary */}
         <div className="bg-blue-50 rounded-xl p-4">
@@ -177,7 +192,7 @@ function PostDetailPage() {
         >
           <BrainCircuit size={16} /> Generate Quiz from Notes
         </button>
-      </div>
+      </ResizableRightPanel>
     </div>
   );
 }
