@@ -30,7 +30,7 @@
 |---|---|---|
 | FastAPI | API 서버 | 기존 구현 완료 |
 | SQLAlchemy + Alembic | ORM + 마이그레이션 | 기존 구현 완료 |
-| FastAPI BackgroundTasks | 임베딩 비동기 처리 | Phase 1 Step 2 |
+| FastAPI BackgroundTasks | 임베딩 비동기 처리 | ✅ 완료 |
 | slowapi | Rate Limiting (AI 엔드포인트 과금 방지) | Phase 4 |
 | structlog | 구조화 로깅 (JSON 형식) | Phase 4 |
 
@@ -38,35 +38,42 @@
 | 기술 | 용도 | 비고 |
 |---|---|---|
 | MySQL | 메인 DB (유저, 포스트, 대화, 퀴즈) | 기존 구현 완료 |
-| Qdrant | 벡터 DB (임베딩 저장 및 검색) | Phase 1 Step 2 |
+| Qdrant | 벡터 DB (임베딩 저장 및 검색) | ✅ 완료 (Docker로 로컬 실행) |
 
 ### AI
 | 기술 | 용도 | 비고 |
 |---|---|---|
-| OpenAI text-embedding-3-small | 노트 임베딩 생성 (1536차원) | Phase 1 Step 2 |
-| GPT-4o-mini | 대화 응답 + 퀴즈 생성 | Phase 1 Step 4 |
-| Hybrid Search (Vector + BM25) | RAG 검색 품질 향상 | Phase 1 Step 3 |
-| LangChain | RAG 파이프라인 (문서 로더, 텍스트 스플리터, 체인) | Phase 1 |
+| OpenAI text-embedding-3-small | 노트 임베딩 생성 (1536차원) | ✅ 완료 |
+| GPT-4o-mini | 대화 응답 + 퀴즈 생성 | ✅ 완료 (스트리밍 미적용) |
+| Vector Search (Qdrant) | RAG 검색 | ✅ 완료 |
+| Hybrid Search (Vector + BM25) | RAG 검색 품질 향상 | ⏳ 대기 |
+| LangChain | RAG 파이프라인 | ⏳ 미사용 (직접 구현으로 대체) |
 | LangGraph | 멀티턴 대화 상태 관리 + Agent 흐름 제어 | Phase 2 |
 | LangSmith | LLM 모니터링 (토큰, 레이턴시, 체인 단계별 추적) | Phase 1 Step 5 |
 
 ### Infra / DevOps
 | 기술 | 용도 | 비고 |
 |---|---|---|
-| Docker + Docker Compose | 전체 서비스 컨테이너화 | Phase 4 |
+| Docker + Docker Compose | 전체 서비스 컨테이너화 | Phase 4 (Qdrant는 현재 단독 Docker) |
 | GitHub Actions | CI/CD (푸시 → 테스트 → 자동 배포) | Phase 4 |
 | Nginx | 리버스 프록시 + React 서빙 | Phase 4 |
 | VPS (DigitalOcean / Hetzner) | 서버 ($6~12/월) | Phase 4 |
 
-### 설치된 패키지 (AI 관련)
+### 설치된 패키지 (전체)
+`backend/requirements.txt` 참고.
+
+주요 패키지:
 ```
-openai==2.38.0
-langchain==1.3.2
-langchain-openai==1.2.2
-langchain-qdrant
-langchain-text-splitters
-qdrant-client
+fastapi, uvicorn[standard], python-multipart
+sqlalchemy[asyncio], aiomysql, alembic
+python-jose[cryptography], passlib[bcrypt], bcrypt==4.0.1
+pydantic-settings, email-validator
+openai==2.38.0, qdrant-client
+langchain==1.3.2, langchain-openai==1.2.2, langchain-qdrant, langchain-text-splitters
+pytest, pytest-asyncio
 ```
+
+> ⚠️ bcrypt는 4.0.1로 고정 — 최신 버전과 passlib 호환 문제
 
 ---
 
@@ -77,9 +84,8 @@ qdrant-client
                               ├── MySQL         유저, 포스트, 대화, 퀴즈
                               ├── Qdrant        벡터 임베딩
                               ├── OpenAI API    임베딩 + 응답 생성
-                              ├── LangChain     RAG 파이프라인
-                              ├── LangGraph     대화 Agent 흐름
-                              └── LangSmith     LLM 모니터링
+                              ├── LangGraph     대화 Agent 흐름 (Phase 2)
+                              └── LangSmith     LLM 모니터링 (Phase 1 Step 5)
 
 [GitHub Actions] → Docker Build → VPS 자동 배포
 ```
@@ -91,9 +97,11 @@ qdrant-client
 | Phase | Step | 내용 | 상태 |
 |---|---|---|---|
 | Phase 1 | Step 1 | BlockNote JSON → 텍스트 추출 유틸 | ✅ 완료 |
-| Phase 1 | Step 2 | Qdrant 연동 + 임베딩 인덱싱 (BackgroundTasks) | 🔄 진행 중 |
-| Phase 1 | Step 3 | LangChain RetrievalChain + Hybrid Search | ⏳ 대기 |
-| Phase 1 | Step 4 | GPT-4o-mini 연동 + 스트리밍 응답 (SSE) | ⏳ 대기 |
+| Phase 1 | Step 2 | Qdrant 연동 + 임베딩 인덱싱 (BackgroundTasks) | ✅ 완료 |
+| Phase 1 | Step 3 | Vector Search 기반 RAG 검색 | ✅ 완료 |
+| Phase 1 | Step 3-2 | Hybrid Search (BM25 추가) | ⏳ 대기 |
+| Phase 1 | Step 4 | GPT-4o-mini 연동 + 기본 응답 | ✅ 완료 |
+| Phase 1 | Step 4-2 | 스트리밍 응답 (SSE) | ⏳ 대기 |
 | Phase 1 | Step 5 | LangSmith 연동 | ⏳ 대기 |
 | Phase 2 | Step 6 | conversations / messages 테이블 추가 (Alembic) | ⏳ 대기 |
 | Phase 2 | Step 7 | LangGraph StateGraph 의도 분류 + 라우팅 Agent | ⏳ 대기 |
@@ -127,9 +135,9 @@ qdrant-client
 
 ---
 
-#### Step 2: Qdrant 연동 + 임베딩 인덱싱 🔄
+#### Step 2: Qdrant 연동 + 임베딩 인덱싱 ✅
 
-**파일**: `backend/app/utils/chunking.py`, `backend/app/services/embedding_service.py`
+**파일**: `backend/app/utils/chunking.py`, `backend/app/services/ai/embedding_service.py`
 
 **Qdrant 환경:**
 - 개발: Docker로 로컬 실행
@@ -137,7 +145,8 @@ qdrant-client
   docker run -d --name qdrant -p 6333:6333 qdrant/qdrant
   ```
 - 대시보드: `http://localhost:6333/dashboard`
-- 배포: Docker Compose로 전환
+- 컬렉션명: `study_notes`
+- 배포: Docker Compose로 전환 예정
 
 **청킹 전략: 블록 단위 청킹**
 
@@ -149,70 +158,63 @@ qdrant-client
 
 **임베딩 품질 향상: category_path + 제목 prefix**
 
-청크 텍스트 앞에 카테고리 경로와 포스트 제목을 prefix로 붙여 임베딩에 도메인 정보를 녹여 넣음.
-
 ```
 [머신러닝 > 선형대수 > 기초개념] [선형 변환 정리]
 선형 변환은 벡터 공간에서...
 ```
 
-**Qdrant 저장 구조:**
+**Qdrant payload 구조:**
 ```json
 {
   "page_content": "[머신러닝 > 선형대수] [선형 변환 정리]\n청크 내용...",
-  "metadata": {
-    "post_id": 42,
-    "user_id": 7,
-    "category_id": 12,
-    "category_path": "머신러닝 > 선형대수 > 기초개념"
-  }
+  "post_id": 42,
+  "user_id": 7,
+  "category_path": "머신러닝 > 선형대수 > 기초개념"
 }
 ```
 
 **메타데이터 설계 이유:**
 - `user_id`: 검색 시 본인 노트만 필터링 (보안 필수)
 - `post_id`: 답변에 출처 포스트 표시용
-- `category_id`: 특정 폴더 범위 내 검색 필터링용
 - `category_path`: AI 응답 생성 시 문맥 정보 제공용
 
-**모델:**
-- 임베딩: `text-embedding-3-small` (1536차원)
-- 응답 생성: `GPT-4o-mini`
+**BackgroundTasks 연동:**
+- 포스트 저장/수정: `index_post()` 백그라운드 실행
+- 포스트 삭제: `delete_post_index()` 백그라운드 실행 → Qdrant에서도 자동 삭제
 
-**`index_post()` 시그니처:**
-```python
-def index_post(
-    post_id: int,
-    user_id: int,
-    title: str,
-    content: str,
-    category_path: str
-) -> None:
-```
-
-**BackgroundTasks 연동**: 포스트 저장 API에서 임베딩 인덱싱을 BackgroundTasks로 처리 → HTTP 응답 블로킹 방지
+**구현 중 트러블슈팅:**
+- `qdrant_client.delete()` — 최신 버전은 dict 대신 `FilterSelector` 모델 객체 필요
+- `qdrant_client.search()` — 최신 버전에서 `query_points()`로 변경됨
 
 ---
 
-#### Step 3: Hybrid Search
+#### Step 3: Vector Search 기반 RAG 검색 ✅
 
-**파일**: `backend/app/services/rag_service.py`
+**파일**: `backend/app/services/ai/rag_service.py`
 
-Vector Search + BM25 조합. 키워드가 정확히 일치해도 벡터 검색 단독으론 놓칠 수 있는 케이스 보완.
+LangChain 대신 직접 구현. `qdrant_client.query_points()`로 유사 청크 TOP_K(기본 5)개 검색.
+`user_id` 필터로 본인 노트만 대상으로 함.
 
-> ⚠️ Qdrant Sparse Vector 방식 vs LangChain EnsembleRetriever 방식 중 구현 시 결정 필요
+> Hybrid Search(BM25 추가)는 추후 적용 예정
 
 ---
 
-#### Step 4: 스트리밍 응답 (SSE)
+#### Step 4: GPT-4o-mini 연동 + AI 채팅 엔드포인트 ✅
 
-**파일**: `backend/app/routers/ai_router.py`
+**파일**: `backend/app/routers/ai_router.py`, `backend/app/services/ai/rag_service.py`
 
-FastAPI `StreamingResponse`로 SSE 구현 → 글자가 흘러나오는 ChatGPT 스타일 UX.
-
+**엔드포인트:**
 ```
-GET /ai/chat  →  StreamingResponse (text/event-stream)
+POST /api/ai/chat
+Body: { "query": "질문 내용" }
+Response: { "answer": "AI 답변" }
 ```
+
+**system prompt 전략:**
+- 검색된 청크를 `---`로 구분해서 context로 주입
+- "노트에 없는 내용은 모른다고 해" 명시 → 환각 방지
+
+> 스트리밍 응답(SSE)은 추후 적용 예정
 
 ---
 
@@ -301,40 +303,50 @@ services:
 
 ---
 
-## 6. 파일 구조 (목표)
+## 6. 파일 구조 (현재)
 
 ```
 backend/
+  requirements.txt              ✅ 전체 패키지 목록
   app/
     utils/
-      blocknote.py          ✅ BlockNote JSON 텍스트 추출
-      chunking.py           🔄 블록 단위 청킹
+      blocknote.py              ✅ BlockNote JSON 텍스트 추출
+      chunking.py               ✅ 블록 단위 청킹
     services/
-      auth_service.py       ✅
-      post_service.py       ✅ (index_post 호출 추가 예정)
-      category_service.py   ✅ (category_path 조합 추가 예정)
-      embedding_service.py  ⏳ Qdrant 인덱싱
-      rag_service.py        ⏳ Hybrid Search + 응답 생성
+      auth_service.py           ✅
+      post_service.py           ✅
+      category_service.py       ✅ (get_category_path 추가됨)
+      ai/
+        __init__.py
+        embedding_service.py    ✅ Qdrant 인덱싱 + 삭제
+        rag_service.py          ✅ Vector Search + GPT 응답 생성
     routers/
-      auth_router.py        ✅
-      post_router.py        ✅
-      category_router.py    ✅
-      ai_router.py          ⏳ 채팅 + 퀴즈 엔드포인트
+      auth_router.py            ✅
+      post_router.py            ✅ (embedding BackgroundTasks 연동)
+      category_router.py        ✅
+      ai_router.py              ✅ POST /api/ai/chat
     models/
-      user.py               ✅
-      post.py               ✅
-      conversation.py       ⏳ Phase 2
-      quiz.py               ⏳ Phase 3
+      user.py                   ✅
+      post.py                   ✅
+      conversation.py           ⏳ Phase 2
+      quiz.py                   ⏳ Phase 3
   tests/
-    test_blocknote.py       ✅ 통과
-    test_chunking.py        ⏳
-    test_embedding.py       ⏳
-    test_rag.py             ⏳
+    test_blocknote.py           ✅ 통과
+    test_chunking.py            ⏳
+    test_embedding.py           ⏳
+    test_rag.py                 ⏳
 ```
 
 ---
 
-## 7. 향후 확장 가능성 (포트폴리오 관점)
+## 7. 버그 수정 기록
+
+- `post_router.py` — `/tags/all` 라우트가 `/{post_id}` 뒤에 있어서 항상 422 에러 → 순서 변경
+- `post_service.py` — 미리보기에 `strip_html()` 사용 중 BlockNote JSON이 그대로 노출 → `extract_text_from_blocknote()`로 교체
+
+---
+
+## 8. 향후 확장 가능성 (포트폴리오 관점)
 
 - **Re-ranking**: 검색 상위 k개 청크를 관련도 순으로 재정렬 → RAG 정확도 향상
 - **GraphRAG**: 노트에서 개념-관계를 LLM으로 추출 → Neo4j 지식 그래프 → 멀티홉 질문 정확도 향상

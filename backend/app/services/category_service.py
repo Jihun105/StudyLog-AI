@@ -82,3 +82,17 @@ async def rename_category(category_id: int, name: str, user_id: int, db: AsyncSe
     await db.commit()
     await db.refresh(category)
     return category
+
+async def get_category_path(category_id: int, db: AsyncSession) -> str:
+    """카테고리 ID -> '머신러닝 > 선형대수 > 기초개념' 형태 문자열"""
+    parts = []
+    current_id = category_id
+    while current_id is not None:
+        result = await db.execute(select(Category).filter(Category.id == current_id))
+        category = result.scalar_one_or_none()
+        if category is None:
+            break
+        parts.append(category.name)
+        current_id = category.parent_id
+
+    return " > ".join(reversed(parts))

@@ -6,6 +6,7 @@ from fastapi import HTTPException
 from app.models.post import Post, Tag
 from app.models.user import User
 from app.schemas.post import PostCreateRequest, PostUpdateRequest
+from app.utils.blocknote import extract_text_from_blocknote
 
 def strip_html(html: str) -> str:
     return re.sub(r'<[^>]+>', '', html or '')
@@ -59,7 +60,7 @@ async def get_posts(page: int, limit: int, db: AsyncSession, keyword: str = None
             {
                 "id": post.id,
                 "title": post.title,
-                "preview": strip_html(post.content)[:100],
+                "preview": extract_text_from_blocknote(post.content)[:100],
                 "nickname": post.user.nickname,
                 "tags": [tag.name for tag in post.tags],
                 "created_at": post.created_at,

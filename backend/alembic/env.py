@@ -18,7 +18,7 @@ if config.config_file_name is not None:
 
 # 모델 메타데이터 import (자동 감지에 필요)
 from app.db.database import Base
-from app.models import user, post  # 모든 모델 import
+from app.models import user, post, conversation  # 모든 모델 import
 
 target_metadata = Base.metadata
 
