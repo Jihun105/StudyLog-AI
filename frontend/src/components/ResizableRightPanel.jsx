@@ -48,7 +48,7 @@ function ResizableRightPanel({ children, defaultWidth = 288, minWidth = 200, max
       {/* 패널 */}
       <div
         style={{ width: `${width}px` }}
-        className={`shrink-0 bg-white overflow-y-auto ${className}`}
+        className={`shrink-0 bg-white overflow-y-auto overflow-x-auto min-w-0 ${className}`}
       >
         {children}
       </div>

@@ -1,9 +1,13 @@
+import logging
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.db.database import Base, engine
-from app.models import user, post, conversation
-from app.routers import auth_router, post_router, category_router, ai_router
+from app.models import user, post, conversation, quiz
+from app.routers import auth_router, post_router, category_router, ai_router, conversation_router, quiz_router
+
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
+logging.getLogger("app").setLevel(logging.INFO)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -27,6 +31,8 @@ app.include_router(auth_router.router)
 app.include_router(post_router.router)
 app.include_router(category_router.router)
 app.include_router(ai_router.router)
+app.include_router(conversation_router.router)
+app.include_router(quiz_router.router)
 
 @app.get("/")
 async def root():

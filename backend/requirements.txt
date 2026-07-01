@@ -25,6 +25,7 @@ langchain-qdrant
 langchain-text-splitters
 qdrant-client
 langgraph
+langsmith
 
 # Test
 pytest
