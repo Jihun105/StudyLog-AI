@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { getPost, deletePost } from "../api/posts";
+import { getCategories } from "../api/categories";
 import { getConversations, getConversationMessages, sendChatMessage } from "../api/conversations";
 import { useAuth } from "../context/AuthContext";
 import { useCreateBlockNote } from "@blocknote/react";
@@ -36,6 +37,19 @@ function renderMessageContent(text) {
   });
 }
 
+// 카테고리 트리에서 targetId까지의 경로(루트→타겟)를 [{id, name}, ...]로 반환
+function findCategoryPath(categories, targetId, trail = []) {
+  for (const category of categories) {
+    const nextTrail = [...trail, { id: category.id, name: category.name }];
+    if (category.id === targetId) return nextTrail;
+    if (category.children?.length > 0) {
+      const found = findCategoryPath(category.children, targetId, nextTrail);
+      if (found) return found;
+    }
+  }
+  return null;
+}
+
 function PostDetailPage() {
   const { id } = useParams();
   const [post, setPost] = useState(null);
@@ -44,6 +58,9 @@ function PostDetailPage() {
   const [aiQuestion, setAiQuestion] = useState("");
   const { token, user } = useAuth();
   const navigate = useNavigate();
+
+  // 카테고리 경로(breadcrumb)용
+  const [categories, setCategories] = useState([]);
 
   // 채팅 상태
   const [chatMessages, setChatMessages] = useState([]);
@@ -72,6 +89,16 @@ function PostDetailPage() {
     };
     fetchPost();
   }, [id]);
+
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const data = await getCategories(token);
+        setCategories(data);
+      } catch (error) {}
+    };
+    fetchCategories();
+  }, [token]);
 
   // post 로드 후 콘텐츠를 에디터에 주입 (JSON or HTML fallback)
   useEffect(() => {
@@ -164,6 +191,8 @@ function PostDetailPage() {
   );
   if (!post) return null;
 
+  const categoryPath = post.category_id ? findCategoryPath(categories, post.category_id) : null;
+
   return (
     <div className="flex flex-1 min-h-screen">
       {/* 메인 본문 */}
@@ -172,12 +201,17 @@ function PostDetailPage() {
         <div className="sticky top-0 bg-white border-b border-gray-100 px-8 py-4 flex items-center justify-between z-10">
           <div className="flex items-center gap-1.5 text-sm text-gray-400">
             <button onClick={() => navigate("/")} className="hover:text-blue-600">All Notes</button>
-            {post.category_id && (
-              <>
+            {categoryPath?.map((cat) => (
+              <span key={cat.id} className="flex items-center gap-1.5">
                 <ChevronRight size={14} className="text-gray-300" />
-                <span className="text-gray-700 font-medium">{post.category_id}</span>
-              </>
-            )}
+                <button
+                  onClick={() => navigate(`/?category=${cat.id}`)}
+                  className="hover:text-blue-600 text-gray-700 font-medium"
+                >
+                  {cat.name}
+                </button>
+              </span>
+            ))}
           </div>
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-1.5 bg-green-50 text-green-600 text-xs font-medium px-3 py-1.5 rounded-full">

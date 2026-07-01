@@ -131,7 +131,7 @@ StudyLog-AI/
 | Phase 1-2 | 보완 | Hybrid Search (BM25 + Vector) | ⏳ 대기 |
 | Phase 1-2 | 보완 | 스트리밍 응답 (SSE) | ⏳ 대기 |
 | Phase 3 | Step 10-12 | 퀴즈 생성/채점/UI (카테고리 기반, 독립 서비스) | ✅ 완료 |
-| Phase 4 | Step 13 | Rate Limiting (slowapi) | ⏳ 대기 |
+| Phase 4 | Step 13 | Rate Limiting (slowapi) | ✅ 완료 |
 | Phase 4 | Step 14 | 구조화 로깅 (structlog) | ⏳ 대기 |
 | Phase 4 | Step 15 | Docker Compose 작성 | ⏳ 대기 |
 | Phase 4 | Step 16 | GitHub Actions CI/CD | ⏳ 대기 |
@@ -250,6 +250,27 @@ tracing 비활성/활성(가짜 키) 두 경우 모두 mock으로 실제 채팅 
 
 ### 검증
 실제 MySQL 없이 in-memory SQLite로 진짜 SQLAlchemy 비동기 쿼리를 돌려서 확인: 카테고리 재귀 서브트리 조회, 카테고리별/미분류/전체 노트 필터링, 빈 카테고리 에러 처리, 퀴즈 생성 후 DB 저장, 정답/오답 채점, 소유권 검증, 문제 유형별 생성·채점(객관식 정답 위치 분포, OX, 빈칸 정규화 비교), 자동 정리 4가지 케이스, 출처 매칭 3가지 케이스까지 전부 통과. 프론트는 Babel로 문법 검증. 실제 인프라(MySQL, 프론트 서버)에서 사용자가 직접 통합 테스트 완료.
+
+---
+
+## Phase 4 Step 13 구현 완료 — Rate Limiting (slowapi)
+
+AI 엔드포인트(`POST /api/ai/chat`, `POST /api/quizzes/generate`)는 매 호출마다 OpenAI 비용이 발생하는데 제한이 전혀 없었음. 반 친구들과 함께 쓰는 배포 목표를 고려해 과금 방지용 rate limit 추가.
+
+### 만든/바뀐 파일
+- `backend/app/core/limiter.py` — `Limiter(key_func=get_user_id_or_ip)` 정의
+- `backend/app/main.py` — `app.state.limiter` 등록, `RateLimitExceeded` 예외 핸들러, `SlowAPIMiddleware` 추가
+- `backend/app/routers/ai_router.py` — `/api/ai/chat`에 `@limiter.limit("10/minute")`
+- `backend/app/routers/quiz_router.py` — `/api/quizzes/generate`에 `@limiter.limit("5/minute")` (`/attempt`는 외부 API 호출이 없어서 제외)
+- `backend/requirements.txt` — `slowapi` 추가
+
+### 설계 결정
+- **IP가 아니라 유저 기준으로 제한**: `get_user_id_or_ip()`가 `Authorization` 헤더의 JWT를 디코드해서 `user_id`를 키로 사용, 토큰이 없거나 유효하지 않을 때만 IP로 폴백. 같은 와이파이/NAT를 쓰는 여러 학생이 서로의 한도에 영향을 주지 않게 하기 위함
+- **slowapi 제약**: rate limit 데코레이터가 붙는 함수는 파라미터 이름이 정확히 `request`(타입 `Request`)여야 slowapi가 인식함. 기존 라우터들은 Pydantic 요청 바디를 `request`라는 이름으로 받고 있어서 이름이 충돌 — 바디 파라미터를 `body`로 이름 변경하고 `request: Request`를 별도로 추가해서 해결
+- **엔드포인트별 한도**: `/api/ai/chat`은 10회/분(대화는 짧은 텀으로 여러 번 오갈 수 있어 넉넉하게), `/api/quizzes/generate`는 5회/분(한 번에 5문제씩 생성되는 무거운 호출이라 더 타이트하게)
+
+### 검증
+FastAPI `TestClient`로 실제 라우터와 동일한 구조(데코레이터 + `Depends()` 공존)를 재현해서 확인: (1) 한 유저가 한도를 초과하면 3번째 요청부터 429 응답, (2) 다른 유저(다른 JWT)는 같은 시간대에도 전혀 영향받지 않고 정상 처리됨 — 사용자별 독립적인 제한이 의도대로 동작.
 
 ---
 

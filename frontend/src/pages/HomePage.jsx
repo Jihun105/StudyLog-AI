@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { getPosts, getAllTags } from "../api/posts";
 import { useAuth } from "../context/AuthContext";
 import {
-  Search, SlidersHorizontal, FileText, BrainCircuit, Database,
+  Search, SlidersHorizontal, FileText,
   Play, Plus
 } from "lucide-react";
 import Sidebar from "../components/Sidebar";
@@ -19,7 +19,11 @@ function HomePage() {
   const [keyword, setKeyword] = useState(null);
   const [allTags, setAllTags] = useState([]);
   const [selectedTags, setSelectedTags] = useState([]);
-  const [selectedCategoryId, setSelectedCategoryId] = useState(null);
+  const [searchParams] = useSearchParams();
+  const [selectedCategoryId, setSelectedCategoryId] = useState(() => {
+    const categoryParam = searchParams.get("category");
+    return categoryParam !== null ? Number(categoryParam) : null;
+  });
 
   const { token } = useAuth();
   const navigate = useNavigate();
@@ -105,7 +109,9 @@ function HomePage() {
       {/* 상단 헤더 */}
       <div className="sticky top-0 bg-white border-b border-gray-100 px-8 py-4 flex items-center justify-between z-10">
         <div className="flex items-center gap-2 text-sm text-gray-400">
-          <span>All Notes</span>
+          <button onClick={() => handleSelectCategory(null)} className="hover:text-blue-600">
+            All Notes
+          </button>
         </div>
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-1.5 bg-green-50 text-green-600 text-xs font-medium px-3 py-1.5 rounded-full">
@@ -122,40 +128,6 @@ function HomePage() {
       </div>
 
       <div className="px-8 py-8">
-        <h1 className="text-3xl font-bold text-gray-800 mb-8">
-          Welcome back, Learner.
-        </h1>
-
-        <div className="grid grid-cols-3 gap-4 mb-8">
-          <div className="bg-white rounded-xl border border-gray-100 p-6 flex items-center justify-between">
-            <div>
-              <div className="text-3xl font-bold text-gray-800">{total}</div>
-              <div className="text-sm text-gray-400 mt-1">Total Posts</div>
-            </div>
-            <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center">
-              <FileText size={20} className="text-blue-500" />
-            </div>
-          </div>
-          <div className="bg-white rounded-xl border border-gray-100 p-6 flex items-center justify-between">
-            <div>
-              <div className="text-3xl font-bold text-gray-800">0</div>
-              <div className="text-sm text-gray-400 mt-1">Quizzes Taken</div>
-            </div>
-            <div className="w-10 h-10 bg-purple-50 rounded-lg flex items-center justify-center">
-              <BrainCircuit size={20} className="text-purple-500" />
-            </div>
-          </div>
-          <div className="bg-white rounded-xl border border-gray-100 p-6 flex items-center justify-between">
-            <div>
-              <div className="text-3xl font-bold text-gray-800">0</div>
-              <div className="text-sm text-gray-400 mt-1">Vectors Embedded</div>
-            </div>
-            <div className="w-10 h-10 bg-green-50 rounded-lg flex items-center justify-center">
-              <Database size={20} className="text-green-500" />
-            </div>
-          </div>
-        </div>
-
         <div className="flex items-center gap-3 mb-6 flex-wrap">
           <div className="flex-1 min-w-64 relative">
             <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -225,7 +197,7 @@ function HomePage() {
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4">
             {posts.map((post) => (
               <div
                 key={post.id}

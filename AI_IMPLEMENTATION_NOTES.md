@@ -110,7 +110,7 @@ pytest, pytest-asyncio
 | Phase 2 | Step 8 | 대화 히스토리 API + 프론트 연동 | ✅ 완료 |
 | Phase 2 | Step 9 | LangSmith 연동 | ✅ 완료 |
 | Phase 3 | Step 10-12 | 퀴즈 생성/채점/UI (카테고리 기반, 독립 서비스로 설계 변경) | ✅ 완료 |
-| Phase 4 | Step 13 | Rate Limiting (slowapi) | ⏳ 대기 |
+| Phase 4 | Step 13 | Rate Limiting (slowapi) | ✅ 완료 |
 | Phase 4 | Step 14 | 구조화 로깅 (structlog) | ⏳ 대기 |
 | Phase 4 | Step 15 | Docker Compose 작성 | ⏳ 대기 |
 | Phase 4 | Step 16 | GitHub Actions CI/CD | ⏳ 대기 |

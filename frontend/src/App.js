@@ -9,6 +9,7 @@ import PostDetailPage from "./pages/PostDetailPage";
 import PostCreatePage from "./pages/PostCreatePage";
 import PostEditPage from "./pages/PostEditPage";
 import QuizPage from "./pages/QuizPage";
+import DocumentsPage from "./pages/DocumentsPage";
 import Sidebar from "./components/Sidebar";
 
 function PrivateRoute({ children }) {
@@ -48,6 +49,7 @@ function App() {
           <Route path="/posts/create" element={<AppLayout><PrivateRoute><PostCreatePage /></PrivateRoute></AppLayout>} />
           <Route path="/posts/:id/edit" element={<AppLayout><PrivateRoute><PostEditPage /></PrivateRoute></AppLayout>} />
           <Route path="/quiz" element={<AppLayout><PrivateRoute><QuizPage /></PrivateRoute></AppLayout>} />
+          <Route path="/documents" element={<AppLayout><PrivateRoute><DocumentsPage /></PrivateRoute></AppLayout>} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>

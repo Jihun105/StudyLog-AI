@@ -3,8 +3,8 @@ import { useAuth } from "../context/AuthContext";
 import { useNavigate, useLocation } from "react-router-dom";
 import { getCategories, createCategory, deleteCategory, renameCategory } from "../api/categories";
 import {
-  LayoutDashboard, FileText, BrainCircuit, Sparkles, Settings,
-  HelpCircle, Lock, LogOut, FolderPlus, Folder, FolderOpen,
+  LayoutDashboard, FileText, BrainCircuit, Settings,
+  LogOut, FolderPlus, Folder, FolderOpen,
   ChevronDown, ChevronRight, Plus, Pencil, X, ClipboardList
 } from "lucide-react";
 
@@ -168,8 +168,6 @@ function Sidebar({ selectedCategoryId, onSelectCategory }) {
     { label: "Dashboard", icon: <LayoutDashboard size={16} />, path: "/" },
     { label: "Documents", icon: <FileText size={16} />, path: "/documents" },
     { label: "AI Quiz", icon: <BrainCircuit size={16} />, path: "/quiz" },
-    { label: "Summary", icon: <Sparkles size={16} />, path: "/summary" },
-    { label: "Settings", icon: <Settings size={16} />, path: "/settings" },
   ];
 
   return (
@@ -181,20 +179,10 @@ function Sidebar({ selectedCategoryId, onSelectCategory }) {
             {user?.nickname?.[0] || "S"}
           </div>
           <div>
-            <div className="font-bold text-gray-800 text-sm">StudyBrain AI</div>
+            <div className="font-bold text-gray-800 text-sm">Study Assistant</div>
             <div className="text-xs text-gray-400">Premium Plan</div>
           </div>
         </div>
-      </div>
-
-      {/* New Folder 버튼 */}
-      <div className="px-4 pb-3">
-        <button
-          onClick={() => setIsAdding(true)}
-          className="w-full flex items-center justify-center gap-2 bg-blue-600 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-        >
-          <FolderPlus size={15} /> New Folder
-        </button>
       </div>
 
       {/* 메인 메뉴 */}
@@ -218,8 +206,17 @@ function Sidebar({ selectedCategoryId, onSelectCategory }) {
 
       {/* 폴더 트리 */}
       <div className="flex-1 overflow-y-auto px-3 py-2">
-        <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider px-2 mb-2">
-          My Folders
+        <div className="flex items-center justify-between px-2 mb-2">
+          <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+            My Folders
+          </span>
+          <button
+            onClick={() => setIsAdding(true)}
+            title="새 폴더 만들기"
+            className="text-gray-400 hover:text-blue-600 p-0.5 rounded"
+          >
+            <FolderPlus size={14} />
+          </button>
         </div>
 
         {/* 전체 보기 */}
@@ -282,11 +279,14 @@ function Sidebar({ selectedCategoryId, onSelectCategory }) {
 
       {/* 하단 메뉴 */}
       <div className="border-t border-gray-100 px-3 py-3">
-        <button className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-500 hover:bg-gray-100 mb-0.5">
-          <HelpCircle size={16} /> Help
-        </button>
-        <button className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-500 hover:bg-gray-100 mb-0.5">
-          <Lock size={16} /> Privacy
+        <button
+          onClick={() => navigate("/settings")}
+          className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm mb-0.5 transition-colors
+            ${location.pathname === "/settings"
+              ? "bg-blue-50 text-blue-600 font-medium"
+              : "text-gray-500 hover:bg-gray-100"}`}
+        >
+          <Settings size={16} /> Settings
         </button>
         <button
           onClick={handleLogout}
