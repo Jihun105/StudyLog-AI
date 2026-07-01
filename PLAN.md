@@ -106,11 +106,26 @@ StudyLog-AI/
         blocknote.py            ✅ BlockNote JSON → 텍스트 추출
         chunking.py             ✅ 블록 단위 청킹
   frontend/
+    Dockerfile                    ✅ 멀티스테이지(node 빌드 → nginx 서빙) + 경로 라우팅
+    nginx.conf                     ✅ / → React, /api → backend, /admin·/django-static → admin
     src/
       pages/                    ✅ HomePage, PostCreatePage, PostDetailPage, QuizPage 등
       components/               ✅ Navbar, Sidebar, RichTextEditor(BlockNote)
-      api/                      ✅ auth.js, posts.js, categories.js, conversations.js, quizzes.js
+      api/                      ✅ auth.js, posts.js, categories.js, conversations.js, quizzes.js (BASE_URL이 REACT_APP_API_URL로 오버라이드 가능)
+      lib/
+        editorSchema.js          ✅ 커스텀 shiki 하이라이터 사용 (codeBlockConfig)
+        shiki.bundle.js           ✅ shiki-codegen으로 생성 (oniguruma 엔진, 필요한 언어만)
       context/AuthContext.js    ✅
+  admin/                        ✅ Django 관리자 패널 (읽기 전용 조회용, 별도 프로젝트)
+    Dockerfile                    ✅ mysqlclient 빌드 + collectstatic + gunicorn
+    requirements.txt               ✅ Django, mysqlclient, python-dotenv, gunicorn, whitenoise
+    config/
+      settings.py                ✅ MySQL 연결(기존 DATABASE_URL 파싱), whitenoise, INSTALLED_APPS
+    boarddata/
+      models.py                  ✅ 기존 테이블 매핑 (managed=False, unmanaged)
+      admin.py                   ✅ ReadOnlyAdmin (추가/수정 금지, 조회+삭제만)
+    manage.py
+  docker-compose.yml             ✅ mysql/qdrant/backend/admin/frontend 전체 통합
 ```
 
 ---
@@ -132,10 +147,11 @@ StudyLog-AI/
 | Phase 1-2 | 보완 | 스트리밍 응답 (SSE) | ⏳ 대기 |
 | Phase 3 | Step 10-12 | 퀴즈 생성/채점/UI (카테고리 기반, 독립 서비스) | ✅ 완료 |
 | Phase 4 | Step 13 | Rate Limiting (slowapi) | ✅ 완료 |
+| Phase 4 | Step 13-B | Django Admin 패널 구축 (수업 요구사항: FastAPI + Django + Docker/AWS) | ✅ 완료 |
 | Phase 4 | Step 14 | 구조화 로깅 (structlog) | ⏳ 대기 |
-| Phase 4 | Step 15 | Docker Compose 작성 | ⏳ 대기 |
+| Phase 4 | Step 15 | Docker Compose 통합 (backend/frontend/admin/nginx/mysql/qdrant) | ✅ 완료 |
 | Phase 4 | Step 16 | GitHub Actions CI/CD | ⏳ 대기 |
-| Phase 4 | Step 17 | VPS 배포 | ⏳ 대기 |
+| Phase 4 | Step 17 | VPS/AWS 배포 | ⏳ 대기 |
 
 ---
 
@@ -271,6 +287,68 @@ AI 엔드포인트(`POST /api/ai/chat`, `POST /api/quizzes/generate`)는 매 호
 
 ### 검증
 FastAPI `TestClient`로 실제 라우터와 동일한 구조(데코레이터 + `Depends()` 공존)를 재현해서 확인: (1) 한 유저가 한도를 초과하면 3번째 요청부터 429 응답, (2) 다른 유저(다른 JWT)는 같은 시간대에도 전혀 영향받지 않고 정상 처리됨 — 사용자별 독립적인 제한이 의도대로 동작.
+
+---
+
+## Phase 4 Step 13-B 구현 완료 — Django Admin 패널
+
+### 배경
+학교 수업 요구사항으로 "FastAPI로 만든 프로젝트를 Django로 감싸서 Docker/AWS로 배포"해야 했음. 동시에 실제로도 서비스에 관리자 페이지/슈퍼유저 계정이 없어 운영이 안 되는 문제가 있었음. 두 요구를 동시에 해결하는 방향으로 **Django를 어드민 전용 프로젝트로 별도 추가**하는 구조를 선택함 (FastAPI를 Django 안에 억지로 마운트하는 방식은 표준 패턴이 아니라고 판단해 배제).
+
+### 구조 결정
+- **아키텍처**: FastAPI(기존 서비스, 무변경) + Django(Admin 전용, 신규) + 향후 Nginx(경로 기반 리버스 프록시)로 하나의 Docker Compose 스택 구성 예정 (Docker/Nginx 통합은 이번 라운드에서는 보류, Admin 기능만 우선 구현)
+- **인증 완전 분리**: Django Admin은 Django 자체 인증(`auth_user` 테이블, `createsuperuser`)을 사용하고, 기존 서비스의 `users` 테이블(JWT + bcrypt)과는 전혀 연결되지 않음. 이유: 관리자 도구와 실서비스 인증을 분리해 회원 계정 침해가 관리자 권한 침해로 이어지지 않도록 하기 위함
+- **모델 소유권**: Django 모델은 전부 `managed = False` (unmanaged) — 테이블 스키마의 단일 진실 공급원은 계속 Alembic이 유지하고, Django는 기존 테이블을 읽기 전용으로 매핑만 함. 하나의 스키마를 두 ORM이 각자 마이그레이션하려 들면 충돌하기 때문
+
+### 만든 파일
+- `admin/config/settings.py` — `DATABASE_URL`(SQLAlchemy 형식 문자열)을 `urlparse`로 파싱해 Django `DATABASES`에 매핑. 루트 `.env`를 `load_dotenv`로 그대로 재사용 (Django 전용 `.env` 별도 생성 안 함)
+- `admin/boarddata/models.py` — 기존 8개 테이블(`users`→`AppUser`, `categories`, `tags`, `posts`, `conversations`, `messages`, `quizzes`, `quiz_attempts`)을 unmanaged 모델로 매핑. FK는 전부 `on_delete=models.DO_NOTHING` (cascade 규칙은 이미 MySQL 제약에 있으므로 Django가 중복 관여 안 함). `users` 테이블 매핑 모델은 Django 자체 `auth.User`와 이름이 겹치지 않도록 `AppUser`로 명명
+- `admin/boarddata/admin.py` — `ReadOnlyAdmin` 베이스 클래스(`has_add_permission`/`has_change_permission` 항상 `False` 반환)를 만들어 전 모델에 상속. 추가/수정은 전부 막고 조회+삭제(정리용)만 허용
+- 생략한 부분: `post_tags` 다대다 중간 테이블은 자체 `id` 컬럼이 없는 복합키 구조라 Django ORM과 맞지 않아 이번 라운드에서는 매핑 생략 (조회 위주 목적이라 태그 관계 없이도 핵심 데이터는 다 보임)
+
+### 왜 조회 위주(읽기 전용)로 제한했나
+Django Admin 폼으로 직접 값을 바꾸면 서비스 레이어의 비즈니스 로직을 우회하게 됨. 예: `AppUser.password_hash`를 Admin에서 직접 수정하면 bcrypt 해시가 아닌 평문이 그대로 저장돼 로그인이 깨짐. `Category.parent`를 자유롭게 바꾸면 서비스에서 강제하는 "최대 depth 3" 제약이 깨질 수 있음. 그래서 추가/수정은 막고, 조회와 삭제(스팸/오래된 데이터 정리 목적)만 열어둠.
+
+### 확인된 동작
+- Django Admin은 특정 유저로 스코핑되지 않고 전체 유저의 데이터를 다 조회 가능 (의도된 설계 — 운영자용 전체 감독 도구이므로). 반대로 FastAPI 서비스는 여전히 `current_user.id` 기준으로 본인 데이터만 보이게 스코핑됨 — 두 시스템의 역할이 다름
+- 방금 만든 Django 슈퍼유저 계정으로 서비스 일반 로그인은 불가능 (테이블 자체가 다름) — 인증 완전 분리 확인됨
+
+### 진행 방식 (참고)
+이 단계부터는 사용자가 학습 목적으로 직접 타이핑하며 진행하길 원해서, 코드를 대화 중 단계별로 제시하고 사용자가 직접 파일에 작성하는 방식으로 진행함 (일부 기계적인 수정은 요청에 따라 대신 적용).
+
+### 남은 작업 (다음 라운드)
+- GitHub Actions CI/CD
+- AWS/VPS 실제 배포
+
+---
+
+## Phase 4 Step 15 구현 완료 — Docker Compose 전체 통합
+
+### 구조
+`docker-compose.yml`(프로젝트 루트) 하나로 5개 컨테이너를 묶음: `mysql`, `qdrant`, `backend`(FastAPI), `admin`(Django), `frontend`(Nginx + React 빌드). 호스트에 노출되는 포트는 `frontend`의 `80`뿐이고, 나머지는 컴포즈 내부 네트워크에서 서비스 이름으로만 통신한다.
+
+**요청 라우팅**: `frontend`의 Nginx가 리버스 프록시 역할까지 겸함(별도 nginx 컨테이너를 안 두고 frontend 이미지 자체를 nginx 기반으로 유지 — 컨테이너 하나 절약).
+- `/` (그 외 전부) → React 정적 빌드, `try_files $uri /index.html`로 React Router 새로고침 대응
+- `/api/*` → `backend:8000`
+- `/admin/*`, `/django-static/*` → `admin:8001`
+
+### 컨테이너 간 통신을 위해 필요했던 코드 변경
+- `backend/app/services/ai/rag_service.py`, `embedding_service.py`: Qdrant 접속 주소가 `host="localhost"`로 하드코딩되어 있던 것을 `os.getenv("QDRANT_HOST", "localhost")`로 변경 — 컴포즈 환경에서는 `QDRANT_HOST=qdrant`로 주입, 로컬 개발(비-Docker) 시엔 기존처럼 `localhost` 폴백
+- `frontend/src/api/*.js` 5개 파일: `BASE_URL = "http://localhost:8000"` 하드코딩을 `process.env.REACT_APP_API_URL ?? "http://localhost:8000"`로 변경 — Docker 빌드 시엔 `ENV REACT_APP_API_URL=""`(빈 문자열, 상대경로가 되어 같은 origin의 Nginx를 통해 `/api`로 감), 로컬 `npm start` 시엔 기존 동작 유지
+- `docker-compose.yml`에서 `backend`/`admin` 서비스의 `DATABASE_URL`을 `.env`의 값 대신 `mysql+aiomysql://root:${MYSQL_ROOT_PASSWORD}@mysql:3306/${MYSQL_DATABASE}`로 오버라이드 — 컨테이너 간에는 `localhost`가 아니라 서비스 이름(`mysql`)으로 접속해야 하기 때문
+
+### Django 정적 파일 — `/static/` 경로 충돌 문제
+React 빌드 결과물과 Django 기본 정적 파일 경로가 둘 다 `/static/`이라 충돌 가능성이 있었음. `whitenoise` 라이브러리를 추가해서 Django가 자기 정적 파일(Admin CSS/JS)을 스스로 서빙하게 하고, `STATIC_URL`을 `django-static/`으로 변경해 아예 경로를 분리. `admin/Dockerfile`의 `CMD`에서 컨테이너 실행 시점(빌드 시점이 아님 — `.env` 값이 아직 없으므로)에 `collectstatic`을 먼저 돌리고 `gunicorn`을 띄우도록 구성.
+
+### 트러블슈팅 (실제로 겪은 순서대로)
+1. **CRA 프로덕션 빌드 자체가 실패**: `@blocknote/code-block`이 기본 제공하는 40여 개 언어 문법 파일 중 일부(`csharp`, `css` 등)가 최신 정규식 문법(ES2024 "v" flag, `@shikijs/langs-precompiled`)을 쓰는데, CRA(`react-scripts` 5.0.1)에 내장된 구버전 Babel 파서가 이를 파싱하지 못해 `SyntaxError`로 빌드 실패. 처음엔 Docker/Node 버전 문제로 의심했으나 로컬 `npm run build`에서도 동일하게 재현되어 실제 의존성 문제로 확인. **해결**: `shiki-codegen` CLI로 실제 쓰는 언어(javascript, typescript, python, java, cpp, c, sql, shellscript, json, html, css, markdown)만 골라 `oniguruma` 엔진(WASM 기반, JS 정규식이 아니라 JSON 문법 데이터라 이 문제 자체가 발생하지 않음) 커스텀 번들을 생성해서 교체 (`frontend/src/lib/shiki.bundle.js`, `editorSchema.js`). 부수 효과로 번들 크기도 줄어듦.
+2. **`npm ci`가 Windows에서 만든 `package-lock.json`을 리눅스 컨테이너에서 계속 거부**: `npm ci`는 락파일과 완전히 일치해야 하는데, 플랫폼별 optional 의존성 차이로 재생성해도 반복 발생. 재현성보다 실용성을 택해 Dockerfile을 `npm ci` 대신 `npm install`로 되돌림 (원래 빌드를 막던 진짜 원인은 위 1번이었고, 그게 해결된 뒤로는 `npm install`도 정상 동작).
+3. **MySQL 공식 이미지가 `MYSQL_USER=root` 설정을 거부**: `MYSQL_USER`/`MYSQL_PASSWORD`는 "추가 일반 유저"용이라 이미 존재하는 root 계정에는 못 씀. `MYSQL_ROOT_PASSWORD`만 쓰고 backend/admin의 `DATABASE_URL`도 `root` 계정 기준으로 통일해서 해결.
+4. **위 3번을 고쳤는데도 계속 같은 에러 반복**: `docker-compose.yml`의 `environment:`는 고쳤지만, `mysql` 서비스에 걸려있던 `env_file: - ./.env`가 `.env`에 남아있던 `MYSQL_USER=root` 줄을 그대로 다시 주입하고 있었음. `mysql` 서비스에서 `env_file` 자체를 제거(mysql은 `MYSQL_DATABASE`/`MYSQL_ROOT_PASSWORD`만 있으면 되므로)하고 해결. 추가로, 이미 생성된 컨테이너는 환경변수가 최초 생성 시점에 고정되므로 `docker-compose.yml`을 고친 뒤엔 `docker compose down` 후 재기동이 필요했다는 점도 확인.
+5. **새 컨테이너의 빈 DB에 Django 자체 인증 테이블이 없어 `createsuperuser` 실패**: `python manage.py migrate`로 `auth`/`admin`/`contenttypes`/`sessions` 테이블만 생성(우리 앱 테이블은 `managed=False`라 영향 없음) 후 해결.
+
+### 검증
+`docker compose up --build`로 5개 컨테이너 전부 정상 기동 확인. `http://localhost`에서 회원가입/로그인(backend↔mysql 연결 확인), `http://localhost/admin`에서 Django 로그인 및 CSS 정상 렌더링(whitenoise 확인) 및 데이터 조회까지 실제 브라우저로 확인 완료.
 
 ---
 

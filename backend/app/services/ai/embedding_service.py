@@ -1,4 +1,5 @@
 import logging
+import os
 from qdrant_client import QdrantClient
 from qdrant_client.models import Distance, VectorParams, PointStruct, Filter, FieldCondition, MatchValue, FilterSelector
 from openai import OpenAI
@@ -12,7 +13,7 @@ COLLECTION_NAME = "study_notes"
 VECTOR_SIZE = 1536
 
 openai_client = OpenAI(api_key=settings.OPENAI_API_KEY)
-qdrant_client = QdrantClient(host="localhost", port=6333)
+qdrant_client = QdrantClient(host=os.getenv("QDRANT_HOST", "localhost"), port=6333)
 
 def _ensure_collection():
     existing = [c.name for c in qdrant_client.get_collections().collections]

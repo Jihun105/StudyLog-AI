@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const BASE_URL = "http://localhost:8000";
+const BASE_URL = process.env.REACT_APP_API_URL ?? "http://localhost:8000";
 
 // 회원가입 API 호출 함수
 // username, email, password, nickname을 받아서 백엔드에 POST 요청

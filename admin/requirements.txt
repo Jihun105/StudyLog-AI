@@ -1,0 +1,8 @@
+# Django Admin (관리자 전용, 기존 FastAPI 서비스와 별도 실행)
+Django==5.2.15
+mysqlclient
+python-dotenv
+
+# 배포용 WSGI 서버 (Docker Compose에서 사용)
+gunicorn
+whitenoise

@@ -16,14 +16,11 @@ bcrypt==4.0.1
 
 # Config
 pydantic-settings
+python-dotenv
 email-validator
 
 # AI
 openai==2.38.0
-langchain==1.3.2
-langchain-openai==1.2.2
-langchain-qdrant
-langchain-text-splitters
 qdrant-client
 langgraph
 langsmith

@@ -1,3 +1,4 @@
+import os
 from qdrant_client import AsyncQdrantClient
 from qdrant_client.models import Filter, FieldCondition, MatchValue
 from qdrant_client.http.exceptions import UnexpectedResponse
@@ -8,7 +9,7 @@ COLLECTION_NAME = "study_notes"
 TOP_K = 5
 
 openai_client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
-qdrant_client = AsyncQdrantClient(host="localhost", port=6333)
+qdrant_client = AsyncQdrantClient(host=os.getenv("QDRANT_HOST", "localhost"), port=6333)
 
 
 async def _embed(text: str) -> list[float]:

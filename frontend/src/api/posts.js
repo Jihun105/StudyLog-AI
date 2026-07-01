@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const BASE_URL = "http://localhost:8000";
+const BASE_URL = process.env.REACT_APP_API_URL ?? "http://localhost:8000";
 
 // 토큰이 필요한 요청에는 Authorization 헤더를 붙여야 함
 // 매번 헤더를 직접 작성하는 대신, 토큰을 받아서 헤더 객체를 만들어주는 함수를 만듬

@@ -54,10 +54,13 @@
 ### Infra / DevOps
 | 기술 | 용도 | 비고 |
 |---|---|---|
-| Docker + Docker Compose | 전체 서비스 컨테이너화 | Phase 4 (Qdrant는 현재 단독 Docker) |
+| Docker + Docker Compose | mysql/qdrant/backend/admin/frontend 5개 컨테이너 통합 | ✅ 완료 |
 | GitHub Actions | CI/CD (푸시 → 테스트 → 자동 배포) | Phase 4 |
-| Nginx | 리버스 프록시 + React 서빙 | Phase 4 |
-| VPS (DigitalOcean / Hetzner) | 서버 ($6~12/월) | Phase 4 |
+| Nginx | frontend 이미지 안에서 리버스 프록시 겸 React 서빙 + `/admin` 경로 분기 | ✅ 완료 |
+| VPS / AWS | 실제 서버 배포 | Phase 4 |
+| Django (Admin 전용) | 관리자 페이지 (자체 인증, unmanaged 모델로 기존 DB 조회) | ✅ 완료 (수업 요구사항 겸용) |
+| whitenoise | Django Admin 정적 파일 자체 서빙 (`/django-static/`) | ✅ 완료 |
+| shiki (oniguruma 엔진) | BlockNote 코드블록 하이라이팅, CRA 빌드 호환용 커스텀 번들 | ✅ 완료 |
 
 ### 설치된 패키지 (전체)
 `backend/requirements.txt` 참고.
@@ -82,13 +85,16 @@ pytest, pytest-asyncio
 
 ```
 [React] ──→ [Nginx] ──→ [FastAPI]
-                              ├── MySQL         유저, 포스트, 대화, 퀴즈
-                              ├── Qdrant        벡터 임베딩
-                              ├── OpenAI API    임베딩 + 응답 생성 + 퀴즈 생성
-                              ├── LangGraph     멀티턴 대화 Agent 흐름 (의도분류→RAG/일반→응답→저장)
-                              └── LangSmith     LLM 모니터링 (그래프 흐름 + LLM 호출 상세 추적)
+                    │         ├── MySQL         유저, 포스트, 대화, 퀴즈
+                    │         ├── Qdrant        벡터 임베딩
+                    │         ├── OpenAI API    임베딩 + 응답 생성 + 퀴즈 생성
+                    │         ├── LangGraph     멀티턴 대화 Agent 흐름 (의도분류→RAG/일반→응답→저장)
+                    │         └── LangSmith     LLM 모니터링 (그래프 흐름 + LLM 호출 상세 추적)
+                    │
+                    └──→ [Django Admin] (/admin) ──→ MySQL (동일 DB, unmanaged 모델로 읽기 전용 조회)
+                              └── 자체 인증(auth_user, createsuperuser) — 서비스 users 테이블과 분리
 
-[GitHub Actions] → Docker Build → VPS 자동 배포   ← Phase 4, 미착수
+[GitHub Actions] → Docker Build → VPS 자동 배포   ← Phase 4, 미착수 (Nginx 경로 분기도 아직 미구성)
 ```
 
 퀴즈 시스템은 LangGraph 흐름과 무관한 독립 서비스(`quiz_service.py`)로, 카테고리 단위 노트 → GPT 1회 호출 → DB 저장 구조로 별도 동작한다 (자세한 설계 이유는 5장 Phase 3 참고).
@@ -111,8 +117,9 @@ pytest, pytest-asyncio
 | Phase 2 | Step 9 | LangSmith 연동 | ✅ 완료 |
 | Phase 3 | Step 10-12 | 퀴즈 생성/채점/UI (카테고리 기반, 독립 서비스로 설계 변경) | ✅ 완료 |
 | Phase 4 | Step 13 | Rate Limiting (slowapi) | ✅ 완료 |
+| Phase 4 | Step 13-B | Django Admin 패널 (자체 인증 + unmanaged 모델) | ✅ 완료 |
 | Phase 4 | Step 14 | 구조화 로깅 (structlog) | ⏳ 대기 |
-| Phase 4 | Step 15 | Docker Compose 작성 | ⏳ 대기 |
+| Phase 4 | Step 15 | Docker Compose 전체 통합 (mysql/qdrant/backend/admin/frontend) | ✅ 완료 |
 | Phase 4 | Step 16 | GitHub Actions CI/CD | ⏳ 대기 |
 | Phase 4 | Step 17 | VPS 배포 | ⏳ 대기 |
 
@@ -366,6 +373,43 @@ DB 저장 (정답은 응답에 포함하지 않음)
 
 **Rate Limiting (slowapi)**: AI 엔드포인트 과금 방지
 
+**Django Admin 패널 (Step 13-B)** ✅
+
+**계기**: 수업에서 "FastAPI 프로젝트를 Django로 감싸서 Docker/AWS로 배포"하라는 요구사항이 있었고, 동시에 서비스 자체에도 관리자 페이지/슈퍼유저가 없어 운영이 안 되는 문제가 있었다. FastAPI를 Django 라우팅 안에 억지로 마운트하는 방식은 표준 패턴이 아니라고 판단해 배제하고, **Django를 Admin 전용 프로젝트로 별도 추가**하는 구조로 결정했다.
+
+**구조**:
+```
+board/
+  backend/   ← FastAPI (무변경)
+  frontend/  ← React (무변경)
+  admin/     ← Django (신규, Admin 전용)
+    config/settings.py   MySQL 연결(기존 DATABASE_URL 파싱), INSTALLED_APPS
+    boarddata/models.py  기존 8개 테이블 unmanaged 매핑
+    boarddata/admin.py   ReadOnlyAdmin (추가/수정 금지)
+```
+
+**핵심 설계 결정**:
+- **인증 완전 분리**: Django Admin은 Django 자체 인증(`auth_user`, `createsuperuser`)만 사용. 서비스의 `users` 테이블(JWT+bcrypt)과는 전혀 연결하지 않음 — 회원 계정 침해가 관리자 권한 침해로 번지지 않도록 함
+- **모델은 전부 unmanaged (`managed = False`)**: 테이블 스키마의 단일 진실 공급원은 계속 Alembic. Django는 읽기 전용 매핑만 하고 마이그레이션은 관여하지 않음
+- **이름 충돌 회피**: `users` 테이블을 매핑한 모델은 Django 자체 `auth.User`와 헷갈리지 않도록 `AppUser`로 명명
+- **FK는 `on_delete=models.DO_NOTHING`**: cascade 규칙이 이미 MySQL 제약(ON DELETE CASCADE/SET NULL)에 있으므로 Django ORM이 애플리케이션 레벨에서 중복으로 관여하지 않게 함
+- **조회 위주 권한(`ReadOnlyAdmin`)**: `has_add_permission`/`has_change_permission`을 항상 `False`로 오버라이드해 추가/수정을 막고 조회+삭제(정리용)만 허용. 이유: Admin 폼으로 직접 값을 바꾸면 서비스 레이어의 비즈니스 로직(예: bcrypt 해싱, 카테고리 depth 3단계 제한)을 우회하게 되기 때문
+- **생략한 부분**: `post_tags` 다대다 중간 테이블은 자체 `id` 컬럼이 없는 복합키 구조라 Django ORM과 맞지 않아 이번 라운드에서는 매핑 생략
+
+**확인된 동작**: Django Admin은 유저별로 스코핑되지 않고 전체 유저 데이터를 조회 가능(의도된 설계, 운영자용 전체 감독 도구). 반대로 FastAPI 서비스는 여전히 `current_user.id` 기준으로 본인 데이터만 보이게 스코핑됨. 방금 만든 Django 슈퍼유저로 서비스 일반 로그인은 불가능함을 확인 — 인증 분리가 의도대로 동작.
+
+**Docker Compose 전체 통합 (Step 15)** ✅
+
+`docker-compose.yml`(루트) 하나로 `mysql`, `qdrant`, `backend`, `admin`, `frontend` 5개 컨테이너를 묶었다. 호스트에 노출되는 포트는 `frontend`의 80뿐이고, `frontend` 이미지의 Nginx가 정적 파일 서빙과 리버스 프록시(`/api`→backend, `/admin`·`/django-static`→admin)를 동시에 담당해서 별도 프록시 컨테이너를 두지 않았다.
+
+컨테이너화 과정에서 실제 코드도 일부 손봐야 했다: Qdrant 접속 주소(`rag_service.py`, `embedding_service.py`)가 `host="localhost"`로 하드코딩돼 있어서 `os.getenv("QDRANT_HOST", "localhost")`로 바꾸고, 프론트 `api/*.js`의 `BASE_URL` 하드코딩(`http://localhost:8000`)도 `process.env.REACT_APP_API_URL ?? "http://localhost:8000"`로 바꿔서 Docker 빌드 시엔 빈 문자열(상대경로)을, 로컬 개발 시엔 기존 값을 쓰게 했다.
+
+가장 시간이 걸린 트러블슈팅은 CRA 프로덕션 빌드 자체가 깨지는 문제였다: `@blocknote/code-block`이 기본 제공하는 언어 문법 중 일부(`csharp`, `css`)가 ES2024 정규식 "v" flag를 쓰는데, CRA(`react-scripts` 5.0.1)의 구버전 Babel이 이를 파싱 못 해 `SyntaxError`. Docker 문제로 의심했지만 로컬 빌드에서도 재현되어 실제 의존성 비호환 문제로 확인했고, `shiki-codegen`으로 실제 쓰는 언어만 골라 `oniguruma`(WASM, JS 정규식이 아닌 JSON 문법 데이터) 엔진 기반 커스텀 번들을 만들어 교체해서 해결했다(`frontend/src/lib/shiki.bundle.js`).
+
+그 외: MySQL 공식 이미지가 `MYSQL_USER=root`를 거부하는 문제(→ root는 `MYSQL_ROOT_PASSWORD`만 사용), `mysql` 서비스에 걸려있던 `env_file`이 `.env`의 `MYSQL_USER=root` 잔여값을 계속 재주입하던 문제(→ mysql 서비스에서 `env_file` 제거), Django 정적 파일 경로(`/static/`)가 React 빌드 결과물과 충돌 가능성이 있어 `whitenoise` 도입 + `STATIC_URL`을 `django-static/`으로 분리 — 자세한 트러블슈팅 순서는 `PLAN.md`에 기록.
+
+**남은 작업**: GitHub Actions CI/CD, 실제 AWS/VPS 배포.
+
 **구조화 로깅 (structlog)**: print() 대신 JSON 형식 로그
 
 **Docker Compose 구성:**
@@ -423,13 +467,29 @@ backend/
     test_embedding.py             ⏳
     test_rag.py                   ⏳
 
-frontend/src/
-  pages/                          ✅ HomePage, Post*Page, QuizPage
-  components/
-    Sidebar.jsx                   ✅ 카테고리 트리
-    ResizableRightPanel.jsx       ✅ PostDetailPage/QuizPage 공용 우측 패널
-  api/                             ✅ auth, posts, categories, conversations, quizzes
-  context/AuthContext.js           ✅
+frontend/
+  Dockerfile                       ✅ node 빌드 → nginx 서빙 멀티스테이지 + nginx.conf 반영
+  nginx.conf                        ✅ /, /api, /admin, /django-static 경로 라우팅
+  src/
+    pages/                          ✅ HomePage, Post*Page, QuizPage
+    components/
+      Sidebar.jsx                   ✅ 카테고리 트리
+      ResizableRightPanel.jsx       ✅ PostDetailPage/QuizPage 공용 우측 패널
+    lib/
+      editorSchema.js                ✅ 커스텀 shiki 하이라이터 적용
+      shiki.bundle.js                 ✅ shiki-codegen 생성 (oniguruma 엔진)
+    api/                             ✅ auth, posts, categories, conversations, quizzes (BASE_URL env 오버라이드 가능)
+    context/AuthContext.js           ✅
+
+admin/                              ✅ Django Admin 전용 프로젝트 (별도 가상환경/의존성 아님, 같은 conda env)
+  Dockerfile                        ✅ mysqlclient 빌드 의존성 + collectstatic + gunicorn
+  requirements.txt                   ✅ Django, mysqlclient, python-dotenv, gunicorn, whitenoise
+  config/settings.py                ✅ DATABASE_URL 파싱 → DATABASES, whitenoise, 루트 .env 재사용
+  boarddata/models.py                ✅ unmanaged 모델 8종 (AppUser, Category, Tag, Post, Conversation, Message, Quiz, QuizAttempt)
+  boarddata/admin.py                 ✅ ReadOnlyAdmin 상속 등록
+  manage.py
+
+docker-compose.yml                  ✅ mysql/qdrant/backend/admin/frontend 통합
 ```
 
 > 백엔드/프론트 단위 테스트(`test_chunking`, `test_embedding`, `test_rag` 등)는 아직 미작성 — 향후 확장 후보로 8장에 별도 기재.
@@ -448,6 +508,14 @@ frontend/src/
 - `main.py`에 `logging.basicConfig` 부재로 그래프 내부 로그가 전혀 안 찍힘 → 추가
 - `index_post()` 백그라운드 태스크가 조용히 실패할 수 있어 try/except + 로그 추가
 - `core/config.py`: pydantic-settings가 `.env` 값을 `os.environ`으로 내보내지 않아 LangSmith가 `LANGSMITH_*` 값을 못 읽음 → `load_dotenv()` 추가, `Settings`에 `extra="ignore"` 추가(선언 안 된 키로 인한 서버 크래시 방지)
+
+**Phase 4 (Docker Compose 통합)**
+- CRA 프로덕션 빌드가 `@shikijs/langs-precompiled`의 일부 언어 문법(csharp, css 등)에서 ES2024 정규식 "v" flag를 못 읽어 `SyntaxError`로 실패 → 실제 필요한 언어만 `oniguruma` 엔진 기반 커스텀 번들(`shiki-codegen`)로 교체해서 해결 (Docker 문제로 오인했으나 로컬 빌드에서도 재현되어 실제 의존성 문제로 확인)
+- `npm ci`가 Windows에서 생성한 `package-lock.json`을 Linux 컨테이너에서 플랫폼별 optional 의존성 차이로 계속 거부(`Missing: yaml@2.9.0`) → 재생성해도 반복되어 `npm install`로 되돌림 (원래 빌드를 막던 원인은 위 shiki 문제였고 해결 후엔 `npm install`도 정상 동작)
+- MySQL 공식 이미지가 `MYSQL_USER=root` 설정을 거부(root는 `MYSQL_ROOT_PASSWORD` 전용) → root 계정 기준으로 `DATABASE_URL` 통일
+- `mysql` 서비스의 `env_file`이 `.env`에 남아있던 `MYSQL_USER=root`를 `environment:` 수정과 무관하게 계속 재주입 → `mysql` 서비스에서 `env_file` 자체 제거로 해결. 이미 생성된 컨테이너는 환경변수가 고정되므로 설정 변경 후 `docker compose down` 후 재기동이 필요했음
+- Django 정적 파일 경로(`/static/`)가 React 빌드 결과물과 경로 충돌 가능성 → `whitenoise` 도입 + `STATIC_URL`을 `django-static/`으로 분리
+- 새 MySQL 컨테이너에 Django 자체 인증 테이블이 없어 `createsuperuser` 실패 → `python manage.py migrate`로 `auth`/`admin`/`contenttypes`/`sessions` 테이블만 생성(앱 테이블은 `managed=False`라 무관)
 
 **Phase 3 (퀴즈 시스템)**
 - 우측 패널 코드블록 잘림 — 원인 두 겹: (1) 컨테이너 체인에 `min-width` 제약 부재로 좁은 flex 레이아웃에서 스크롤 대신 클리핑되는 CSS 이슈, (2) BlockNote 에디터 자체의 좌우 54px 고정 패딩이 좁은 패널의 실사용 폭을 크게 잠식 → 둘 다 스코프 CSS로 해결
@@ -472,6 +540,6 @@ frontend/src/
 - **SM-2 알고리즘**: `quiz_attempts` 기록 기반 복습 스케줄링 (`next_review_at` 컬럼 추가 필요)
 - **출처 추적 고도화**: 현재는 GPT 자기 보고 + 텍스트 대조 방식(best-effort). 노트를 청크 단위로 임베딩해서 관련도 기반으로 출처를 추정하면 정확도 향상 가능
 
-**운영/인프라 (Phase 4, 미착수)**
+**운영/인프라 (Phase 4)**
 - **Celery**: BackgroundTasks → Celery로 확장 시 대규모 임베딩 처리 가능
-- Rate Limiting(slowapi), 구조화 로깅(structlog), Docker Compose, GitHub Actions CI/CD, VPS 배포
+- Rate Limiting(slowapi) ✅, Django Admin 패널 ✅, Docker Compose 통합 ✅ — 남은 것: 구조화 로깅(structlog), GitHub Actions CI/CD, VPS/AWS 실제 배포
