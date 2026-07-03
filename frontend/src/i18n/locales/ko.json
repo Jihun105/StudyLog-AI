@@ -96,6 +96,7 @@
     "viewSourceInPanel": "우측 패널에서 원문 보기",
     "sourceUnknown": "원문 글을 특정하지 못했습니다",
     "submit": "제출",
+    "submitAll": "한번에 제출 ({{count}})",
     "grading": "채점 중...",
     "correct": "정답입니다!",
     "incorrect": "오답입니다. 정답: {{answer}}",

@@ -108,6 +108,7 @@ function QuizPage() {
   const [results, setResults] = useState({}); // quizId -> { is_correct, correct_answer, explanation }
   const [selectedAnswers, setSelectedAnswers] = useState({}); // quizId -> 선택/입력한 답
   const [submittingId, setSubmittingId] = useState(null);
+  const [submittingAll, setSubmittingAll] = useState(false);
 
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState("");
@@ -265,8 +266,34 @@ function QuizPage() {
     }
   };
 
+  // 답이 입력됐지만 아직 제출 안 한 문제들만 한 번에 제출 - 입력 안 한 문제는 그대로 둠
+  const handleSubmitAll = async () => {
+    const targets = quizzes.filter((q) => selectedAnswers[q.id] && !results[q.id]);
+    if (targets.length === 0) return;
+    setSubmittingAll(true);
+    setError("");
+    try {
+      const settled = await Promise.allSettled(
+        targets.map((q) => submitQuizAttempt(q.id, selectedAnswers[q.id], token))
+      );
+      setResults((prev) => {
+        const next = { ...prev };
+        settled.forEach((outcome, idx) => {
+          if (outcome.status === "fulfilled") next[targets[idx].id] = outcome.value;
+        });
+        return next;
+      });
+      if (settled.some((outcome) => outcome.status === "rejected")) {
+        setError(t("quiz.gradeError"));
+      }
+    } finally {
+      setSubmittingAll(false);
+    }
+  };
+
   const answeredCount = Object.keys(results).length;
   const correctCount = Object.values(results).filter((r) => r.is_correct).length;
+  const pendingSubmitCount = quizzes.filter((q) => selectedAnswers[q.id] && !results[q.id]).length;
   const categoryOptions = flattenCategories(categories);
 
   const panelTitle =
@@ -404,12 +431,23 @@ function QuizPage() {
           </div>
 
           {quizzes.length > 0 && (
-            <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-4 mb-6 flex items-center justify-between">
+            <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-4 mb-6 flex items-center justify-between gap-3 flex-wrap">
               <span className="text-sm text-gray-500 dark:text-gray-400">{t("quiz.progress")}</span>
-              <span className="text-sm font-semibold text-gray-800 dark:text-gray-100">
-                {answeredCount} / {quizzes.length} {t("quiz.completed")}
-                {answeredCount > 0 && <span className="text-blue-600 dark:text-blue-400"> · {correctCount}{t("quiz.correctCount")}</span>}
-              </span>
+              <div className="flex items-center gap-3">
+                <span className="text-sm font-semibold text-gray-800 dark:text-gray-100">
+                  {answeredCount} / {quizzes.length} {t("quiz.completed")}
+                  {answeredCount > 0 && <span className="text-blue-600 dark:text-blue-400"> · {correctCount}{t("quiz.correctCount")}</span>}
+                </span>
+                {/* 한 문제씩 제출하는 기존 방식은 그대로 두고, 답을 입력해뒀지만 아직 제출
+                    안 한 문제들만 모아서 한 번에 제출하는 버튼 - 입력 안 한 문제는 그대로 둠 */}
+                <button
+                  onClick={handleSubmitAll}
+                  disabled={pendingSubmitCount === 0 || submittingAll}
+                  className="text-sm bg-blue-600 text-white px-3 py-1.5 rounded-lg hover:bg-blue-700 disabled:opacity-40"
+                >
+                  {submittingAll ? t("quiz.grading") : t("quiz.submitAll", { count: pendingSubmitCount })}
+                </button>
+              </div>
             </div>
           )}
 

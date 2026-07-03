@@ -13,6 +13,9 @@
 | Phase 8 | UI | 사이드바 접힘 시 재오픈 버튼-헤더 겹침/단차 수정 | ✅ 완료 |
 | Phase 8 | UI | "기본" 폴더 하드코딩 제거 + 진짜 카테고리로 전환 | ✅ 완료 |
 | Phase 8 | UI | 폴더/노트 드래그 앤 드롭 (순서 변경, 하위 폴더화, 노트 이동) | ✅ 완료 |
+| Phase 9 | UI | 할 일 캘린더 패널 개편 + 세부사항(시작시간/메모) 입력 방식 변경 | ✅ 완료 |
+| Phase 9 | UI | 전역 폰트에 Pretendard 추가 (화살표+한글 자간 벌어짐 수정) | ✅ 완료 |
+| Phase 9 | UI | 퀴즈 페이지 하위 폴더 노트 미표시 + 전체화면 새 창 문제 수정 | ✅ 완료 |
 
 ---
 
@@ -180,5 +183,73 @@ eslint 파싱 검증 완료.
 캘린더 뷰에서 할 일을 추가할 때만 우선순위가 "보통"에 고정되고 토글이 눌러도 안 열리는 것처럼 보였음. 원인: `PriorityDropdown`의 옵션 목록이 `absolute` + `top-full`로, 자신을 감싸는 `position: relative` 래퍼 기준으로 아래쪽에 그려지는데, 캘린더 패널(`ResizableRightPanel.jsx`)의 컨테이너가 `overflow-y-auto overflow-x-auto`로 스크롤 영역을 잘라내고 있고 이 드롭다운이 그 패널의 맨 아래에 위치해서, 열려도 스크롤 영역 밖으로 나가 화면에 안 그려졌던 것(다른 2곳은 이런 위치가 아니라서 문제 없었음).
 
 `frontend/src/pages/TodoPage.jsx`의 `PriorityDropdown`을 수정: 토글 버튼 클릭 시 `getBoundingClientRect()`로 버튼의 실제 화면 좌표를 구해서 `menuPos` state에 저장하고, 옵션 목록을 `absolute` 대신 `fixed` + 그 좌표로 렌더링(`Sidebar.jsx` 우클릭 메뉴와 동일한 패턴). 어떤 스크롤/overflow 컨테이너 안에 있든 잘리지 않고 항상 보임.
+
+---
+
+## Phase 9 UI — 할 일(Todo) 캘린더 패널 개편 + 세부사항 입력 방식 변경
+
+### 캘린더 날짜별 패널 — 할 일 추가 폼 제거 후 버튼형 우선순위로 재도입
+
+처음엔 드롭다운이 안 열리는 문제(위 항목) 때문에 "이 패널에서는 그냥 할 일 추가 자체를 없애자"는 방향으로 `panelTitle`/`panelPriority`/`panelAdding` state와 입력 폼을 통째로 제거했었음. 이후 다시 논의해서 "패널에 할 일 추가 기능은 있어야 한다, 대신 우선순위는 드롭다운이 아니라 버튼(세그먼트 컨트롤)으로 바로 고르게 하자"로 결론.
+
+- `frontend/src/pages/TodoPage.jsx`에 `PriorityButtonGroup` 컴포넌트 추가 — 낮음/보통/높음 3개 버튼을 한 줄에 나열, 선택된 버튼은 해당 우선순위 색(회색/주황/빨강)으로 배경이 채워짐. 드롭다운을 펼쳐야 하는 번거로움 없이 한눈에 다 보이고 바로 클릭 가능.
+- 캘린더 패널의 할 일 추가 폼(`panelTitle`/`panelPriority`/`panelAdding` state, `handlePanelAdd`, 입력창+버튼 JSX)을 되살리되, 우선순위 선택 부분만 `PriorityDropdown` 대신 `PriorityButtonGroup` 사용.
+- 목록 상단 폼과 인라인 수정 행은 기존 `PriorityDropdown`(드롭다운) 그대로 유지 — 이번 변경은 캘린더 패널 한정.
+
+### 캘린더 날짜별 패널 — 목록에서 마감일 표시 제거
+
+이 패널은 이미 특정 날짜를 골라서 그 날짜의 할 일만 보여주는 곳이라, 각 항목 오른쪽의 마감일(예: `2026-07-03`) 표시가 중복이었음. `TodoRow`에 `hideDate` prop을 추가해서 이 패널의 목록 렌더링(`rowProps(todo, false, false, true)`)에만 켜고, 다른 목록(전체 목록/미완료 목록)은 그대로 마감일을 보여줌.
+
+### 할 일 세부사항(시작 시간/메모) 입력 방식 변경
+
+기존엔 각 할 일 행 맨 앞에 작은 화살표 버튼만 따로 있어서 눈에 잘 안 띄고 뭘 펼치는 버튼인지 헷갈린다는 피드백. 두 가지로 개선:
+
+1. **목록 상단 추가 폼에 시작 시간/메모 입력란 상시 노출** — 예전엔 세부사항을 나중에 행을 펼쳐서만 넣을 수 있었는데, 할 일을 처음 만들 때부터 바로 입력할 수 있게 추가 폼 아래에 `TimePicker`(선택)와 메모 입력란(선택)을 항상 보이는 두 번째 줄로 추가. 둘 다 비워도 정상적으로 할 일이 생성됨.
+   - `frontend/src/api/todos.js`: `createTodo`에 `startTime`, `memo` 선택 인자 추가 (백엔드 `TodoCreateRequest`는 이미 두 필드를 지원하고 있어서 백엔드 변경은 불필요).
+   - `frontend/src/pages/TodoPage.jsx`: `newStartTime`/`newMemo` state 추가, `handleAdd`에서 함께 전송 후 초기화.
+2. **세부사항 토글을 우선순위 옆으로 이동 + 라벨 추가** — 행 맨 앞의 독립된 화살표 버튼을 없애고, 우선순위 배지 바로 옆에 "세부사항" 글자 + 화살표를 붙여서 배치. 이제 우선순위와 세부사항 토글이 한 그룹으로 붙어 있어 뭘 펼치는 버튼인지 훨씬 명확함. (`todo.detailLabel` i18n 키 추가)
+
+### 세부사항 저장 완료 시 저장 버튼 초록색으로 피드백
+
+세부사항(시작 시간/메모)을 펼쳐서 수정 후 저장하면, 저장이 실제로 잘 됐는지 알기 어렵다는 피드백. `saveDetails`(TodoPage)가 성공/실패 여부(`true`/`false`)를 반환하도록 바꾸고, `TodoRow`의 저장 버튼이 저장 성공 시 1.5초간 초록색 + "저장됨" 문구로 바뀌었다가 자동으로 원래(파란색 "저장") 상태로 돌아오도록 함. 저장 후 값을 다시 수정하면 바로 초록색이 풀림. (`common.saved` i18n 키 추가)
+
+### 만든/수정 파일
+- `frontend/src/pages/TodoPage.jsx` — `PriorityButtonGroup` 추가, 캘린더 패널 추가 폼 재구성, `TodoRow`에 `hideDate`/`justSaved` 처리 추가, 세부사항 토글 위치 변경, 상단 폼에 시작시간/메모 입력란 추가
+- `frontend/src/api/todos.js` — `createTodo`에 `startTime`/`memo` 인자 추가
+- `frontend/src/i18n/locales/{ko,en}.json` — `todo.detailLabel`, `todo.startTimeOptional`, `common.saved` 키 추가
+
+---
+
+## Phase 9 UI — 전역 폰트에 Pretendard 추가 (화살표+한글 자간 벌어짐 수정)
+
+메모/세부사항 등 텍스트 입력창에 화살표(→) 같은 기호를 직접 입력한 뒤 바로 이어서 한글을 입력하면, 그 사이 자간이 눈에 띄게 벌어져 보인다는 리포트. 영어를 이어 쓰면 문제없이 붙어 있음.
+
+**원인**: 전역 폰트가 `'Inter', sans-serif`인데 Inter엔 한글 글리프가 없음. 그래서 화살표 같은 라틴/기호 문자는 Inter로 그려지고, 바로 뒤 한글은 브라우저가 시스템 한글 폰트(예: 맑은 고딕)로 자동 대체해서 그림 - 두 폰트의 자간 계산 방식이 달라서 전환 지점에서 간격이 벌어져 보임. 영어만 이어 쓰면 계속 Inter 하나로만 렌더링되니 문제가 없었던 것.
+
+**해결**: 한글+라틴을 모두 자연스럽게 지원하는 무료 폰트 Pretendard를 CDN으로 추가하고, 전역 폰트 스택 맨 앞에 배치해서 한글이 나와도 같은 폰트 계열 안에서 처리되도록 함.
+
+### 만든/수정 파일
+- `frontend/public/index.html` — Pretendard CDN(`cdn.jsdelivr.net/gh/orioncactus/pretendard`) `<link>` 추가
+- `frontend/src/index.css` — 전역 `font-family`를 `'Inter', sans-serif` → `'Pretendard', 'Inter', sans-serif`로 변경
+
+---
+
+## Phase 9 UI — 퀴즈 페이지 하위 폴더 노트 미표시 + 전체화면 새 창 문제 수정
+
+### 하위 폴더 노트가 우측 패널에 안 보이던 문제
+
+퀴즈 페이지에서 상위 폴더를 선택하면 하위 폴더에 있는 노트까지 퀴즈 범위에 포함되어야 하는데(실제 퀴즈 생성 로직은 이미 그렇게 동작하고 있었음 - `quiz_service.py`가 `get_category_subtree_ids`로 하위 폴더까지 포함해서 문제를 뽑음), 우측 패널의 "이 폴더의 글 목록" 미리보기만 하위 폴더 노트를 안 보여주고 있었음.
+
+원인은 단순함: `QuizPage.jsx`의 패널용 `getPosts` 호출에 `include_subcategories` 값을 안 넘겨서(기본값 `false`) 딱 그 폴더에 직접 속한 글만 조회되고 있었음. `getPosts(1, 50, null, null, token, categoryParam, true)`로 마지막 인자를 `true`로 넘기도록 수정 - 백엔드 `/api/posts` 엔드포인트는 이미 이 파라미터를 지원하고 있어서 프론트 한 줄 수정으로 해결.
+
+### "전체 화면" 버튼이 새 창을 띄우던 문제
+
+우측 패널에서 노트를 열었을 때 있는 "전체 화면" 버튼이 `window.open(..., "_blank")`으로 새 탭/창을 여는 방식이었는데, 새 창을 띄우지 않고 같은 화면 안에서 미리보기가 전체 화면을 꽉 채우도록 변경 요청.
+
+`previewFullscreen` state를 추가해서, 켜지면 노트 미리보기 영역을 `position: fixed; inset: 0`인 오버레이로 렌더링해 화면 전체를 덮도록 함. 버튼을 다시 누르면(아이콘이 확대→축소 모양으로 바뀜) 원래 우측 패널 크기로 돌아옴. 폴더를 바꾸거나 목록으로 돌아가면 자동으로 전체화면이 해제됨.
+
+### 만든/수정 파일
+- `frontend/src/pages/QuizPage.jsx` — 패널용 `getPosts` 호출에 `include_subcategories=true` 추가; `previewFullscreen` state + 전체화면 오버레이 렌더링 추가; `window.open` 제거하고 `Maximize2`/`Minimize2` 아이콘으로 토글
+- `frontend/src/i18n/locales/{ko,en}.json` — `quiz.exitFullScreen` 키 추가
 
 ---

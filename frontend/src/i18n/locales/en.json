@@ -96,6 +96,7 @@
     "viewSourceInPanel": "View source in the right panel",
     "sourceUnknown": "Could not identify the source note",
     "submit": "Submit",
+    "submitAll": "Submit all ({{count}})",
     "grading": "Grading...",
     "correct": "Correct!",
     "incorrect": "Incorrect. Answer: {{answer}}",
