@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
 import { getMyProfile, updateMyProfile, changeMyPassword, deleteMyAccount } from "../api/users";
-import SidebarLayout from "../components/SidebarLayout";
+import SidebarLayout, { SidebarSpacer } from "../components/SidebarLayout";
 import { User, KeyRound, Trash2, Loader2, Check, Sun, Moon, Languages } from "lucide-react";
 
 function SettingsPage() {
@@ -110,8 +110,11 @@ function SettingsPage() {
   return (
     <SidebarLayout selectedCategoryId={null} onSelectCategory={handleGoToNotes}>
       <div className="flex-1 overflow-y-auto bg-gray-50 dark:bg-gray-900">
-        <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 px-8 py-4 z-10">
-          <h1 className="text-lg font-bold text-gray-800 dark:text-gray-100">{t("settings.title")}</h1>
+        <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 px-8 py-4 flex items-center z-10">
+          <div className="flex items-center gap-2">
+            <SidebarSpacer />
+            <h1 className="text-lg font-bold text-gray-800 dark:text-gray-100">{t("settings.title")}</h1>
+          </div>
         </div>
 
         <div className="px-8 py-8 max-w-2xl flex flex-col gap-6">

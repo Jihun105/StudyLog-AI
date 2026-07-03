@@ -8,7 +8,7 @@ import {
   Search, SlidersHorizontal, FileText,
   Play, Plus, Folder
 } from "lucide-react";
-import SidebarLayout from "../components/SidebarLayout";
+import SidebarLayout, { SidebarSpacer } from "../components/SidebarLayout";
 
 // 카테고리 id로 이름 찾기 (트리 재귀 탐색)
 function findCategoryName(categories, id) {
@@ -169,6 +169,7 @@ function HomePage() {
       {/* 상단 헤더 */}
       <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 px-8 py-4 flex items-center justify-between z-10">
         <div className="flex items-center gap-2 text-sm text-gray-400 dark:text-gray-500">
+          <SidebarSpacer />
           <button onClick={() => handleSelectCategory(null)} className="hover:text-blue-600 dark:hover:text-blue-400">
             {t("notes.allNotes")}
           </button>

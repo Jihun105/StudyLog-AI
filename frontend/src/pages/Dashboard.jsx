@@ -7,7 +7,7 @@ import { getTodos, toggleTodo } from "../api/todos";
 import { getMyProfile, updateMyProfile } from "../api/users";
 import { uploadImage } from "../api/uploads";
 import { useAuth } from "../context/AuthContext";
-import SidebarLayout from "../components/SidebarLayout";
+import SidebarLayout, { SidebarSpacer } from "../components/SidebarLayout";
 import {
   Plus, BrainCircuit, ArrowRight, NotebookText, FolderTree, CheckCircle2, Circle, ListTodo,
   Camera, FileWarning,
@@ -168,7 +168,10 @@ function Dashboard() {
     <SidebarLayout selectedCategoryId={null} onSelectCategory={handleSelectCategory}>
       <div className="flex-1 overflow-y-auto bg-gray-50 dark:bg-gray-900">
         <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 px-8 py-4 flex items-center justify-between z-10">
-          <h1 className="text-lg font-bold text-gray-800 dark:text-gray-100">{t("dashboard.title")}</h1>
+          <div className="flex items-center gap-2">
+            <SidebarSpacer />
+            <h1 className="text-lg font-bold text-gray-800 dark:text-gray-100">{t("dashboard.title")}</h1>
+          </div>
         </div>
 
         <div className="px-8 py-8 max-w-5xl">

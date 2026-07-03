@@ -108,14 +108,20 @@ function ResizableRightPanel({
   }, [handleMouseMove, handleMouseUp]);
 
   if (collapsible && collapsed) {
+    // 왼쪽 SidebarLayout과 동일한 이유로 fixed 대신 실제 flex 자리를 차지하는 좁은 컬럼으로 변경 -
+    // 페이지 우측 헤더 요소(버튼 등)와 겹치는 문제를 구조적으로 방지.
+    // 버튼 스타일도 왼쪽 사이드바 재오픈 버튼과 동일하게 카드(배경/테두리/그림자) 없이
+    // 아이콘만 있는 형태로 통일 - 별도 위젯처럼 튀지 않고 자연스럽게 녹아드는 느낌
     return (
-      <button
-        onClick={toggleCollapsed}
-        title={t("common.expandPanel")}
-        className="fixed top-4 right-4 z-20 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm rounded-lg p-2 text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:border-blue-300 dark:hover:border-blue-500"
-      >
-        <PanelRightOpen size={18} />
-      </button>
+      <div className="shrink-0 w-14 h-full flex justify-center pt-4">
+        <button
+          onClick={toggleCollapsed}
+          title={t("common.expandPanel")}
+          className="h-fit text-gray-400 dark:text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-100 dark:hover:bg-gray-700/60 p-2 rounded-lg"
+        >
+          <PanelRightOpen size={18} />
+        </button>
+      </div>
     );
   }
 

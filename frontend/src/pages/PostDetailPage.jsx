@@ -15,6 +15,7 @@ import {
   History, Plus, Loader2
 } from "lucide-react";
 import ResizableRightPanel from "../components/ResizableRightPanel";
+import SidebarLayout, { SidebarSpacer } from "../components/SidebarLayout";
 import { useTheme } from "../context/ThemeContext";
 
 // AI 답변 안의 `코드`와 **굵게** 정도만 최소한으로 렌더링 (줄바꿈은 whitespace-pre-wrap이 처리)
@@ -122,6 +123,11 @@ function PostDetailPage() {
     loadContent();
   }, [editor, post]);
 
+  // 사이드바에서 카테고리를 누르면 노트 목록 페이지로 이동 (다른 페이지들과 동일한 동작)
+  const handleSelectCategory = (categoryId) => {
+    navigate(categoryId === null ? "/notes" : `/notes?category=${categoryId}`);
+  };
+
   const handleDelete = async () => {
     if (!window.confirm(t("postDetail.confirmDelete"))) return;
     try {
@@ -188,22 +194,27 @@ function PostDetailPage() {
   };
 
   if (loading) return (
-    <div className="flex items-center justify-center h-full text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-gray-900">{t("common.loading")}</div>
+    <SidebarLayout selectedCategoryId={null} onSelectCategory={handleSelectCategory}>
+      <div className="flex-1 flex items-center justify-center h-full text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-gray-900">{t("common.loading")}</div>
+    </SidebarLayout>
   );
   if (errorMessage) return (
-    <div className="p-8 text-red-500 dark:text-red-400 bg-gray-50 dark:bg-gray-900 h-full">{errorMessage}</div>
+    <SidebarLayout selectedCategoryId={null} onSelectCategory={handleSelectCategory}>
+      <div className="flex-1 p-8 text-red-500 dark:text-red-400 bg-gray-50 dark:bg-gray-900 h-full">{errorMessage}</div>
+    </SidebarLayout>
   );
   if (!post) return null;
 
   const categoryPath = post.category_id ? findCategoryPath(categories, post.category_id) : null;
 
   return (
-    <div className="flex flex-1 min-h-screen">
+    <SidebarLayout selectedCategoryId={post.category_id ?? null} onSelectCategory={handleSelectCategory}>
       {/* 메인 본문 */}
       <div className="flex-1 min-w-0 overflow-y-auto bg-gray-50 dark:bg-gray-900">
         {/* 상단 헤더 */}
         <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 px-8 py-4 flex items-center justify-between gap-3 z-10">
           <div className="flex items-center gap-1.5 text-sm text-gray-400 dark:text-gray-500 min-w-0 overflow-x-auto whitespace-nowrap">
+            <SidebarSpacer />
             <button onClick={() => navigate("/notes")} className="hover:text-blue-600 dark:hover:text-blue-400 shrink-0">{t("postDetail.allNotes")}</button>
             {categoryPath?.map((cat) => (
               <span key={cat.id} className="flex items-center gap-1.5 shrink-0">
@@ -408,7 +419,7 @@ function PostDetailPage() {
           <BrainCircuit size={16} /> {t("postDetail.generateQuiz")}
         </button>
       </ResizableRightPanel>
-    </div>
+    </SidebarLayout>
   );
 }
 

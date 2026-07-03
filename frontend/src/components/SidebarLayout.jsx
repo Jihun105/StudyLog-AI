@@ -1,7 +1,21 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, createContext, useContext } from "react";
 import { useTranslation } from "react-i18next";
 import { PanelLeftOpen } from "lucide-react";
 import Sidebar from "./Sidebar";
+
+// 사이드바가 접혔는지를 각 페이지의 헤더에 전달하기 위한 컨텍스트.
+// 접혔을 때 뜨는 재오픈 버튼은 fixed라 실제 레이아웃 공간을 차지하지 않는데, 그렇다고 헤더 위에
+// 별도의 "여백용 박스"를 겹쳐 그리면 헤더 배경/높이를 페이지마다 따로 추정해야 해서 색/높이가
+// 미묘하게 안 맞는 단차가 생김. 대신 각 페이지의 헤더 "안"에 여백을 두면(SidebarSpacer 참고)
+// 헤더 자체의 배경이 그대로 이어지므로 색/높이를 맞출 필요 자체가 없어짐
+export const SidebarCollapsedContext = createContext(false);
+
+// 페이지 헤더 맨 앞에 넣는 여백 - 사이드바가 접혔을 때만 재오픈 버튼과 안 겹치도록 폭을 확보함
+export function SidebarSpacer() {
+  const collapsed = useContext(SidebarCollapsedContext);
+  if (!collapsed) return null;
+  return <span className="w-6 shrink-0" />;
+}
 
 const BREAKPOINT = 1024; // 이 너비 미만이면 사이드바 자동으로 숨김
 const DEFAULT_WIDTH = 256;
@@ -92,21 +106,25 @@ function SidebarLayout({ children, ...sidebarProps }) {
 
   if (collapsed) {
     return (
-      <>
+      <SidebarCollapsedContext.Provider value={true}>
+        {/* 위치는 그대로 두고(fixed top-4 left-4), 카드처럼 튀는 테두리/그림자를 없애서
+            헤더 바 자체에 원래 있던 아이콘 버튼처럼 자연스럽게 녹아들도록 스타일만 변경.
+            여백은 더 이상 여기서 별도 박스로 흉내내지 않고, 각 페이지 헤더 안의
+            <SidebarSpacer />가 담당함 (헤더 자신의 배경/높이를 그대로 쓰므로 단차가 생기지 않음) */}
         <button
           onClick={toggleCollapsed}
           title={t("sidebar.expand")}
-          className="fixed top-4 left-4 z-20 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm rounded-lg p-2 text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:border-blue-300 dark:hover:border-blue-500"
+          className="fixed top-4 left-4 z-20 text-gray-400 dark:text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-100 dark:hover:bg-gray-700/60 p-2 rounded-lg"
         >
           <PanelLeftOpen size={18} />
         </button>
         {children}
-      </>
+      </SidebarCollapsedContext.Provider>
     );
   }
 
   return (
-    <>
+    <SidebarCollapsedContext.Provider value={false}>
       <div style={{ width: `${width}px` }} className="shrink-0 h-full">
         <Sidebar {...sidebarProps} onCollapse={toggleCollapsed} />
       </div>
@@ -115,7 +133,7 @@ function SidebarLayout({ children, ...sidebarProps }) {
         className="w-1 shrink-0 bg-gray-100 dark:bg-gray-700 hover:bg-blue-400 dark:hover:bg-blue-500 transition-colors cursor-col-resize"
       />
       {children}
-    </>
+    </SidebarCollapsedContext.Provider>
   );
 }
 

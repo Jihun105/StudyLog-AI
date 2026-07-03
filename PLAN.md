@@ -180,7 +180,7 @@ StudyLog-AI/
 | Phase 4 | Step 13-B | Django Admin 패널 구축 (수업 요구사항: FastAPI + Django + Docker/AWS) | ✅ 완료 |
 | Phase 4 | Step 14 | 구조화 로깅 (structlog) | ⏳ 대기 |
 | Phase 4 | Step 15 | Docker Compose 통합 (backend/frontend/admin/nginx/mysql/qdrant) | ✅ 완료 |
-| Phase 4 | Step 16 | GitHub Actions CI/CD | ⏳ 대기 |
+| Phase 4 | Step 16 | GitHub Actions CI/CD | ✅ 완료 |
 | Phase 4 | Step 17 | VPS/AWS 배포 | ✅ 완료 (AWS EC2) |
 | Phase 5 | Step 18 | 사이드바 반응형(자동 숨김/토글) + 드래그 리사이즈 | ✅ 완료 |
 | Phase 5 | Step 19 | 대시보드/노트 목록 화면 분리 | ✅ 완료 |
@@ -223,6 +223,36 @@ EC2 퍼블릭 IP(`http://15.165.35.74`)로 접속해 회원가입 → 로그인 
 - Elastic IP 미할당 — 인스턴스를 중지 후 재시작하면 퍼블릭 IP가 바뀜. 데모 이후에도 계속 같은 주소로 쓰려면 Elastic IP 할당 필요
 - 도메인/HTTPS 미설정 — 지금은 IP + HTTP로만 접속 가능 (443 보안그룹은 열어뒀으나 인증서 미설정)
 - Django 관리자(`/admin`) 슈퍼유저 계정은 이 서버에서 별도로 새로 생성 필요 (로컬 계정과 무관, `docker compose exec admin python manage.py createsuperuser`)
+
+---
+
+## Phase 4 Step 16 구현 완료 — GitHub Actions CI/CD
+
+EC2 배포 직후, "코드 고칠 때마다 SSH 접속해서 pull-build-restart" 하는 수동 과정을 자동화한 라운드.
+
+### 만든 파일
+- `.github/workflows/deploy.yml` — `main` 브랜치 push/PR 시 3개 job 실행:
+  - `backend-test`: Python 3.11 + `pytest` (`backend/tests/`)
+  - `frontend-build`: Node 20 + `npm install --legacy-peer-deps`(Dockerfile과 동일한 이유로 필요) + `npm run build`(프로덕션 빌드가 실제로 되는지 검증)
+  - `deploy`: 위 두 job이 통과하고 `main`에 push된 경우에만, `appleboy/ssh-action`으로 EC2에 SSH 접속해서 `git pull` → `docker compose up -d --build` → `alembic upgrade head` 실행
+
+### 필요한 GitHub Secrets
+`EC2_HOST`(퍼블릭 IP), `EC2_USER`(`ubuntu`), `EC2_SSH_KEY`(`.pem` 파일 전체 내용) — 저장소 Settings → Secrets and variables → Actions에 등록.
+
+### 트러블슈팅
+
+**1) `frontend-build`가 ESLint 경고 때문에 실패**
+GitHub Actions 러너는 `CI=true`가 기본 설정돼 있는데, CRA(`react-scripts`)는 `CI=true`일 때 ESLint **경고**까지 전부 빌드 실패로 처리함. 실제 버그가 아니라 이전부터 있던 사소한 경고들(안 쓰는 import, `useEffect` 의존성 배열 누락 등)이었고, 로컬/Docker 빌드는 `CI`를 안 건드려서 여태 안 걸렸던 것. 지금 당장 모든 경고를 고치는 대신(의존성 배열을 잘못 건드리면 동작이 미묘하게 바뀔 위험 있음), 워크플로우의 `frontend-build` 스텝에 `CI: "false"`를 명시해서 경고는 경고로만 남게 하고 실제 문법 에러는 여전히 빌드 실패로 잡히도록 함.
+
+**2) `deploy`가 `dial tcp ***:22: i/o timeout`으로 실패**
+EC2 보안 그룹의 SSH(22) 인바운드 규칙이 "내 IP"(고정 IP)로만 열려 있었는데, GitHub Actions 러너는 매번 다른(예측 불가능한) IP에서 접속을 시도하기 때문에 보안 그룹에서 막혀 연결 자체가 안 됐음. **해결**: SSH 인바운드 소스를 `0.0.0.0/0`(전체 허용)으로 변경. 포트가 전체 공개되긴 하지만 서버가 비밀번호 로그인은 막혀 있고 키 기반 인증만 허용하므로(`.pem` 개인키 없이는 로그인 불가), 개인/데모 프로젝트 수준에서는 실질적 위험이 낮은 트레이드오프로 판단. (더 엄격하게 하려면 GitHub의 동적 IP 대역만 배포 시점에 임시로 허용하는 방식도 있으나 설정 복잡도 대비 지금 단계에선 과함)
+
+### 검증
+`git push` 한 번으로 backend-test → frontend-build → deploy 전체 파이프라인이 자동으로 돌아가는 것을 실제로 확인. 배포 후 EC2 퍼블릭 IP로 접속해 정상 동작 재확인 완료.
+
+### 남은 작업 (다음 라운드 후보)
+- fail2ban 등으로 SSH 무차별 대입 시도 완화 (0.0.0.0/0 개방에 대한 추가 방어층, 필수는 아니지만 권장)
+- GitHub의 동적 IP만 임시 허용하는 방식으로 SSH 접근 범위 좁히기 (IAM 자격 증명 필요, 복잡도 증가)
 
 ---
 

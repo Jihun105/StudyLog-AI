@@ -13,7 +13,7 @@ import { codeBlockConfig } from "../lib/editorSchema";
 import {
   BrainCircuit, CheckCircle2, XCircle, Loader2, RotateCcw, FileText, ArrowLeft, ExternalLink, Search, X
 } from "lucide-react";
-import SidebarLayout from "../components/SidebarLayout";
+import SidebarLayout, { SidebarSpacer } from "../components/SidebarLayout";
 import ResizableRightPanel from "../components/ResizableRightPanel";
 import { useTheme } from "../context/ThemeContext";
 
@@ -273,6 +273,7 @@ function QuizPage() {
       <div className="flex-1 min-w-[480px] overflow-y-auto bg-gray-50 dark:bg-gray-900">
         <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 px-8 py-4 flex items-center justify-between z-10">
           <div className="flex items-center gap-2 text-lg font-bold text-gray-800 dark:text-gray-100">
+            <SidebarSpacer />
             <BrainCircuit size={20} className="text-blue-600 dark:text-blue-400" /> {t("quiz.title")}
           </div>
         </div>
