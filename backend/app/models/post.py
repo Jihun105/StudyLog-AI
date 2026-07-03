@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, Table
+from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, Table, Boolean
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.db.database import Base
@@ -43,9 +43,21 @@ class Category(Base):
     parent_id = Column(Integer, ForeignKey("categories.id", ondelete="CASCADE"), nullable=True)
     # 카테고리 소유자
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    # 사용자가 카테고리를 지정하지 않고 글을 쓸 때 자동으로 배정되는 "기본" 카테고리 표시.
+    # 다른 폴더와 기능(이름변경/삭제/하위폴더추가)은 완전히 동일하고, 단지 새 글의 기본
+    # 배정 대상을 찾기 위한 내부 플래그일 뿐 - 이름을 바꿔도(예: "Inbox") 계속 기본 배정 대상으로 동작함
+    is_default = Column(Boolean, nullable=False, server_default="0")
+    # 같은 부모 아래 형제 카테고리들 사이의 정렬 순서 (드래그 앤 드롭 순서 변경용).
+    # 값 자체엔 의미가 없고, 같은 parent_id를 가진 카테고리끼리 오름차순으로만 비교함
+    order_index = Column(Integer, nullable=False, server_default="0")
 
-    # 자기 자신을 참조하는 관계 (하위 카테고리 목록)
-    children = relationship("Category", back_populates="parent", cascade="all, delete-orphan")
+    # 자기 자신을 참조하는 관계 (하위 카테고리 목록) - order_index 순으로 정렬해서 가져옴
+    children = relationship(
+        "Category",
+        back_populates="parent",
+        cascade="all, delete-orphan",
+        order_by="Category.order_index",
+    )
     parent = relationship("Category", back_populates="children", remote_side=[id])
 
 # relationship() : SQLAlchemy에서 테이블 간 관계를 Python 객체로 표현

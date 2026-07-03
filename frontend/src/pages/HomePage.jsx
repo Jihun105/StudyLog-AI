@@ -1,14 +1,15 @@
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { getPosts, getAllTags } from "../api/posts";
+import { getPosts, getAllTags, deletePost } from "../api/posts";
 import { getCategories } from "../api/categories";
 import { useAuth } from "../context/AuthContext";
 import {
   Search, SlidersHorizontal, FileText,
-  Play, Plus, Folder
+  Play, Plus, Folder, X
 } from "lucide-react";
 import SidebarLayout, { SidebarSpacer } from "../components/SidebarLayout";
+import { POST_DRAG_TYPE } from "../components/Sidebar";
 
 // 카테고리 id로 이름 찾기 (트리 재귀 탐색)
 function findCategoryName(categories, id) {
@@ -52,6 +53,11 @@ function HomePage() {
     const categoryParam = searchParams.get("category");
     return categoryParam !== null ? Number(categoryParam) : null;
   });
+  // 노트 카드를 드래그하는 동안 살짝 흐리게 표시해서 어떤 카드가 옮겨지고 있는지 보여줌
+  const [draggingPostId, setDraggingPostId] = useState(null);
+  // 노트 카드 우측 상단 X 버튼을 눌렀을 때 - 상세 페이지 들어가지 않고 바로 삭제할 수 있도록
+  // 눌린 카드 밑에 "정말 삭제하시겠습니까?" 확인 팝업을 보여줌 (한 번에 하나만 열림)
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null);
 
   const { token } = useAuth();
   const navigate = useNavigate();
@@ -106,6 +112,14 @@ function HomePage() {
 
   useEffect(() => { fetchPosts(); }, [page, keyword, selectedTags, selectedCategoryId]);
 
+  // 사이드바에서 노트를 드래그해서 다른 폴더로 옮기면(Sidebar.jsx가 이 이벤트를 쏨),
+  // 지금 보고 있는 목록도 최신 상태로 다시 불러옴
+  useEffect(() => {
+    const handlePostsChanged = () => fetchPosts();
+    window.addEventListener("studylog:posts-changed", handlePostsChanged);
+    return () => window.removeEventListener("studylog:posts-changed", handlePostsChanged);
+  }, [page, keyword, selectedTags, selectedCategoryId]);
+
   const handleSearch = () => {
     setPage(1);
     setKeyword(inputKeyword.trim() || null);
@@ -127,6 +141,25 @@ function HomePage() {
     setKeyword(null);
     setSelectedTags([]);
     setPage(1);
+  };
+
+  // 삭제 확인 팝업이 열려 있을 때 바깥을 클릭하면 닫힘 (팝업 자체 클릭은 막아둠 - 아래 JSX 참고)
+  useEffect(() => {
+    if (confirmDeleteId === null) return;
+    const handleOutsideClick = () => setConfirmDeleteId(null);
+    document.addEventListener("click", handleOutsideClick);
+    return () => document.removeEventListener("click", handleOutsideClick);
+  }, [confirmDeleteId]);
+
+  // 미리보기 카드의 X 버튼 -> 확인 팝업에서 삭제를 누르면 실제로 삭제
+  const handleDeleteNote = async (postId) => {
+    try {
+      await deletePost(postId, token);
+      setConfirmDeleteId(null);
+      fetchPosts();
+    } catch (error) {
+      alert(t("postDetail.deleteFailed"));
+    }
   };
 
   const handleSelectCategory = (categoryId) => {
@@ -281,9 +314,49 @@ function HomePage() {
               <div
                 key={post.id}
                 onClick={() => navigate(`/posts/${post.id}`)}
-                className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-5 cursor-pointer hover:shadow-md hover:border-blue-100 dark:hover:border-blue-500/40 transition-all"
+                draggable
+                onDragStart={(e) => {
+                  e.dataTransfer.effectAllowed = "move";
+                  e.dataTransfer.setData(POST_DRAG_TYPE, String(post.id));
+                  setDraggingPostId(post.id);
+                }}
+                onDragEnd={() => setDraggingPostId(null)}
+                className={`relative bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-5 cursor-pointer hover:shadow-md hover:border-blue-100 dark:hover:border-blue-500/40 transition-all ${
+                  draggingPostId === post.id ? "opacity-40" : ""
+                }`}
               >
-                <div className="text-xs text-gray-400 dark:text-gray-500 mb-2 flex items-center gap-1">
+                {/* 상세 페이지에 안 들어가고도 바로 삭제할 수 있는 X 버튼 - 누르면 카드 이동/열람과
+                    안 겹치도록 바로 밑에 "정말 삭제하시겠습니까?" 확인 팝업을 띄움 */}
+                <button
+                  onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(post.id); }}
+                  title={t("postDetail.delete")}
+                  className="absolute top-2 right-2 z-10 text-gray-300 hover:text-red-500 dark:text-gray-600 dark:hover:text-red-400 p-1 rounded"
+                >
+                  <X size={14} />
+                </button>
+                {confirmDeleteId === post.id && (
+                  <div
+                    onClick={(e) => e.stopPropagation()}
+                    className="absolute top-9 right-2 z-20 w-48 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg p-3"
+                  >
+                    <p className="text-xs text-gray-600 dark:text-gray-300 mb-2">{t("postDetail.confirmDelete")}</p>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => handleDeleteNote(post.id)}
+                        className="flex-1 text-xs bg-red-500 text-white rounded-lg px-2 py-1.5 hover:bg-red-600"
+                      >
+                        {t("postDetail.delete")}
+                      </button>
+                      <button
+                        onClick={() => setConfirmDeleteId(null)}
+                        className="flex-1 text-xs text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-gray-600 rounded-lg px-2 py-1.5 hover:bg-gray-50 dark:hover:bg-gray-700"
+                      >
+                        {t("common.cancel")}
+                      </button>
+                    </div>
+                  </div>
+                )}
+                <div className="text-xs text-gray-400 dark:text-gray-500 mb-2 flex items-center gap-1 pr-5">
                   <FileText size={12} />
                   <span>{post.category_id ? (findCategoryName(categories, post.category_id) || t("notes.categoryPrefix")) : t("notes.uncategorized")}</span>
                 </div>

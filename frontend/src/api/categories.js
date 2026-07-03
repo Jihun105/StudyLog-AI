@@ -36,3 +36,14 @@ export const renameCategory = async (categoryId, name, token) => {
 export const deleteCategory = async (categoryId, token) => {
   await axios.delete(`${BASE_URL}/api/categories/${categoryId}`, authHeader(token));
 };
+
+// 드래그 앤 드롭으로 바뀐 폴더 순서/위치를 한 번에 반영
+// items: [{ id, parent_id, order_index }, ...] - 사용자 소유 카테고리 전체 스냅샷
+export const reorderCategories = async (items, token) => {
+  const response = await axios.put(
+    `${BASE_URL}/api/categories/reorder`,
+    { items },
+    authHeader(token)
+  );
+  return response.data;
+};

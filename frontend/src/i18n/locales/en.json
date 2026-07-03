@@ -9,14 +9,16 @@
     "edit": "Edit",
     "confirm": "Confirm",
     "expandPanel": "Expand panel",
-    "collapsePanel": "Collapse panel"
+    "collapsePanel": "Collapse panel",
+    "sessionExpiredMessage": "Your session has expired. Please log in again.",
+    "reLogin": "Log in"
   },
   "sidebar": {
     "premiumPlan": "Premium Plan",
     "dashboard": "Dashboard",
     "documents": "Documents",
     "aiQuiz": "AI Quiz",
-    "todo": "Todo",
+    "todo": "To do",
     "myFolders": "My Folders",
     "newFolder": "New folder",
     "addSubfolder": "Add subfolder",
@@ -33,7 +35,9 @@
     "collapse": "Collapse sidebar",
     "expand": "Open sidebar",
     "confirmDeleteFolder": "Deleting a folder also deletes its subfolders. Continue?",
-    "addFolderFailed": "Failed to add the folder."
+    "addFolderFailed": "Failed to add the folder.",
+    "moveFailed": "Failed to move.",
+    "moveIntoOwnSubfolder": "A folder can't be moved into its own subfolder."
   },
   "dashboard": {
     "title": "Dashboard",

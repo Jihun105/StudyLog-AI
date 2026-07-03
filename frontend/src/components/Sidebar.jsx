@@ -2,7 +2,8 @@ import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate, useLocation } from "react-router-dom";
-import { getCategories, createCategory, deleteCategory, renameCategory } from "../api/categories";
+import { getCategories, createCategory, deleteCategory, renameCategory, reorderCategories } from "../api/categories";
+import { movePost } from "../api/posts";
 import {
   LayoutDashboard, FileText, BrainCircuit, Settings,
   LogOut, FolderPlus, Folder, FolderOpen,
@@ -10,17 +11,99 @@ import {
   PanelLeftClose, FilePlus2, Trash2, ListTodo
 } from "lucide-react";
 
-function CategoryItem({ category, depth, indentOffset = 0, selectedCategoryId, onSelect, onAdd, onDelete, onRename, onWrite }) {
+// 노트(글) 드래그 앤 드롭에 쓰는 dataTransfer 타입 - HomePage 등 다른 페이지의 노트 카드에서
+// 이 타입으로 값을 실어 보내면 Sidebar의 폴더가 받아서 카테고리를 옮겨줌
+export const POST_DRAG_TYPE = "application/x-studylog-post";
+
+// 트리 조작 헬퍼들 - 전부 주어진 nodes 배열(및 그 하위 children)을 직접 변형(mutate)하거나
+// 그 안에서 노드/형제배열을 찾아내는 용도. 항상 호출 전에 깊은 복사를 해서 원본 state를
+// 직접 건드리지 않도록 함(Sidebar 컴포넌트의 handleDropOnCategory/handleDropOnRoot 참고)
+function findNodeById(nodes, id) {
+  for (const node of nodes) {
+    if (node.id === id) return node;
+    if (node.children && node.children.length > 0) {
+      const found = findNodeById(node.children, id);
+      if (found) return found;
+    }
+  }
+  return null;
+}
+
+function removeNodeById(nodes, id) {
+  for (let i = 0; i < nodes.length; i++) {
+    if (nodes[i].id === id) {
+      const [removed] = nodes.splice(i, 1);
+      return removed;
+    }
+    if (nodes[i].children && nodes[i].children.length > 0) {
+      const removed = removeNodeById(nodes[i].children, id);
+      if (removed) return removed;
+    }
+  }
+  return null;
+}
+
+function findSiblingsAndIndex(nodes, id) {
+  for (let i = 0; i < nodes.length; i++) {
+    if (nodes[i].id === id) {
+      return { siblings: nodes, index: i };
+    }
+    if (nodes[i].children && nodes[i].children.length > 0) {
+      const found = findSiblingsAndIndex(nodes[i].children, id);
+      if (found) return found;
+    }
+  }
+  return null;
+}
+
+// draggedNode 자신의 하위(자손) 중에 targetId가 있는지 - 자기 자신의 하위 폴더로
+// 옮기려는 시도를 프론트에서 먼저 걸러내기 위함(백엔드도 최종적으로 다시 검증함)
+function isDescendant(node, targetId) {
+  if (!node.children) return false;
+  for (const child of node.children) {
+    if (child.id === targetId || isDescendant(child, targetId)) return true;
+  }
+  return false;
+}
+
+// 트리 전체를 백엔드가 받는 {id, parent_id, order_index} 평탄화 목록으로 변환
+function flattenForReorder(nodes, parentId = null) {
+  const result = [];
+  nodes.forEach((node, index) => {
+    result.push({ id: node.id, parent_id: parentId, order_index: index });
+    if (node.children && node.children.length > 0) {
+      result.push(...flattenForReorder(node.children, node.id));
+    }
+  });
+  return result;
+}
+
+// 마우스가 행(row)의 위/중간/아래 중 어디 있는지로 드롭 의도를 판단
+// 위 25% = 이 폴더 "앞"에 형제로 삽입, 아래 25% = "뒤"에 형제로 삽입, 가운데 50% = 이 폴더 "안"으로 이동(하위 폴더화)
+function computeDropZone(e) {
+  const rect = e.currentTarget.getBoundingClientRect();
+  const ratio = (e.clientY - rect.top) / rect.height;
+  if (ratio < 0.25) return "before";
+  if (ratio > 0.75) return "after";
+  return "into";
+}
+
+function CategoryItem({
+  category, depth, indentOffset = 0, selectedCategoryId, onSelect, onAdd, onDelete, onRename, onWrite,
+  contextMenu, onOpenMenu, onCloseMenu,
+  draggingId, onDragStartItem, onDragEndItem, dragOver, onDragOverItem, onDropItem,
+}) {
   const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(true);
   const [isRenaming, setIsRenaming] = useState(false);
   const [renameValue, setRenameValue] = useState(category.name);
-  const [menuPos, setMenuPos] = useState(null); // {x, y} - null이면 우클릭 메뉴 닫힘
   const [isAddingChild, setIsAddingChild] = useState(false);
   const [newChildName, setNewChildName] = useState("");
 
   const isSelected = selectedCategoryId === category.id;
   const hasChildren = category.children && category.children.length > 0;
+  const isMenuOpen = contextMenu?.categoryId === category.id;
+  const isDragOverThis = dragOver?.categoryId === category.id;
   // canAddChild는 실제 카테고리 깊이(depth) 기준 — "기본" 하위로 보여주는 건 화면상의 들여쓰기(indentOffset)일 뿐,
   // 백엔드의 "최대 3단계" 제약과는 무관하므로 depth로만 판단
   const canAddChild = depth < 3;
@@ -44,22 +127,8 @@ function CategoryItem({ category, depth, indentOffset = 0, selectedCategoryId, o
   const openContextMenu = (e) => {
     e.preventDefault();
     e.stopPropagation();
-    setMenuPos({ x: e.clientX, y: e.clientY });
+    onOpenMenu(e, category.id);
   };
-  const closeContextMenu = () => setMenuPos(null);
-
-  // 메뉴가 열려 있을 때 바깥을 클릭하거나 Esc를 누르면 닫힘
-  useEffect(() => {
-    if (!menuPos) return;
-    const handleOutsideClick = () => closeContextMenu();
-    const handleEsc = (e) => { if (e.key === "Escape") closeContextMenu(); };
-    document.addEventListener("click", handleOutsideClick);
-    document.addEventListener("keydown", handleEsc);
-    return () => {
-      document.removeEventListener("click", handleOutsideClick);
-      document.removeEventListener("keydown", handleEsc);
-    };
-  }, [menuPos]);
 
   return (
     <div>
@@ -67,9 +136,33 @@ function CategoryItem({ category, depth, indentOffset = 0, selectedCategoryId, o
         className={`flex items-center justify-between px-2 py-1.5 rounded-lg cursor-pointer group text-sm
           ${isSelected
             ? "bg-blue-50 text-blue-600 font-medium dark:bg-blue-500/10 dark:text-blue-400"
-            : "text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700/60"}`}
+            : "text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700/60"}
+          ${isDragOverThis && dragOver?.zone === "before" ? "border-t-2 border-blue-500" : "border-t-2 border-transparent"}
+          ${isDragOverThis && dragOver?.zone === "after" ? "border-b-2 border-blue-500" : "border-b-2 border-transparent"}
+          ${isDragOverThis && dragOver?.zone === "into" ? "ring-2 ring-inset ring-blue-400" : ""}`}
         style={{ paddingLeft: `${(depth + indentOffset) * 14 + 8}px` }}
         onContextMenu={openContextMenu}
+        draggable
+        onDragStart={(e) => {
+          e.stopPropagation();
+          e.dataTransfer.effectAllowed = "move";
+          onDragStartItem(category.id);
+        }}
+        onDragEnd={() => onDragEndItem()}
+        onDragOver={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          e.dataTransfer.dropEffect = "move";
+          // 노트(글) 드래그 중이면 형제 삽입 개념이 없으니 항상 "into"(이 폴더로 이동)
+          const isPostDrag = e.dataTransfer.types.includes(POST_DRAG_TYPE);
+          const zone = isPostDrag ? "into" : computeDropZone(e);
+          onDragOverItem(category.id, zone);
+        }}
+        onDrop={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          onDropItem(e, category, dragOver?.zone || "into");
+        }}
       >
         <div className="flex items-center gap-1.5 flex-1 min-w-0" onClick={() => onSelect(category.id)}>
           <span
@@ -128,35 +221,35 @@ function CategoryItem({ category, depth, indentOffset = 0, selectedCategoryId, o
       </div>
 
       {/* 우클릭 컨텍스트 메뉴: 폴더 생성 / 글쓰기 / 이름변경 / 삭제 */}
-      {menuPos && (
+      {isMenuOpen && (
         <div
           className="fixed z-50 w-44 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg py-1 text-sm"
-          style={{ top: menuPos.y, left: menuPos.x }}
+          style={{ top: contextMenu.y, left: contextMenu.x }}
           onClick={(e) => e.stopPropagation()}
         >
           {canAddChild && (
             <button
-              onClick={() => { startAddChild(); closeContextMenu(); }}
+              onClick={() => { startAddChild(); onCloseMenu(); }}
               className="w-full flex items-center gap-2 px-3 py-1.5 text-left text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/60"
             >
               <FolderPlus size={14} className="shrink-0" /> {t("sidebar.addSubfolder")}
             </button>
           )}
           <button
-            onClick={() => { onWrite(category.id); closeContextMenu(); }}
+            onClick={() => { onWrite(category.id); onCloseMenu(); }}
             className="w-full flex items-center gap-2 px-3 py-1.5 text-left text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/60"
           >
             <FilePlus2 size={14} className="shrink-0" /> {t("sidebar.writeNote")}
           </button>
           <button
-            onClick={() => { setIsRenaming(true); closeContextMenu(); }}
+            onClick={() => { setIsRenaming(true); onCloseMenu(); }}
             className="w-full flex items-center gap-2 px-3 py-1.5 text-left text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/60"
           >
             <Pencil size={14} className="shrink-0" /> {t("sidebar.rename")}
           </button>
           <div className="my-1 border-t border-gray-100 dark:border-gray-700" />
           <button
-            onClick={() => { onDelete(category.id); closeContextMenu(); }}
+            onClick={() => { onDelete(category.id); onCloseMenu(); }}
             className="w-full flex items-center gap-2 px-3 py-1.5 text-left text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10"
           >
             <Trash2 size={14} className="shrink-0" /> {t("sidebar.delete")}
@@ -178,6 +271,15 @@ function CategoryItem({ category, depth, indentOffset = 0, selectedCategoryId, o
               onDelete={onDelete}
               onRename={onRename}
               onWrite={onWrite}
+              contextMenu={contextMenu}
+              onOpenMenu={onOpenMenu}
+              onCloseMenu={onCloseMenu}
+              draggingId={draggingId}
+              onDragStartItem={onDragStartItem}
+              onDragEndItem={onDragEndItem}
+              dragOver={dragOver}
+              onDragOverItem={onDragOverItem}
+              onDropItem={onDropItem}
             />
           ))}
 
@@ -217,29 +319,36 @@ function Sidebar({ selectedCategoryId, onSelectCategory, onCollapse }) {
   const [categories, setCategories] = useState([]);
   const [isAdding, setIsAdding] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState("");
-  const [defaultFolderOpen, setDefaultFolderOpen] = useState(true);
-  // "기본"(미분류) 폴더 위 / 빈 공간 우클릭 메뉴 - 실제 폴더(CategoryItem)와 달리 이 둘은
-  // 하드코딩된 요소라 자체 컨텍스트 메뉴가 없었음. mode로 "기본" 위인지 빈 공간인지 구분
-  const [rootMenu, setRootMenu] = useState(null); // {x, y, mode: "default" | "empty"}
+  // 사이드바 전체에서 우클릭 메뉴는 항상 하나만 열려 있어야 함 - {x, y, categoryId}.
+  // categoryId가 null이면 빈 공간(새 폴더 추가만), 특정 id면 그 폴더의 메뉴(CategoryItem이 렌더링).
+  const [contextMenu, setContextMenu] = useState(null);
+  // 드래그 앤 드롭 상태 - draggingId: 지금 드래그 중인 "폴더"의 id(노트를 드래그 중일 땐 null).
+  // dragOver: 지금 마우스가 올라가 있는 대상과 위치({categoryId, zone}) - "빈 공간"이면 categoryId는 "root".
+  const [draggingId, setDraggingId] = useState(null);
+  const [dragOver, setDragOver] = useState(null);
 
-  const openRootMenu = (e, mode) => {
+  const openCategoryMenu = (e, categoryId) => {
+    setContextMenu({ x: e.clientX, y: e.clientY, categoryId });
+  };
+  const openRootMenu = (e) => {
     e.preventDefault();
     e.stopPropagation();
-    setRootMenu({ x: e.clientX, y: e.clientY, mode });
+    setContextMenu({ x: e.clientX, y: e.clientY, categoryId: null });
   };
-  const closeRootMenu = () => setRootMenu(null);
+  const closeMenu = () => setContextMenu(null);
 
+  // 메뉴가 열려 있을 때 바깥을 클릭하거나 Esc를 누르면 닫힘 (상태가 하나뿐이라 리스너도 하나만 붙음)
   useEffect(() => {
-    if (!rootMenu) return;
-    const handleOutsideClick = () => closeRootMenu();
-    const handleEsc = (e) => { if (e.key === "Escape") closeRootMenu(); };
+    if (!contextMenu) return;
+    const handleOutsideClick = () => closeMenu();
+    const handleEsc = (e) => { if (e.key === "Escape") closeMenu(); };
     document.addEventListener("click", handleOutsideClick);
     document.addEventListener("keydown", handleEsc);
     return () => {
       document.removeEventListener("click", handleOutsideClick);
       document.removeEventListener("keydown", handleEsc);
     };
-  }, [rootMenu]);
+  }, [contextMenu]);
 
   const fetchCategories = async () => {
     try {
@@ -249,6 +358,11 @@ function Sidebar({ selectedCategoryId, onSelectCategory, onCollapse }) {
   };
 
   useEffect(() => { fetchCategories(); }, []);
+
+  // 다른 페이지(예: 노트 목록)에서 드래그로 노트를 옮겼을 때, 그쪽에서 자기 목록을
+  // 새로고침할 수 있도록 알려주는 전역 이벤트 - Sidebar와 페이지가 형제 컴포넌트라
+  // props로 직접 콜백을 못 넘기기 때문에 이 방식을 씀
+  const notifyPostsChanged = () => window.dispatchEvent(new Event("studylog:posts-changed"));
 
   const handleAddRoot = async () => {
     if (!newCategoryName.trim()) return;
@@ -292,7 +406,106 @@ function Sidebar({ selectedCategoryId, onSelectCategory, onCollapse }) {
 
   const handleLogout = () => {
     logoutAction();
-    navigate("/");
+    // "/"로 보내면 로그아웃 상태에선 랜딩페이지가 뜨는데, 로그아웃 직후엔 바로
+    // 로그인 화면으로 보내는 게 자연스러움 (세션 만료 시 재로그인 흐름과도 동일하게 맞춤)
+    navigate("/login");
+  };
+
+  // ---- 드래그 앤 드롭 ----
+  const handleDragStartItem = (categoryId) => setDraggingId(categoryId);
+  const handleDragEndItem = () => {
+    setDraggingId(null);
+    setDragOver(null);
+  };
+  const handleDragOverItem = (categoryId, zone) => setDragOver({ categoryId, zone });
+
+  // 폴더(또는 노트)를 특정 폴더 위에 놓았을 때 - targetCategory와 zone("before"|"after"|"into")
+  const handleDropItem = async (e, targetCategory, zone) => {
+    setDragOver(null);
+
+    // 노트를 드래그해서 폴더 위에 놓은 경우 - 항상 그 폴더로 이동
+    if (e.dataTransfer.types.includes(POST_DRAG_TYPE)) {
+      const postId = e.dataTransfer.getData(POST_DRAG_TYPE);
+      setDraggingId(null);
+      if (!postId) return;
+      try {
+        await movePost(Number(postId), targetCategory.id, token);
+        notifyPostsChanged();
+      } catch (error) {
+        alert(error.response?.data?.detail || t("sidebar.moveFailed"));
+      }
+      return;
+    }
+
+    // 폴더를 드래그한 경우 - 순서 변경 또는 하위 폴더화
+    const draggedId = draggingId;
+    setDraggingId(null);
+    if (draggedId == null || draggedId === targetCategory.id) return;
+
+    const treeCopy = JSON.parse(JSON.stringify(categories));
+    const draggedNode = findNodeById(treeCopy, draggedId);
+    if (!draggedNode) return;
+
+    if (draggedNode.id === targetCategory.id || isDescendant(draggedNode, targetCategory.id)) {
+      alert(t("sidebar.moveIntoOwnSubfolder"));
+      return;
+    }
+
+    removeNodeById(treeCopy, draggedId);
+
+    if (zone === "into") {
+      const targetNode = findNodeById(treeCopy, targetCategory.id);
+      if (!targetNode) return;
+      if (!targetNode.children) targetNode.children = [];
+      targetNode.children.push(draggedNode);
+    } else {
+      const found = findSiblingsAndIndex(treeCopy, targetCategory.id);
+      if (!found) return;
+      const insertIndex = zone === "before" ? found.index : found.index + 1;
+      found.siblings.splice(insertIndex, 0, draggedNode);
+    }
+
+    const flatItems = flattenForReorder(treeCopy);
+    setCategories(treeCopy); // 낙관적 업데이트 - 서버 응답 기다리지 않고 바로 화면에 반영
+
+    try {
+      await reorderCategories(flatItems, token);
+      fetchCategories(); // 서버 기준으로 다시 동기화
+    } catch (error) {
+      alert(error.response?.data?.detail || t("sidebar.moveFailed"));
+      fetchCategories(); // 실패했으면 서버의 실제 상태로 되돌림
+    }
+  };
+
+  // 폴더 목록의 "빈 공간"에 놓았을 때 - 최상위(부모 없음) 맨 뒤로 이동
+  const handleDropOnRoot = async (e) => {
+    setDragOver(null);
+
+    if (e.dataTransfer.types.includes(POST_DRAG_TYPE)) {
+      // 빈 공간은 폴더가 아니라서 노트를 여기 놓는 건 의미가 없음(어느 폴더로도 안 옮김)
+      setDraggingId(null);
+      return;
+    }
+
+    const draggedId = draggingId;
+    setDraggingId(null);
+    if (draggedId == null) return;
+
+    const treeCopy = JSON.parse(JSON.stringify(categories));
+    const draggedNode = removeNodeById(treeCopy, draggedId);
+    if (!draggedNode) return;
+    treeCopy.push(draggedNode);
+
+    const flatItems = flattenForReorder(treeCopy);
+    setCategories(treeCopy);
+
+    try {
+      await reorderCategories(flatItems, token);
+      fetchCategories();
+    } catch (error) {
+      alert(error.response?.data?.detail || t("sidebar.moveFailed"));
+      fetchCategories();
+    }
   };
 
   const menuItems = [
@@ -350,7 +563,17 @@ function Sidebar({ selectedCategoryId, onSelectCategory, onCollapse }) {
       {/* 폴더 트리 */}
       <div
         className="flex-1 overflow-y-auto px-3 py-2"
-        onContextMenu={(e) => openRootMenu(e, "empty")}
+        onContextMenu={(e) => openRootMenu(e)}
+        onDragOver={(e) => {
+          // CategoryItem 쪽 핸들러가 stopPropagation을 호출하므로, 여기까지 이벤트가
+          // 올라온다는 건 실제 폴더 행이 아니라 트리의 빈 공간 위에 있다는 뜻
+          e.preventDefault();
+          setDragOver({ categoryId: "root", zone: null });
+        }}
+        onDrop={(e) => {
+          e.preventDefault();
+          handleDropOnRoot(e);
+        }}
       >
         <div className="flex items-center justify-between px-2 mb-2">
           <span className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
@@ -365,81 +588,66 @@ function Sidebar({ selectedCategoryId, onSelectCategory, onCollapse }) {
           </button>
         </div>
 
-        {/* 전체 보기 */}
+        {/* 전체 보기 - 실제 폴더(CategoryItem)들과 아이콘 위치가 정확히 맞도록, 폴더들이 갖는
+            펼치기 화살표 자리(w-3)만큼 빈 공백을 앞에 둠. 그래야 화살표가 있는 폴더든 없는
+            "전체보기"든 아이콘이 전부 같은 x 위치에서 시작해서 같은 레벨로 보임.
+            "기본" 폴더는 이제 하드코딩된 UI가 아니라 서버가 관리하는 진짜 카테고리라
+            아래 categories.map()에서 다른 폴더들과 완전히 동일하게 렌더링됨(이름변경/삭제 다 가능) */}
         <button
           onClick={() => onSelectCategory?.(null)}
-          className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-sm mb-0.5 transition-colors
+          className={`w-full flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-sm mb-0.5 transition-colors
             ${selectedCategoryId === null
               ? "bg-blue-50 text-blue-600 font-medium dark:bg-blue-500/10 dark:text-blue-400"
               : "text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700/60"}`}
         >
-          <ClipboardList size={14} />
+          <span className="w-3 shrink-0" />
+          <ClipboardList size={14} className="shrink-0" />
           <span>{t("sidebar.allNotes")}</span>
         </button>
 
-        {/* 기본 - 항상 최상위에 고정. 실제로 생성되는 폴더는 전부 이 아래로(화면상) 들어감 */}
-        <div
-          className={`flex items-center px-2 py-1.5 rounded-lg cursor-pointer group text-sm mb-0.5
-            ${selectedCategoryId === -1
-              ? "bg-blue-50 text-blue-600 font-medium dark:bg-blue-500/10 dark:text-blue-400"
-              : "text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700/60"}`}
-          onContextMenu={(e) => openRootMenu(e, "default")}
-        >
-          <span
-            className="text-gray-400 dark:text-gray-500 w-3 shrink-0 flex items-center"
-            onClick={(e) => { e.stopPropagation(); setDefaultFolderOpen((prev) => !prev); }}
-          >
-            {categories.length > 0
-              ? (defaultFolderOpen ? <ChevronDown size={12} /> : <ChevronRight size={12} />)
-              : <span className="w-3" />}
-          </span>
-          <div className="flex items-center gap-1.5 flex-1 min-w-0" onClick={() => onSelectCategory?.(-1)}>
-            {defaultFolderOpen && categories.length > 0
-              ? <FolderOpen size={14} className="shrink-0 text-gray-400 dark:text-gray-500" />
-              : <Folder size={14} className="shrink-0 text-gray-400 dark:text-gray-500" />}
-            <span className="truncate">{t("sidebar.uncategorized")}</span>
-          </div>
-        </div>
-
-        {/* "기본"/빈 공간 우클릭 메뉴 - 실제 폴더가 아니라 새 폴더 추가(+글쓰기)만 제공 */}
-        {rootMenu && (
+        {/* 빈 공간 우클릭 메뉴 - 새 폴더 추가만 제공 */}
+        {contextMenu && contextMenu.categoryId === null && (
           <div
             className="fixed z-50 w-44 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg py-1 text-sm"
-            style={{ top: rootMenu.y, left: rootMenu.x }}
+            style={{ top: contextMenu.y, left: contextMenu.x }}
             onClick={(e) => e.stopPropagation()}
           >
             <button
-              onClick={() => { setIsAdding(true); closeRootMenu(); }}
+              onClick={() => { setIsAdding(true); closeMenu(); }}
               className="w-full flex items-center gap-2 px-3 py-1.5 text-left text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/60"
             >
               <FolderPlus size={14} className="shrink-0" /> {t("sidebar.newFolder")}
             </button>
-            {rootMenu.mode === "default" && (
-              <button
-                onClick={() => { navigate("/posts/create"); closeRootMenu(); }}
-                className="w-full flex items-center gap-2 px-3 py-1.5 text-left text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/60"
-              >
-                <FilePlus2 size={14} className="shrink-0" /> {t("sidebar.writeNote")}
-              </button>
-            )}
           </div>
         )}
 
-        {/* 실제로 생성된 폴더들 - 화면상 "기본" 하위로 한 단계 더 들여쓰기(indentOffset) */}
-        {defaultFolderOpen && categories.map((category) => (
-          <CategoryItem
-            key={category.id}
-            category={category}
-            depth={1}
-            indentOffset={1}
-            selectedCategoryId={selectedCategoryId}
-            onSelect={(id) => onSelectCategory?.(id)}
-            onAdd={handleAddChild}
-            onDelete={handleDelete}
-            onRename={handleRename}
-            onWrite={handleWriteInFolder}
-          />
-        ))}
+        {/* 실제 폴더들 ("기본" 포함) - 전부 독립적인 최상위 폴더(depth 0)로 표시.
+            드래그 앤 드롭으로 순서 변경 / 하위 폴더화 / 노트 이동이 가능함 */}
+        <div className={dragOver?.categoryId === "root" ? "ring-2 ring-inset ring-blue-300 rounded-lg" : ""}>
+          {categories.map((category) => (
+            <CategoryItem
+              key={category.id}
+              category={category}
+              depth={0}
+              indentOffset={0}
+              selectedCategoryId={selectedCategoryId}
+              onSelect={(id) => onSelectCategory?.(id)}
+              onAdd={handleAddChild}
+              onDelete={handleDelete}
+              onRename={handleRename}
+              onWrite={handleWriteInFolder}
+              contextMenu={contextMenu}
+              onOpenMenu={openCategoryMenu}
+              onCloseMenu={closeMenu}
+              draggingId={draggingId}
+              onDragStartItem={handleDragStartItem}
+              onDragEndItem={handleDragEndItem}
+              dragOver={dragOver}
+              onDragOverItem={handleDragOverItem}
+              onDropItem={handleDropItem}
+            />
+          ))}
+        </div>
 
         {/* 새 폴더 입력 */}
         {isAdding && (

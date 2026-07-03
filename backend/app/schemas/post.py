@@ -14,6 +14,10 @@ class PostUpdateRequest(BaseModel):
     tags: List[str] = []
     category_id: Optional[int] = None
 
+# 노트를 드래그해서 다른 폴더로 옮길 때 - 카테고리만 가볍게 변경 (제목/본문 등은 그대로)
+class PostMoveRequest(BaseModel):
+    category_id: Optional[int] = None
+
 class PostListItem(BaseModel):
     id: int
     title: str

@@ -6,7 +6,7 @@ from fastapi import HTTPException
 from app.models.post import Post, Tag
 from app.models.user import User
 from app.schemas.post import PostCreateRequest, PostUpdateRequest
-from app.services.category_service import get_category_subtree_ids
+from app.services.category_service import get_category_subtree_ids, get_or_create_default_category
 from app.utils.blocknote import extract_text_from_blocknote
 
 def strip_html(html: str) -> str:
@@ -107,11 +107,18 @@ async def get_post(post_id: int, db: AsyncSession) -> dict:
     }
 
 async def create_post(request: PostCreateRequest, current_user: User, db: AsyncSession) -> dict:
+    # 카테고리를 고르지 않고 쓴 글은 "카테고리 없음" 상태로 두지 않고, 실제 폴더인
+    # 사용자의 "기본" 카테고리로 자동 배정함 (다른 폴더와 동일하게 취급되는 진짜 폴더)
+    category_id = request.category_id
+    if category_id is None:
+        default_category = await get_or_create_default_category(current_user.id, db)
+        category_id = default_category.id
+
     new_post = Post(
         title=request.title,
         content=request.content,
         user_id=current_user.id,
-        category_id=request.category_id
+        category_id=category_id
     )
 
     tags = []
@@ -146,7 +153,11 @@ async def update_post(post_id: int, request: PostUpdateRequest, current_user: Us
     
     post.title = request.title
     post.content = request.content
-    post.category_id = request.category_id
+    if request.category_id is None:
+        default_category = await get_or_create_default_category(current_user.id, db)
+        post.category_id = default_category.id
+    else:
+        post.category_id = request.category_id
 
     tags = []
     for tag_name in request.tags:
@@ -161,6 +172,26 @@ async def update_post(post_id: int, request: PostUpdateRequest, current_user: Us
     post.tags = tags
     await db.commit()
 
+    return await get_post(post_id, db)
+
+async def move_post(post_id: int, category_id: int | None, current_user: User, db: AsyncSession) -> dict:
+    """노트를 드래그해서 다른 폴더로 옮길 때 쓰는 가벼운 업데이트 - 카테고리만 바꿈.
+    카테고리를 명시적으로 안 주면(None) 다른 흐름과 동일하게 "기본" 카테고리로 배정."""
+    result = await db.execute(select(Post).filter(Post.id == post_id))
+    post = result.scalar_one_or_none()
+
+    if post is None:
+        raise HTTPException(status_code=404, detail="존재하지 않는 게시글입니다.")
+    if post.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="수정 권한이 없습니다.")
+
+    if category_id is None:
+        default_category = await get_or_create_default_category(current_user.id, db)
+        post.category_id = default_category.id
+    else:
+        post.category_id = category_id
+
+    await db.commit()
     return await get_post(post_id, db)
 
 async def delete_post(post_id: int, current_user: User, db: AsyncSession) -> None:

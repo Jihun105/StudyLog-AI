@@ -62,6 +62,16 @@ export const updatePost = async (postId, title, content, tags, token, categoryId
 };
 
 
+// 노트를 드래그해서 다른 폴더로 옮길 때 - 카테고리만 가볍게 변경 (인증 필요)
+export const movePost = async (postId, categoryId, token) => {
+  const response = await axios.patch(
+    `${BASE_URL}/api/posts/${postId}/category`,
+    { category_id: categoryId },
+    authHeader(token)
+  );
+  return response.data;
+};
+
 // 게시글 삭제 (인증 필요)
 export const deletePost = async (postId, token) => {
     const response = await axios.delete(

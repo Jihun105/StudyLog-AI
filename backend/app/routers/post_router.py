@@ -3,8 +3,8 @@ from app.services.ai.embedding_service import index_post, delete_post_index
 from typing import List, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.database import get_db
-from app.schemas.post import PostCreateRequest, PostUpdateRequest
-from app.services.post_service import get_posts, get_post, create_post, update_post, delete_post, get_all_tags
+from app.schemas.post import PostCreateRequest, PostUpdateRequest, PostMoveRequest
+from app.services.post_service import get_posts, get_post, create_post, update_post, delete_post, get_all_tags, move_post
 from app.core.dependencies import get_current_user
 from app.models.user import User
 
@@ -72,6 +72,15 @@ async def modify_post(
         category_path=post.get("category_path", ""),
     )
     return post
+
+@router.patch("/{post_id}/category")
+async def move_post_category(
+    post_id: int,
+    request: PostMoveRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    return await move_post(post_id, request.category_id, current_user, db)
 
 @router.delete("/{post_id}", status_code=204)
 async def remove_post(

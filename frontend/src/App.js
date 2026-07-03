@@ -15,6 +15,7 @@ import DocumentsPage from "./pages/DocumentsPage";
 import TodoPage from "./pages/TodoPage";
 import SettingsPage from "./pages/SettingsPage";
 import Sidebar from "./components/Sidebar";
+import SessionExpiredBanner from "./components/SessionExpiredBanner";
 
 function PrivateRoute({ children }) {
   const { user } = useAuth();
@@ -45,6 +46,7 @@ function App() {
     <ThemeProvider>
     <AuthProvider>
       <BrowserRouter>
+        <SessionExpiredBanner />
         <Routes>
           {/* 비로그인 페이지 */}
           <Route path="/login" element={<LoginPage />} />
