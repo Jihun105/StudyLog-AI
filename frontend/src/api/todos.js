@@ -12,11 +12,11 @@ export const getTodos = async (token) => {
   return response.data;
 };
 
-// 할 일 생성
-export const createTodo = async (title, dueDate, priority, token) => {
+// 할 일 생성 (시작 시간/메모는 선택 - 안 넣으면 null로 생성됨)
+export const createTodo = async (title, dueDate, priority, token, startTime = null, memo = null) => {
   const response = await axios.post(
     `${BASE_URL}/api/todos`,
-    { title, due_date: dueDate, priority },
+    { title, due_date: dueDate, priority, start_time: startTime, memo },
     authHeader(token)
   );
   return response.data;

@@ -11,7 +11,7 @@ import "@blocknote/core/fonts/inter.css";
 import "@blocknote/mantine/style.css";
 import { codeBlockConfig } from "../lib/editorSchema";
 import {
-  BrainCircuit, CheckCircle2, XCircle, Loader2, RotateCcw, FileText, ArrowLeft, ExternalLink, Search, X
+  BrainCircuit, CheckCircle2, XCircle, Loader2, RotateCcw, FileText, ArrowLeft, Search, X, Maximize2, Minimize2
 } from "lucide-react";
 import SidebarLayout, { SidebarSpacer } from "../components/SidebarLayout";
 import ResizableRightPanel from "../components/ResizableRightPanel";
@@ -124,6 +124,8 @@ function QuizPage() {
   const [panelLoading, setPanelLoading] = useState(false);
   const [viewingPost, setViewingPost] = useState(null);
   const [viewingPostLoading, setViewingPostLoading] = useState(false);
+  // 새 창을 띄우는 대신, 같은 화면 안에서 오버레이로 꽉 채워서 보여주는 방식으로 전체화면 구현
+  const [previewFullscreen, setPreviewFullscreen] = useState(false);
 
   useEffect(() => {
     const fetchCategories = async () => {
@@ -139,12 +141,13 @@ function QuizPage() {
     const fetchPanelPosts = async () => {
       setPanelLoading(true);
       setViewingPost(null); // 폴더를 바꾸면 보고 있던 글 미리보기는 닫고 목록으로
+      setPreviewFullscreen(false);
       try {
         const categoryParam =
           selectedCategoryId === null ? null
           : selectedCategoryId === -1 ? 0
           : selectedCategoryId;
-        const data = await getPosts(1, 50, null, null, token, categoryParam);
+        const data = await getPosts(1, 50, null, null, token, categoryParam, true);
         setPanelPosts(data.posts);
       } catch (error) {
         setPanelPosts([]);
@@ -221,7 +224,10 @@ function QuizPage() {
     }
   };
 
-  const handleBackToList = () => setViewingPost(null);
+  const handleBackToList = () => {
+    setViewingPost(null);
+    setPreviewFullscreen(false);
+  };
 
   const handleGenerate = async () => {
     setGenerating(true);
@@ -489,8 +495,16 @@ function QuizPage() {
       {/* 우측 패널: 선택된 폴더의 글 목록 미리보기 / 글 하나 상세 (페이지 이동 없이 그대로) */}
       <ResizableRightPanel className="p-5 flex flex-col gap-3 sticky top-0 h-screen" defaultWidth={420} maxWidth={800} minLeftWidth={480}>
         {viewingPost ? (
-          <>
-            <div className="flex items-center justify-between mb-1">
+          // 예전엔 새 창(window.open)으로 열었는데, 새 창을 띄우지 않고 같은 화면 안에서
+          // 화면 전체를 덮는 오버레이로 꽉 채워 보여주는 방식으로 변경
+          <div
+            className={
+              previewFullscreen
+                ? "fixed inset-0 z-[70] bg-white dark:bg-gray-900 p-6 flex flex-col"
+                : "flex-1 min-h-0 flex flex-col"
+            }
+          >
+            <div className="flex items-center justify-between mb-1 shrink-0">
               <button
                 onClick={handleBackToList}
                 className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400"
@@ -498,18 +512,19 @@ function QuizPage() {
                 <ArrowLeft size={13} /> {t("quiz.backToList")}
               </button>
               <button
-                onClick={() => window.open(`/posts/${viewingPost.id}`, "_blank")}
-                title={t("quiz.fullScreen")}
+                onClick={() => setPreviewFullscreen((prev) => !prev)}
+                title={previewFullscreen ? t("quiz.exitFullScreen") : t("quiz.fullScreen")}
                 className="flex items-center gap-1 text-xs text-gray-400 dark:text-gray-500 hover:text-blue-600 dark:hover:text-blue-400"
               >
-                <ExternalLink size={13} /> {t("quiz.fullScreen")}
+                {previewFullscreen ? <Minimize2 size={13} /> : <Maximize2 size={13} />}
+                {previewFullscreen ? t("quiz.exitFullScreen") : t("quiz.fullScreen")}
               </button>
             </div>
-            <h3 className="text-base font-semibold text-gray-800 dark:text-gray-100 mb-2 line-clamp-2">{viewingPost.title}</h3>
+            <h3 className="text-base font-semibold text-gray-800 dark:text-gray-100 mb-2 line-clamp-2 shrink-0">{viewingPost.title}</h3>
             <div className="flex-1 min-w-0 overflow-y-auto overflow-x-auto border-t border-gray-100 dark:border-gray-700 pt-3">
               <NotePreview post={viewingPost} />
             </div>
-          </>
+          </div>
         ) : (
           <>
             <div className="flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">

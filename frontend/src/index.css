@@ -2,8 +2,13 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Inter는 한글 글리프가 없어서 한글이 나오면 브라우저가 다른 폰트(예: 맑은 고딕)로
+   자동 대체함. 이때 화살표(→) 같은 라틴/기호 문자는 Inter로, 뒤이은 한글은 다른 폰트로
+   그려지면서 두 폰트의 자간 계산이 달라 글자 사이가 벌어져 보임(영어만 치면 계속 Inter로만
+   렌더링되니 안 벌어짐). Pretendard는 한글+라틴을 모두 자연스럽게 지원하는 폰트라
+   Inter보다 먼저 두면 한글이 필요할 때도 같은 폰트 계열 안에서 처리되어 이 문제가 없어짐 */
 * {
-  font-family: 'Inter', sans-serif;
+  font-family: 'Pretendard', 'Inter', sans-serif;
 }
 
 /* BlockNote 빈 블록 placeholder 숨기기 */

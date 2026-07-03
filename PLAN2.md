@@ -158,6 +158,12 @@ docker compose exec backend alembic upgrade head
 
 백엔드 변경 없음 (기존에 이미 토큰 만료/무효 시 401을 내리고 있었음 - `core/dependencies.py`의 `get_current_user`).
 
+### 추가 — 할 일 우선순위 선택을 네이티브 select에서 커스텀 드롭다운으로 교체
+
+기존엔 네이티브 `<select>`를 써서, 닫혀 있을 땐 스타일을 줄 수 있어도 펼쳤을 때 나오는 옵션 목록은 브라우저가 그려서 앱 디자인과 안 어울리고 꾸밀 수도 없었음. 또한 닫힌 상태에서 "낮음/보통/높음" 텍스트만 보여서 이게 우선순위를 나타낸다는 게 한눈에 안 들어왔음.
+
+`frontend/src/pages/TodoPage.jsx`에 `PriorityDropdown` 컴포넌트를 새로 만들어서 할 일 추가 폼 2곳(목록 상단, 캘린더 뷰의 날짜별 사이드 패널)과 인라인 수정 행의 우선순위 `<select>`를 전부 교체함. 닫힌 상태에서도 깃발 아이콘 + 색 점(낮음=회색/보통=주황/높음=빨강, 기존 배지와 동일한 색상 체계)으로 우선순위 컨트롤임을 명확히 보여주고, 펼친 목록도 앱 스타일 그대로인 커스텀 드롭다운으로 렌더링. 바깥 클릭/Esc로 닫힘.
+
 내가 앞서 요청을 오해해서 Claude Desktop/Cowork 설정 얘기로 착각했었음 - 실제로는 우리 앱(`frontend/src/components/Sidebar.jsx`)의 폴더 트리 얘기였음.
 
 기존엔 "기본"(미분류) 항목이 화면상 최상위에 고정되고, 실제로 사용자가 만드는 모든 폴더가 그 아래로 한 단계 들여쓰기(`depth=1`, `indentOffset=1`)되어 마치 전부 "기본" 폴더의 하위 폴더처럼 보였음(주석에 이미 "화면상으로만" 들여쓰기라고 적혀 있었음 - DB상 `parent_id`는 실제로 NULL, 즉 최상위였음). "기본" 옆의 화살표(펼치기/접기)가 다른 모든 폴더의 표시 여부까지 같이 제어하고 있었음.
@@ -168,5 +174,11 @@ docker compose exec backend alembic upgrade head
 - 더 이상 쓰이지 않는 `defaultFolderOpen` 상태 제거
 
 eslint 파싱 검증 완료.
+
+### 수정 — 캘린더 날짜별 패널에서 우선순위 드롭다운이 안 열리던 문제
+
+캘린더 뷰에서 할 일을 추가할 때만 우선순위가 "보통"에 고정되고 토글이 눌러도 안 열리는 것처럼 보였음. 원인: `PriorityDropdown`의 옵션 목록이 `absolute` + `top-full`로, 자신을 감싸는 `position: relative` 래퍼 기준으로 아래쪽에 그려지는데, 캘린더 패널(`ResizableRightPanel.jsx`)의 컨테이너가 `overflow-y-auto overflow-x-auto`로 스크롤 영역을 잘라내고 있고 이 드롭다운이 그 패널의 맨 아래에 위치해서, 열려도 스크롤 영역 밖으로 나가 화면에 안 그려졌던 것(다른 2곳은 이런 위치가 아니라서 문제 없었음).
+
+`frontend/src/pages/TodoPage.jsx`의 `PriorityDropdown`을 수정: 토글 버튼 클릭 시 `getBoundingClientRect()`로 버튼의 실제 화면 좌표를 구해서 `menuPos` state에 저장하고, 옵션 목록을 `absolute` 대신 `fixed` + 그 좌표로 렌더링(`Sidebar.jsx` 우클릭 메뉴와 동일한 패턴). 어떤 스크롤/overflow 컨테이너 안에 있든 잘리지 않고 항상 보임.
 
 ---
