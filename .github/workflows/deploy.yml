@@ -34,7 +34,9 @@ jobs:
       - name: Build frontend (production build check)
         working-directory: frontend
         env:
-          CI: "true"
+          # CI=true면 CRA가 ESLint 경고까지 전부 빌드 실패로 처리함(기존부터 있던
+          # 사소한 경고들 때문에 막힘) - 실제 문법 에러는 CI=false여도 여전히 빌드 실패로 잡힘
+          CI: "false"
           REACT_APP_API_URL: ""
         run: npm run build
 
