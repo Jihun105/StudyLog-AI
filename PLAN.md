@@ -181,7 +181,7 @@ StudyLog-AI/
 | Phase 4 | Step 14 | 구조화 로깅 (structlog) | ⏳ 대기 |
 | Phase 4 | Step 15 | Docker Compose 통합 (backend/frontend/admin/nginx/mysql/qdrant) | ✅ 완료 |
 | Phase 4 | Step 16 | GitHub Actions CI/CD | ⏳ 대기 |
-| Phase 4 | Step 17 | VPS/AWS 배포 | ⏳ 대기 |
+| Phase 4 | Step 17 | VPS/AWS 배포 | ✅ 완료 (AWS EC2) |
 | Phase 5 | Step 18 | 사이드바 반응형(자동 숨김/토글) + 드래그 리사이즈 | ✅ 완료 |
 | Phase 5 | Step 19 | 대시보드/노트 목록 화면 분리 | ✅ 완료 |
 | Phase 5 | Step 20 | Settings 페이지 — 계정 관리(프로필/비밀번호/탈퇴) | ✅ 완료 |
@@ -193,6 +193,36 @@ StudyLog-AI/
 | Phase 6 | Step 26 | RAG 유사도 임계값 도입 + 챗봇 "노트 밖 지식" 안내 문구 | ✅ 완료 |
 | Phase 6 | Step 27 | 퀴즈 개선 (10문제, 노트 5개 제한, 빈칸 유형 제거) | ✅ 완료 |
 | Phase 6 | 보완 | BlockNote 텍스트 추출 시 HTML 엔티티 깨짐 버그 수정 | ✅ 완료 |
+| Phase 4 | Step 17 보완 | AWS EC2 실배포 + nginx 업로드 크기 제한 버그 수정 | ✅ 완료 |
+
+---
+
+## Phase 4 Step 17 구현 완료 — AWS EC2 실배포
+
+친구들에게 데모를 보여주기 위해 실제로 AWS EC2에 배포한 라운드.
+
+### 인프라 구성
+- 리전: 서울(ap-northeast-2), OS: Ubuntu 26.04 LTS, 인스턴스: c7i-flex.large(2 vCPU, 4GiB) — mysql+qdrant+backend+admin+frontend를 한 인스턴스에 다 띄우는 구조라 t3.micro/small(1~2GiB)은 메모리 부족 위험이 있어 여유 있게 선택
+- 스토리지: 20GiB(gp3, 기본 8GiB에서 증설)
+- 보안 그룹: SSH(22, 내 IP만) + HTTP(80)/HTTPS(443, 전체) — 3306/6333/8000/8001은 열지 않음. `docker-compose.yml`이 이미 `frontend`(80)만 호스트에 노출하고 나머지는 컴포즈 내부 네트워크로만 통신하도록 되어 있어 EC2 보안 그룹에서도 그대로 유지
+- Docker 설치: Ubuntu 기본 저장소엔 `docker-compose-plugin`이 없어서(Docker 공식 저장소 전용 패키지) `curl -fsSL https://get.docker.com | sh` 공식 설치 스크립트로 진행
+
+### 배포 절차
+1. `git clone`으로 코드 받기 (배포 직전 로컬에서 그날 고친 수정사항들 commit+push 안 해서 서버에 반영이 안 됐던 걸 뒤늦게 발견 → 로컬에서 push 후 서버에서 `git pull`로 다시 받음. **배포 전엔 항상 로컬 변경사항이 실제로 push됐는지 먼저 확인할 것**)
+2. 로컬의 `.env`를 `scp`로 서버에 그대로 복사
+3. `docker compose up -d --build`
+4. `docker compose exec backend alembic stamp head` — 완전히 새 DB라 `create_all()`이 이미 최신 스키마로 만들어주므로, 실제 마이그레이션을 처음부터 재생하지 않고 "이미 최신"으로 표시만 해서 이후 마이그레이션 추가 시 어제 겪었던 `Duplicate column` 문제가 재발하지 않도록 함
+
+### 트러블슈팅: 프로필 사진 업로드가 nginx에서 막힘
+배포 후 대시보드에서 프로필 사진을 업로드하면 실패하는 문제가 발생. **원인**: nginx 기본 `client_max_body_size`가 1MB인데, 백엔드(`upload_router.py`)는 10MB까지 허용하도록 되어 있어 그보다 큰 이미지는 nginx 단계에서 먼저 막혔음(로컬 `npm start` 개발 환경은 nginx를 거치지 않고 백엔드에 직접 요청하기 때문에 이 문제가 드러나지 않았음). **해결**: `frontend/nginx.conf`의 `server` 블록에 `client_max_body_size 15M;` 추가. 프론트 이미지에만 영향 있는 변경이라 `docker compose up -d --build frontend`로 프론트만 재빌드해서 반영.
+
+### 검증
+EC2 퍼블릭 IP(`http://15.165.35.74`)로 접속해 회원가입 → 로그인 → 프로필 사진 업로드까지 실제로 확인 완료.
+
+### 남은 작업
+- Elastic IP 미할당 — 인스턴스를 중지 후 재시작하면 퍼블릭 IP가 바뀜. 데모 이후에도 계속 같은 주소로 쓰려면 Elastic IP 할당 필요
+- 도메인/HTTPS 미설정 — 지금은 IP + HTTP로만 접속 가능 (443 보안그룹은 열어뒀으나 인증서 미설정)
+- Django 관리자(`/admin`) 슈퍼유저 계정은 이 서버에서 별도로 새로 생성 필요 (로컬 계정과 무관, `docker compose exec admin python manage.py createsuperuser`)
 
 ---
 
