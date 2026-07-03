@@ -7,6 +7,10 @@ from app.core.config import settings
 
 COLLECTION_NAME = "study_notes"
 TOP_K = 5
+# 코사인 유사도 최소 기준 - 이보다 낮으면 "관련 없음"으로 보고 결과에서 제외.
+# (임계값이 없으면 관련 없는 질문에도 가장 가까운 5개를 억지로 끌어오게 됨)
+# 실제 사용 데이터를 보면서 조정이 필요할 수 있는 값
+MIN_SCORE = 0.3
 
 openai_client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
 qdrant_client = AsyncQdrantClient(host=os.getenv("QDRANT_HOST", "localhost"), port=6333)
@@ -44,4 +48,5 @@ async def search_similar_chunks(query: str, user_id: int, top_k: int = TOP_K) ->
             "score": hit.score,
         }
         for hit in result.points
+        if hit.score >= MIN_SCORE
     ]

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { useParams, useNavigate } from "react-router-dom";
 import { getPost, deletePost } from "../api/posts";
 import { getCategories } from "../api/categories";
@@ -14,6 +15,7 @@ import {
   History, Plus, Loader2
 } from "lucide-react";
 import ResizableRightPanel from "../components/ResizableRightPanel";
+import { useTheme } from "../context/ThemeContext";
 
 // AI 답변 안의 `코드`와 **굵게** 정도만 최소한으로 렌더링 (줄바꿈은 whitespace-pre-wrap이 처리)
 function renderMessageContent(text) {
@@ -21,7 +23,7 @@ function renderMessageContent(text) {
   return parts.map((part, i) => {
     if (part.startsWith("`") && part.endsWith("`")) {
       return (
-        <code key={i} className="bg-gray-100 text-gray-700 px-1 py-0.5 rounded text-xs font-mono">
+        <code key={i} className="bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 px-1 py-0.5 rounded text-xs font-mono">
           {part.slice(1, -1)}
         </code>
       );
@@ -51,12 +53,14 @@ function findCategoryPath(categories, targetId, trail = []) {
 }
 
 function PostDetailPage() {
+  const { t, i18n } = useTranslation();
   const { id } = useParams();
   const [post, setPost] = useState(null);
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
   const [aiQuestion, setAiQuestion] = useState("");
   const { token, user } = useAuth();
+  const { theme } = useTheme();
   const navigate = useNavigate();
 
   // 카테고리 경로(breadcrumb)용
@@ -82,7 +86,7 @@ function PostDetailPage() {
         const data = await getPost(id);
         setPost(data);
       } catch (error) {
-        setErrorMessage("게시글을 불러오는데 실패했습니다.");
+        setErrorMessage(t("postDetail.loadFailed"));
       } finally {
         setLoading(false);
       }
@@ -119,12 +123,12 @@ function PostDetailPage() {
   }, [editor, post]);
 
   const handleDelete = async () => {
-    if (!window.confirm("정말 삭제하시겠습니까?")) return;
+    if (!window.confirm(t("postDetail.confirmDelete"))) return;
     try {
       await deletePost(id, token);
-      navigate("/");
+      navigate("/notes");
     } catch (error) {
-      setErrorMessage("삭제에 실패했습니다.");
+      setErrorMessage(t("postDetail.deleteFailed"));
     }
   };
 
@@ -159,7 +163,7 @@ function PostDetailPage() {
       setConversationId(data.conversation_id);
       setChatMessages(data.messages.map((m) => ({ role: m.role, content: m.content })));
     } catch (error) {
-      setChatError("대화를 불러오지 못했습니다.");
+      setChatError(t("postDetail.loadHistoryFailed"));
     }
   };
 
@@ -177,17 +181,17 @@ function PostDetailPage() {
       setConversationId(data.conversation_id);
       setChatMessages((prev) => [...prev, { role: "assistant", content: data.answer }]);
     } catch (error) {
-      setChatError("답변을 가져오지 못했습니다.");
+      setChatError(t("postDetail.answerFailed"));
     } finally {
       setSending(false);
     }
   };
 
   if (loading) return (
-    <div className="flex items-center justify-center h-full text-gray-400">불러오는 중...</div>
+    <div className="flex items-center justify-center h-full text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-gray-900">{t("common.loading")}</div>
   );
   if (errorMessage) return (
-    <div className="p-8 text-red-500">{errorMessage}</div>
+    <div className="p-8 text-red-500 dark:text-red-400 bg-gray-50 dark:bg-gray-900 h-full">{errorMessage}</div>
   );
   if (!post) return null;
 
@@ -196,41 +200,41 @@ function PostDetailPage() {
   return (
     <div className="flex flex-1 min-h-screen">
       {/* 메인 본문 */}
-      <div className="flex-1 min-w-0 overflow-y-auto">
+      <div className="flex-1 min-w-0 overflow-y-auto bg-gray-50 dark:bg-gray-900">
         {/* 상단 헤더 */}
-        <div className="sticky top-0 bg-white border-b border-gray-100 px-8 py-4 flex items-center justify-between z-10">
-          <div className="flex items-center gap-1.5 text-sm text-gray-400">
-            <button onClick={() => navigate("/")} className="hover:text-blue-600">All Notes</button>
+        <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 px-8 py-4 flex items-center justify-between gap-3 z-10">
+          <div className="flex items-center gap-1.5 text-sm text-gray-400 dark:text-gray-500 min-w-0 overflow-x-auto whitespace-nowrap">
+            <button onClick={() => navigate("/notes")} className="hover:text-blue-600 dark:hover:text-blue-400 shrink-0">{t("postDetail.allNotes")}</button>
             {categoryPath?.map((cat) => (
-              <span key={cat.id} className="flex items-center gap-1.5">
-                <ChevronRight size={14} className="text-gray-300" />
+              <span key={cat.id} className="flex items-center gap-1.5 shrink-0">
+                <ChevronRight size={14} className="text-gray-300 dark:text-gray-600" />
                 <button
-                  onClick={() => navigate(`/?category=${cat.id}`)}
-                  className="hover:text-blue-600 text-gray-700 font-medium"
+                  onClick={() => navigate(`/notes?category=${cat.id}`)}
+                  className="hover:text-blue-600 dark:hover:text-blue-400 text-gray-700 dark:text-gray-300 font-medium"
                 >
                   {cat.name}
                 </button>
               </span>
             ))}
           </div>
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-1.5 bg-green-50 text-green-600 text-xs font-medium px-3 py-1.5 rounded-full">
+          <div className="flex items-center gap-3 shrink-0">
+            <div className="flex items-center gap-1.5 bg-green-50 dark:bg-green-500/10 text-green-600 dark:text-green-400 text-xs font-medium px-3 py-1.5 rounded-full">
               <span className="w-1.5 h-1.5 bg-green-500 rounded-full"></span>
-              AI Status: Online
+              {t("common.aiStatusOnline")}
             </div>
             {user && user.nickname === post.nickname && (
               <div className="flex gap-2">
                 <button
                   onClick={() => navigate(`/posts/${id}/edit`)}
-                  className="text-sm text-gray-500 border border-gray-200 px-3 py-1.5 rounded-lg hover:bg-gray-50"
+                  className="text-sm text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-gray-600 px-3 py-1.5 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700"
                 >
-                  수정
+                  {t("postDetail.edit")}
                 </button>
                 <button
                   onClick={handleDelete}
-                  className="text-sm text-red-400 border border-red-200 px-3 py-1.5 rounded-lg hover:bg-red-50"
+                  className="text-sm text-red-400 dark:text-red-400 border border-red-200 dark:border-red-500/40 px-3 py-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-500/10"
                 >
-                  삭제
+                  {t("postDetail.delete")}
                 </button>
               </div>
             )}
@@ -239,76 +243,84 @@ function PostDetailPage() {
 
         {/* 본문 */}
         <div className="px-8 py-8">
-          <h1 className="text-3xl font-bold text-gray-800 mb-3">{post.title}</h1>
-          <div className="flex items-center gap-4 text-sm text-gray-400 mb-4">
+          <h1 className="text-3xl font-bold text-gray-800 dark:text-gray-100 mb-3 break-words">{post.title}</h1>
+          <div className="flex items-center gap-4 text-sm text-gray-400 dark:text-gray-500 mb-4">
             <span className="flex items-center gap-1.5">
               <Calendar size={13} />
-              {new Date(post.created_at).toLocaleDateString("ko-KR", { year: "numeric", month: "long", day: "numeric" })}
+              {new Date(post.created_at).toLocaleDateString(i18n.language === "en" ? "en-US" : "ko-KR", { year: "numeric", month: "long", day: "numeric" })}
             </span>
             <span className="flex items-center gap-1.5">
               <Lock size={13} />
-              Private Notes
+              {t("postDetail.privateNotes")}
             </span>
           </div>
           <div className="flex flex-wrap gap-2 mb-8">
             {post.tags.map((tag) => (
-              <span key={tag} className="text-xs bg-gray-100 text-gray-500 px-2.5 py-1 rounded-full">
+              <span key={tag} className="text-xs bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 px-2.5 py-1 rounded-full">
                 # {tag}
               </span>
             ))}
           </div>
-          <hr className="mb-8 border-gray-100" />
-          <BlockNoteView editor={editor} editable={false} theme="light" />
+          <hr className="mb-8 border-gray-100 dark:border-gray-700" />
+          <BlockNoteView editor={editor} editable={false} theme={theme} />
         </div>
       </div>
 
       {/* 우측 AI 패널 */}
-      <ResizableRightPanel className="p-5 flex flex-col gap-4 sticky top-0 h-screen">
+      <ResizableRightPanel
+        className="p-5 flex flex-col gap-4 sticky top-0 h-screen"
+        minWidth={280}
+        maxWidth={480}
+        minLeftWidth={480}
+        collapsible
+        storageKey="postDetailAiPanelCollapsed"
+        autoCollapseBreakpoint={1024}
+      >
 
         {/* AI Summary */}
-        <div className="bg-blue-50 rounded-xl p-4">
-          <div className="flex items-center gap-2 text-blue-600 font-semibold text-sm mb-3">
-            <Sparkles size={15} /> AI Summary
+        <div className="bg-blue-50 dark:bg-blue-500/10 rounded-xl p-4 shrink-0">
+          <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400 font-semibold text-sm mb-3">
+            <Sparkles size={15} /> {t("postDetail.aiSummaryTitle")}
           </div>
-          <p className="text-sm text-gray-500 leading-relaxed">
-            AI 요약 기능은 곧 추가될 예정입니다.
+          <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">
+            {t("postDetail.aiSummaryPlaceholder")}
           </p>
         </div>
 
         {/* Ask AI */}
-        <div className="border border-gray-100 rounded-xl overflow-hidden flex flex-col">
-          <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
-            <div className="flex items-center gap-2 text-sm font-semibold text-gray-700">
-              <MessageSquare size={15} /> Ask StudyBrain AI
+        <div className="border border-gray-100 dark:border-gray-700 rounded-xl overflow-hidden flex flex-col flex-1 min-h-0">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-gray-700 shrink-0">
+            <div className="flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-300 min-w-0">
+              <MessageSquare size={15} className="shrink-0" /> <span className="truncate">{t("postDetail.askAiTitle")}</span>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 shrink-0">
               <button
                 onClick={handleNewConversation}
-                title="새 대화 시작"
-                className="text-gray-400 hover:text-blue-600"
+                title={t("postDetail.newConversation")}
+                className="text-gray-400 dark:text-gray-500 hover:text-blue-600 dark:hover:text-blue-400"
               >
                 <Plus size={15} />
               </button>
               <div className="relative">
                 <button
                   onClick={handleToggleHistory}
-                  title="이전 대화"
-                  className="text-gray-400 hover:text-blue-600"
+                  title={t("postDetail.history")}
+                  className="text-gray-400 dark:text-gray-500 hover:text-blue-600 dark:hover:text-blue-400"
                 >
                   <History size={15} />
                 </button>
                 {showHistory && (
-                  <div className="absolute right-0 top-6 w-56 bg-white border border-gray-100 rounded-lg shadow-lg z-20 max-h-64 overflow-y-auto">
+                  <div className="absolute right-0 top-6 w-56 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-lg shadow-lg z-20 max-h-64 overflow-y-auto">
                     {loadingHistory ? (
-                      <div className="px-3 py-3 text-xs text-gray-400 text-center">불러오는 중...</div>
+                      <div className="px-3 py-3 text-xs text-gray-400 dark:text-gray-500 text-center">{t("postDetail.historyLoading")}</div>
                     ) : conversations.length === 0 ? (
-                      <div className="px-3 py-3 text-xs text-gray-400 text-center">이전 대화가 없습니다.</div>
+                      <div className="px-3 py-3 text-xs text-gray-400 dark:text-gray-500 text-center">{t("postDetail.historyEmpty")}</div>
                     ) : (
                       conversations.map((c) => (
                         <button
                           key={c.id}
                           onClick={() => handleSelectConversation(c.id)}
-                          className="w-full text-left px-3 py-2 text-xs text-gray-600 hover:bg-gray-50 border-b border-gray-50 last:border-0 truncate block"
+                          className="w-full text-left px-3 py-2 text-xs text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-50 dark:border-gray-700 last:border-0 truncate block"
                         >
                           {c.title}
                         </button>
@@ -321,14 +333,14 @@ function PostDetailPage() {
             </div>
           </div>
 
-          <div className="p-4 min-h-32 max-h-80 overflow-y-auto bg-gray-50 flex flex-col gap-3">
+          <div className="p-4 flex-1 min-h-32 overflow-y-auto bg-gray-50 dark:bg-gray-900 flex flex-col gap-3">
             {chatMessages.length === 0 && (
               <div className="flex items-start gap-2">
                 <div className="w-7 h-7 bg-blue-600 rounded-full flex items-center justify-center text-white text-xs shrink-0 font-medium">
                   AI
                 </div>
-                <div className="bg-white rounded-lg px-3 py-2 text-sm text-gray-600 shadow-sm leading-relaxed">
-                  이 노트를 기반으로 질문에 답변할 준비가 됐어요. 무엇이 궁금하신가요?
+                <div className="bg-white dark:bg-gray-800 rounded-lg px-3 py-2 text-sm text-gray-600 dark:text-gray-300 shadow-sm leading-relaxed">
+                  {t("postDetail.chatWelcome")}
                 </div>
               </div>
             )}
@@ -345,7 +357,7 @@ function PostDetailPage() {
                   <div className="w-7 h-7 bg-blue-600 rounded-full flex items-center justify-center text-white text-xs shrink-0 font-medium">
                     AI
                   </div>
-                  <div className="bg-white rounded-lg px-3 py-2 text-sm text-gray-600 shadow-sm leading-relaxed max-w-[85%] whitespace-pre-wrap break-words">
+                  <div className="bg-white dark:bg-gray-800 rounded-lg px-3 py-2 text-sm text-gray-600 dark:text-gray-300 shadow-sm leading-relaxed max-w-[85%] whitespace-pre-wrap break-words">
                     {renderMessageContent(m.content)}
                   </div>
                 </div>
@@ -357,26 +369,26 @@ function PostDetailPage() {
                 <div className="w-7 h-7 bg-blue-600 rounded-full flex items-center justify-center text-white text-xs shrink-0 font-medium">
                   AI
                 </div>
-                <div className="bg-white rounded-lg px-3 py-2 text-sm text-gray-400 shadow-sm leading-relaxed flex items-center gap-1">
-                  <Loader2 size={12} className="animate-spin" /> 답변 작성 중...
+                <div className="bg-white dark:bg-gray-800 rounded-lg px-3 py-2 text-sm text-gray-400 dark:text-gray-500 shadow-sm leading-relaxed flex items-center gap-1">
+                  <Loader2 size={12} className="animate-spin" /> {t("postDetail.answering")}
                 </div>
               </div>
             )}
 
             {chatError && (
-              <div className="text-xs text-red-400 px-1">{chatError}</div>
+              <div className="text-xs text-red-400 dark:text-red-400 px-1">{chatError}</div>
             )}
           </div>
 
-          <div className="flex items-center gap-2 px-3 py-2.5 border-t border-gray-100">
+          <div className="flex items-center gap-2 px-3 py-2.5 border-t border-gray-100 dark:border-gray-700 shrink-0">
             <input
               type="text"
               value={aiQuestion}
               onChange={(e) => setAiQuestion(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter") handleSend(); }}
-              placeholder="Ask about this topic..."
+              placeholder={t("postDetail.chatPlaceholder")}
               disabled={sending}
-              className="flex-1 text-sm text-gray-600 focus:outline-none bg-transparent disabled:opacity-50"
+              className="flex-1 text-sm text-gray-600 dark:text-gray-300 focus:outline-none bg-transparent disabled:opacity-50"
             />
             <button
               onClick={handleSend}
@@ -391,9 +403,9 @@ function PostDetailPage() {
         {/* Generate Quiz 버튼 */}
         <button
           onClick={() => navigate("/quiz")}
-          className="w-full flex items-center justify-center gap-2 bg-blue-600 text-white text-sm font-medium px-4 py-3 rounded-xl hover:bg-blue-700 transition-colors mt-auto"
+          className="w-full flex items-center justify-center gap-2 bg-blue-600 text-white text-sm font-medium px-4 py-3 rounded-xl hover:bg-blue-700 transition-colors shrink-0"
         >
-          <BrainCircuit size={16} /> Generate Quiz from Notes
+          <BrainCircuit size={16} /> {t("postDetail.generateQuiz")}
         </button>
       </ResizableRightPanel>
     </div>

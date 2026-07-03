@@ -12,6 +12,14 @@ logger = logging.getLogger(__name__)
 
 openai_client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
 
+NOT_IN_NOTES_NOTICE = (
+    "**📌 이 내용은 노트에서 찾지 못해서, AI가 학습한 일반 지식으로 답변합니다.**\n\n"
+)
+REVIEW_REMINDER = (
+    "\n\n**⚠️ 위 답변은 노트가 아닌 AI의 일반 지식에 기반한 답변이니, "
+    "정확한 내용인지 한 번 더 검토해보세요.**"
+)
+
 CLASSIFY_SYSTEM_PROMPT = (
     "사용자 질문을 'rag' 또는 'general' 둘 중 하나로만 분류해.\n"
     "'rag': 특정 지식/개념/주제에 대한 질문. 사용자가 작성한 공부 노트에 관련 내용이 있을 수 있는 "
@@ -98,6 +106,13 @@ async def generate_answer(state: GraphState) -> dict:
     messages.append({"role": "user", "content": state["query"]})
 
     answer = await _generate_answer_llm(messages)
+
+    # intent가 'rag'였다는 건 지식/개념을 묻는 질문이었다는 뜻인데, 관련 노트를 하나도
+    # 못 찾았다면(chunks가 비어있음) 노트 기반이 아닌 AI 자체 지식으로 답한 것이므로
+    # 답변 앞뒤에 안내 문구를 붙여서 사용자가 구분할 수 있게 함
+    if state["intent"] == "rag" and not chunks:
+        answer = NOT_IN_NOTES_NOTICE + answer + REVIEW_REMINDER
+
     return {"answer": answer}
 
 

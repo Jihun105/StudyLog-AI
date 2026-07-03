@@ -12,6 +12,9 @@ venv/
 # Environment
 .env
 
+# Uploaded images (note attachments)
+backend/uploaded_images/
+
 # IDE
 .vscode/
 .idea/

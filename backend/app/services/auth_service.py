@@ -7,8 +7,11 @@ from app.core.security import hash_password, verify_password, create_access_toke
 
 
 async def create_user(request: SignupRequest, db: AsyncSession) -> User:
-    # 비밀번호 정책 검증
-    request.validate_password()
+    # 비밀번호 정책 검증 (ValueError를 그대로 두면 500으로 새서 사용자에게 원인이 안 보임 -> 400으로 변환)
+    try:
+        request.validate_password()
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
     if (await db.execute(select(User).filter(User.username == request.username))).scalar_one_or_none():
         # scalar_one_or_none() : 결과가 1개면 그 객체 반환 없으면 None 반환

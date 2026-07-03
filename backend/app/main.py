@@ -2,13 +2,14 @@ import logging
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 from app.core.limiter import limiter
 from app.db.database import Base, engine
-from app.models import user, post, conversation, quiz
-from app.routers import auth_router, post_router, category_router, ai_router, conversation_router, quiz_router
+from app.models import user, post, conversation, quiz, todo
+from app.routers import auth_router, post_router, category_router, ai_router, conversation_router, quiz_router, user_router, upload_router, todo_router
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 logging.getLogger("app").setLevel(logging.INFO)
@@ -42,6 +43,12 @@ app.include_router(category_router.router)
 app.include_router(ai_router.router)
 app.include_router(conversation_router.router)
 app.include_router(quiz_router.router)
+app.include_router(user_router.router)
+app.include_router(upload_router.router)
+app.include_router(todo_router.router)
+
+# 업로드된 이미지 정적 서빙 (노트에 삽입된 이미지)
+app.mount("/api/uploads/files", StaticFiles(directory=upload_router.UPLOAD_DIR), name="uploaded_images")
 
 @app.get("/")
 async def root():

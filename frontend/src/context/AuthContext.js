@@ -35,9 +35,18 @@ export const AuthProvider =({ children }) => {
         localStorage.removeItem("user");
     };
 
+    // 유저 정보 일부만 갱신 (예: Settings에서 닉네임 수정 후 캐시된 user 정보 동기화)
+    const updateUser = (partial) => {
+        setUser((prev) => {
+            const next = { ...prev, ...partial };
+            localStorage.setItem("user", JSON.stringify(next));
+            return next;
+        });
+    };
+
     return (
     // value에 넣은 것들을 하위 컴포넌트에서 꺼내 쓸 수 있습니다.
-    <AuthContext.Provider value={{ token, user, loginAction, logoutAction }}>
+    <AuthContext.Provider value={{ token, user, loginAction, logoutAction, updateUser }}>
       {children}
     </AuthContext.Provider>
   );

@@ -83,6 +83,16 @@ async def rename_category(category_id: int, name: str, user_id: int, db: AsyncSe
     await db.refresh(category)
     return category
 
+async def get_category_subtree_ids(category_id: int, user_id: int, db: AsyncSession) -> list[int]:
+    """category_id 자신 + 모든 하위 카테고리 id를 재귀적으로 모아서 반환."""
+    ids = [category_id]
+    result = await db.execute(
+        select(Category.id).filter(Category.parent_id == category_id, Category.user_id == user_id)
+    )
+    for child_id in result.scalars().all():
+        ids.extend(await get_category_subtree_ids(child_id, user_id, db))
+    return ids
+
 async def get_category_path(category_id: int, db: AsyncSession) -> str:
     """카테고리 ID -> '머신러닝 > 선형대수 > 기초개념' 형태 문자열"""
     parts = []

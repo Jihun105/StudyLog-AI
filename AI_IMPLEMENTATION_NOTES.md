@@ -122,8 +122,13 @@ pytest, pytest-asyncio
 | Phase 4 | Step 15 | Docker Compose 전체 통합 (mysql/qdrant/backend/admin/frontend) | ✅ 완료 |
 | Phase 4 | Step 16 | GitHub Actions CI/CD | ⏳ 대기 |
 | Phase 4 | Step 17 | VPS 배포 | ⏳ 대기 |
+| Phase 5 | Step 18 | 사이드바 반응형 + 드래그 리사이즈 | ✅ 완료 |
+| Phase 5 | Step 19 | 대시보드/노트 목록 화면 분리 | ✅ 완료 |
+| Phase 5 | Step 20 | Settings — 계정 관리(프로필/비밀번호/탈퇴) | ✅ 완료 |
+| Phase 5 | Step 21 | 다크 모드 | ✅ 완료 |
+| Phase 5 | Step 22 | 전체 UI 다국어(한/영, react-i18next) | ✅ 완료 |
 
-> Step 번호는 `PLAN.md`와 동일하게 정렬. 상세 진행 로그(트러블슈팅, 검증 방법 등)는 `PLAN.md`에 더 자세히 기록돼 있고, 이 문서는 설계 배경과 이유 위주로 정리한다.
+> Step 번호는 `PLAN.md`와 동일하게 정렬. 상세 진행 로그(트러블슈팅, 검증 방법 등)는 `PLAN.md`에 더 자세히 기록돼 있고, 이 문서는 설계 배경과 이유 위주로 정리한다. Phase 5(UI 개선)는 AI 기능과는 직접 관련이 없어 이 문서에는 요약만 남기고, 상세 내용은 `PLAN.md`의 "Phase 5 구현 완료" 절 참고.
 
 ---
 
@@ -411,6 +416,18 @@ board/
 **남은 작업**: GitHub Actions CI/CD, 실제 AWS/VPS 배포.
 
 **구조화 로깅 (structlog)**: print() 대신 JSON 형식 로그
+
+---
+
+### Phase 5 — UI 개선 (요약, 상세는 `PLAN.md` 참고) ✅ 완료
+
+AI 기능이 어느 정도 자리잡은 뒤, 실사용성 개선을 위해 진행한 라운드. "하나씩 보면서 확인" 방식으로 기능 단위 구현 → 사용자 확인 → 다음 기능 순서로 진행함.
+
+- **사이드바 반응형+리사이즈**: 창 폭 1024px 미만이면 자동 접힘(수동 접기와 구분해서 재확장 여부 결정), 드래그로 폭 조절 가능(`SidebarLayout.jsx`)
+- **대시보드/노트 목록 분리**: `/`(Dashboard, 요약 통계+빠른 실행+최근 노트)와 `/notes`(기존 노트 목록, 폴더 탐색) 역할 분리
+- **계정 관리**: 신규 `user_router.py`/`user_service.py`(백엔드) + `SettingsPage.jsx`(프론트) — 프로필 수정, 비밀번호 변경, 회원 탈퇴(cascade 삭제는 기존 DB `ON DELETE CASCADE` 제약에 의존, 서비스 로직에서 추가 처리 불필요)
+- **다크 모드**: Tailwind `darkMode: "class"` 전략 + `ThemeContext.js`, 전체 페이지에 `dark:` variant 적용. BlockNote 에디터의 `theme="light"` 하드코딩도 현재 테마와 연동하도록 수정, 부수적으로 발견된 폰트 크기 이슈(`.bn-default-styles`가 `.bn-editor`의 폰트 축소 규칙을 덮어쓰던 문제)도 함께 해결
+- **다국어(i18n)**: `react-i18next` 도입, 전체 페이지 텍스트를 `ko.json`/`en.json`(216키, 완전 일치 검증)으로 분리. `SettingsPage`에서 즉시 전환 가능하고 `localStorage`에 선택값 저장
 
 **Docker Compose 구성:**
 ```yaml

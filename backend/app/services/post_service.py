@@ -6,13 +6,20 @@ from fastapi import HTTPException
 from app.models.post import Post, Tag
 from app.models.user import User
 from app.schemas.post import PostCreateRequest, PostUpdateRequest
+from app.services.category_service import get_category_subtree_ids
 from app.utils.blocknote import extract_text_from_blocknote
 
 def strip_html(html: str) -> str:
     return re.sub(r'<[^>]+>', '', html or '')
 
-async def get_posts(page: int, limit: int, db: AsyncSession, keyword: str = None, tags: list[str] = None, current_user_id: int = None, category_id: int = None) -> dict:
+async def get_posts(page: int, limit: int, db: AsyncSession, keyword: str = None, tags: list[str] = None, current_user_id: int = None, category_id: int = None, include_subcategories: bool = False) -> dict:
     offset = (page - 1) * limit
+
+    # include_subcategories가 True면 상위 폴더 선택 시 하위 폴더의 노트까지 포함(재귀 조회),
+    # 기본값(False)이면 정확히 그 카테고리에 속한 노트만
+    subtree_ids = None
+    if category_id is not None and category_id != 0 and include_subcategories:
+        subtree_ids = await get_category_subtree_ids(category_id, current_user_id, db)
 
     query = (
         select(Post)
@@ -33,6 +40,8 @@ async def get_posts(page: int, limit: int, db: AsyncSession, keyword: str = None
     if category_id is not None:
         if category_id == 0:
             query = query.where(Post.category_id == None)
+        elif subtree_ids is not None:
+            query = query.where(Post.category_id.in_(subtree_ids))
         else:
             query = query.where(Post.category_id == category_id)
 
@@ -46,6 +55,8 @@ async def get_posts(page: int, limit: int, db: AsyncSession, keyword: str = None
     if category_id is not None:
         if category_id == 0:
             count_query = count_query.where(Post.category_id == None)
+        elif subtree_ids is not None:
+            count_query = count_query.where(Post.category_id.in_(subtree_ids))
         else:
             count_query = count_query.where(Post.category_id == category_id)
 
@@ -164,15 +175,19 @@ async def delete_post(post_id: int, current_user: User, db: AsyncSession) -> Non
     await db.delete(post)
     await db.commit()
 
-async def get_all_tags(db: AsyncSession, user_id: int = None, category_id: int = None) -> list[str]:
+async def get_all_tags(db: AsyncSession, user_id: int = None, category_id: int = None, include_subcategories: bool = False) -> list[str]:
     query = select(Tag).join(Tag.posts)
 
     if user_id:
         query = query.where(Post.user_id == user_id)
 
+    # get_posts와 동일한 규칙: 상위 폴더 + include_subcategories=True면 하위 폴더 노트의 태그까지 포함
     if category_id is not None:
         if category_id == 0:
             query = query.where(Post.category_id == None)
+        elif include_subcategories:
+            subtree_ids = await get_category_subtree_ids(category_id, user_id, db)
+            query = query.where(Post.category_id.in_(subtree_ids))
         else:
             query = query.where(Post.category_id == category_id)
 

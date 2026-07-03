@@ -16,18 +16,61 @@
   min-height: 500px;
 }
 
-/* BlockNote 폰트 크기 축소 */
-.bn-editor {
-  font-size: 0.875rem;
+/* BlockNote 폰트 크기 축소
+   (BlockNote가 자체적으로 .bn-default-styles에 16px을 강제로 주입해서
+   .bn-editor에만 font-size를 걸면 무시되는 문제가 있어 !important로 덮어씀) */
+.bn-editor,
+.bn-default-styles {
+  font-size: 0.85rem !important;
 }
 .bn-editor [data-content-type="heading"][data-level="1"] .bn-inline-content {
-  font-size: 1.6rem;
+  font-size: 1.5rem;
 }
 .bn-editor [data-content-type="heading"][data-level="2"] .bn-inline-content {
-  font-size: 1.3rem;
+  font-size: 1.25rem;
 }
 .bn-editor [data-content-type="heading"][data-level="3"] .bn-inline-content {
-  font-size: 1.1rem;
+  font-size: 1.05rem;
+}
+
+/* 코드 블록 폰트 크기 축소 (기본값이 16px 모노스페이스라 유난히 크게 보임) */
+.bn-block-content[data-content-type="codeBlock"] pre,
+.bn-block-content[data-content-type="codeBlock"] code {
+  font-size: 0.78rem !important;
+  line-height: 1.5 !important;
+}
+
+/* 코드 블록이 길어도 페이지 전체가 옆으로 늘어나지 않고, 코드 블록 안에서만 가로 스크롤
+   되도록 함. BlockNote 기본 CSS가 pre에 overflow-x:auto를 걸어두긴 하지만, pre가
+   flex 아이템(.bn-block-content가 display:flex)인데 min-width:0이 빠져 있어서 flexbox가
+   줄어들지 못하게 막아버림 -> overflow 규칙이 무시되고 코드 블록 전체가 옆으로 계속 늘어나면서
+   페이지 전체를 밀어냈던 게 진짜 원인. min-width:0을 추가해서 flex 아이템이 실제로
+   줄어들 수 있게 해야 overflow-x:auto가 제대로 동작함 */
+.bn-block-content {
+  min-width: 0;
+}
+.bn-block-content[data-content-type="codeBlock"] pre {
+  min-width: 0 !important;
+  overflow-x: auto !important;
+  max-width: 100%;
+}
+
+/* 브라우저 자동완성(로그인/회원가입 등) 시 입력창이 흰색/노란색으로 강제 표시되는 것 방지 */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0px 1000px #f9fafb inset !important;
+  box-shadow: 0 0 0px 1000px #f9fafb inset !important;
+  -webkit-text-fill-color: #111827 !important;
+  transition: background-color 9999s ease-in-out 0s;
+}
+
+.dark input:-webkit-autofill,
+.dark input:-webkit-autofill:hover,
+.dark input:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0px 1000px #1f2937 inset !important;
+  box-shadow: 0 0 0px 1000px #1f2937 inset !important;
+  -webkit-text-fill-color: #f3f4f6 !important;
 }
 
 /* 스크롤바 스타일 */

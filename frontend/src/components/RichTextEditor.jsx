@@ -4,8 +4,13 @@ import { BlockNoteView } from "@blocknote/mantine";
 import "@blocknote/core/fonts/inter.css";
 import "@blocknote/mantine/style.css";
 import { codeBlockConfig } from "../lib/editorSchema";
+import { useTheme } from "../context/ThemeContext";
+import { useAuth } from "../context/AuthContext";
+import { uploadImage } from "../api/uploads";
 
 function RichTextEditor({ initialContent, onChange }) {
+  const { theme } = useTheme();
+  const { token } = useAuth();
   // JSON이면 파싱, HTML이면 undefined (useEffect에서 처리)
   const parsedInitial = useMemo(() => {
     if (!initialContent) return undefined;
@@ -19,6 +24,8 @@ function RichTextEditor({ initialContent, onChange }) {
   const editor = useCreateBlockNote({
     codeBlock: codeBlockConfig,
     initialContent: parsedInitial,
+    // 이미지/파일 블록에서 "업로드" 버튼, 드래그&드롭, 붙여넣기로 사진을 넣을 수 있게 함
+    uploadFile: async (file) => uploadImage(file, token),
   });
 
   // 기존 TipTap HTML 포스트 fallback
@@ -32,11 +39,11 @@ function RichTextEditor({ initialContent, onChange }) {
   }, [editor]);
 
   return (
-    <div className="border border-gray-200 rounded-xl overflow-hidden min-h-64">
+    <div className="border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden min-h-64">
       <BlockNoteView
         editor={editor}
         onChange={() => onChange(JSON.stringify(editor.document))}
-        theme="light"
+        theme={theme}
       />
     </div>
   );

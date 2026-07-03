@@ -23,7 +23,7 @@ async def create_quiz(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    quizzes = await generate_quiz(body.category_id, body.quiz_type, current_user.id, db)
+    quizzes = await generate_quiz(body.category_id, body.quiz_type, current_user.id, db, post_ids=body.post_ids)
     return {"quizzes": quizzes}
 
 

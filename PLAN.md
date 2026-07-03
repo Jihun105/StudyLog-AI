@@ -74,16 +74,18 @@ StudyLog-AI/
       db/
         database.py             ✅ 비동기 DB 연결
       models/
-        user.py                 ✅
+        user.py                 ✅ (profile_image 컬럼 추가 — 프로필 사진)
         post.py                 ✅ Post, Tag, Category
         conversation.py         ✅ Conversation, Message
-        quiz.py                 ✅ Quiz, QuizAttempt
+        quiz.py                 ✅ Quiz, QuizAttempt (quiz_type: multiple_choice | ox)
+        todo.py                 ✅ Todo (title, is_done, due_date, priority, position, start_time, memo)
       schemas/
-        user.py                 ✅
+        user.py                 ✅ (profile_image 필드 추가)
         post.py                 ✅
         category.py             ✅
         conversation.py         ✅
         quiz.py                 ✅
+        todo.py                 ✅
       routers/
         auth_router.py          ✅
         post_router.py          ✅ (embedding BackgroundTasks 연동)
@@ -91,19 +93,24 @@ StudyLog-AI/
         ai_router.py            ✅ POST /api/ai/chat
         conversation_router.py  ✅ 대화 목록/히스토리
         quiz_router.py          ✅ 퀴즈 생성/채점
+        user_router.py          ✅ 계정 관리 (GET/PATCH /me, POST /me/password, DELETE /me)
+        upload_router.py        ✅ POST /api/uploads/image (노트 이미지 + 프로필 사진 공용)
+        todo_router.py          ✅ 할 일 CRUD + 토글 + 순서 변경
       services/
         auth_service.py         ✅
         post_service.py         ✅
         category_service.py     ✅ (get_category_path 포함)
         conversation_service.py ✅
-        quiz_service.py         ✅
+        quiz_service.py         ✅ (문제 10개, 노트 최대 5개, 객관식/OX만 지원)
+        user_service.py         ✅ 프로필 수정/비밀번호 변경/계정 삭제 (DB cascade 의존)
+        todo_service.py         ✅ 목록/생성/수정/토글/삭제/순서변경
         ai/
           __init__.py
           embedding_service.py  ✅ Qdrant 인덱싱 + 삭제
-          rag_service.py        ✅ Vector Search + GPT 응답 (비동기)
-          graph_service.py      ✅ LangGraph 멀티턴 + LangSmith 추적
+          rag_service.py        ✅ Vector Search + GPT 응답 (비동기, MIN_SCORE 임계값 적용)
+          graph_service.py      ✅ LangGraph 멀티턴 + LangSmith 추적 (노트 밖 지식 답변 시 안내 문구 추가)
       utils/
-        blocknote.py            ✅ BlockNote JSON → 텍스트 추출
+        blocknote.py            ✅ BlockNote JSON → 텍스트 추출 (HTML 엔티티 복원 포함)
         chunking.py             ✅ 블록 단위 청킹
   frontend/
     Dockerfile                    ✅ 멀티스테이지(node 빌드 → nginx 서빙) + 경로 라우팅
@@ -115,7 +122,30 @@ StudyLog-AI/
       lib/
         editorSchema.js          ✅ 커스텀 shiki 하이라이터 사용 (codeBlockConfig)
         shiki.bundle.js           ✅ shiki-codegen으로 생성 (oniguruma 엔진, 필요한 언어만)
-      context/AuthContext.js    ✅
+      context/
+        AuthContext.js           ✅ 토큰/유저 상태, updateUser() 포함
+        ThemeContext.js          ✅ 다크모드 상태 (localStorage + OS 설정 폴백)
+      i18n/
+        index.js                 ✅ i18next 초기화, localStorage에 언어 저장
+        locales/ko.json           ✅ 한국어 번역 (216 키)
+        locales/en.json           ✅ 영어 번역 (216 키)
+      components/
+        Sidebar.jsx               ✅ 카테고리 트리 + 접기 버튼
+        SidebarLayout.jsx         ✅ 사이드바 자동 숨김/토글/드래그 리사이즈 공통 래퍼
+        ResizableRightPanel.jsx   ✅ 우측 패널 공용 컴포넌트
+        RichTextEditor.jsx        ✅ BlockNote 기반 에디터 (테마 연동)
+      pages/
+        Dashboard.jsx             ✅ "/" — 2x2 그리드(프로필 카드+사진 업로드 / 통계 카드 / 최근 노트 / 오늘 할 일)
+        HomePage.jsx              ✅ "/notes" — 노트 목록/검색/태그 필터 (상위 폴더 선택 시 하위 폴더 태그도 포함)
+        SettingsPage.jsx          ✅ 테마/언어/프로필/비밀번호/회원탈퇴
+        TodoPage.jsx              ✅ "/todos" — 목록/캘린더 뷰, 우측 미완료 목록·캘린더 패널(접기/펼치기), 상세 토글(시간/메모)
+        QuizPage.jsx, PostCreatePage.jsx, PostDetailPage.jsx, PostEditPage.jsx, DocumentsPage.jsx, LandingPage.jsx, LoginPage.jsx, SignupPage.jsx ✅
+      components/
+        TimePicker.jsx             ✅ 네이티브 time input 대체 커스텀 AM/PM·시·분 드롭다운
+      api/
+        users.js                  ✅ getMyProfile/updateMyProfile/changeMyPassword/deleteMyAccount
+        todos.js                  ✅ getTodos/createTodo/updateTodo/toggleTodo/deleteTodo/reorderTodos
+        uploads.js                 ✅ uploadImage (노트 이미지 + 프로필 사진 공용)
   admin/                        ✅ Django 관리자 패널 (읽기 전용 조회용, 별도 프로젝트)
     Dockerfile                    ✅ mysqlclient 빌드 + collectstatic + gunicorn
     requirements.txt               ✅ Django, mysqlclient, python-dotenv, gunicorn, whitenoise
@@ -152,6 +182,17 @@ StudyLog-AI/
 | Phase 4 | Step 15 | Docker Compose 통합 (backend/frontend/admin/nginx/mysql/qdrant) | ✅ 완료 |
 | Phase 4 | Step 16 | GitHub Actions CI/CD | ⏳ 대기 |
 | Phase 4 | Step 17 | VPS/AWS 배포 | ⏳ 대기 |
+| Phase 5 | Step 18 | 사이드바 반응형(자동 숨김/토글) + 드래그 리사이즈 | ✅ 완료 |
+| Phase 5 | Step 19 | 대시보드/노트 목록 화면 분리 | ✅ 완료 |
+| Phase 5 | Step 20 | Settings 페이지 — 계정 관리(프로필/비밀번호/탈퇴) | ✅ 완료 |
+| Phase 5 | Step 21 | 다크 모드 (Tailwind class 전략 + 전체 페이지 적용) | ✅ 완료 |
+| Phase 5 | Step 22 | 전체 UI 다국어(한/영, react-i18next) | ✅ 완료 |
+| Phase 6 | Step 23 | 할 일(Todo) 관리 기능 신규 구현 (목록/캘린더 뷰, 우측 패널) | ✅ 완료 |
+| Phase 6 | Step 24 | 대시보드 2x2 재설계 + 프로필 사진 업로드 | ✅ 완료 |
+| Phase 6 | Step 25 | 반응형 레이아웃 버그 3종 수정 (전역 클리핑/코드블록/PostDetail) | ✅ 완료 |
+| Phase 6 | Step 26 | RAG 유사도 임계값 도입 + 챗봇 "노트 밖 지식" 안내 문구 | ✅ 완료 |
+| Phase 6 | Step 27 | 퀴즈 개선 (10문제, 노트 5개 제한, 빈칸 유형 제거) | ✅ 완료 |
+| Phase 6 | 보완 | BlockNote 텍스트 추출 시 HTML 엔티티 깨짐 버그 수정 | ✅ 완료 |
 
 ---
 
@@ -244,8 +285,8 @@ tracing 비활성/활성(가짜 키) 두 경우 모두 mock으로 실제 채팅 
 **1. 카테고리 기반 문제 생성**
 `category_id`: `null`=전체 노트, `0`=미분류, 그 외=선택 카테고리+하위 카테고리 전체(재귀 조회). 노트 텍스트를 이어붙여 8000자에서 컷 — 카테고리 크기와 무관하게 GPT 호출 1번당 비용이 고정되도록 함.
 
-**2. 문제 유형 3종**
-객관식(`multiple_choice`) / OX(`ox`) / 빈칸 채우기(`blank`), 생성 전 프론트에서 선택. 문제 개수는 5개 고정. 객관식은 GPT 응답을 받은 뒤 `random.shuffle()`로 정답 위치를 한 번 더 섞어서 위치 편향 가능성을 원천 차단. 빈칸 채우기는 자유 텍스트 입력이라 공백/대소문자를 무시하는 정규화 비교로 채점.
+**2. 문제 유형 2종** (`blank` 빈칸 채우기는 Phase 6에서 제거됨 — 아래 Phase 6 Step 27 참고)
+객관식(`multiple_choice`) / OX(`ox`), 생성 전 프론트에서 선택. 문제 개수는 5개 고정(Phase 6에서 10개로 변경). 객관식은 GPT 응답을 받은 뒤 `random.shuffle()`로 정답 위치를 한 번 더 섞어서 위치 편향 가능성을 원천 차단.
 
 **3. 정답 비노출**
 `QuizQuestion` 응답 스키마에 `answer` 필드 자체가 없음 — 채점은 항상 서버(`submit_attempt`)에서 수행하고, 정답은 채점 후 응답에만 포함.
@@ -352,6 +393,198 @@ React 빌드 결과물과 Django 기본 정적 파일 경로가 둘 다 `/static
 
 ---
 
+## Phase 5 구현 완료 — UI 개선 (사이드바/대시보드/설정/다크모드/다국어)
+
+AI 기능(Phase 1-4)이 어느 정도 마무리된 뒤, "영어/한국어가 섞여 있고 UI가 불편하다"는 문제의식에서 시작된 라운드. 한 번에 몰아서 구현하지 않고, 사용자가 "하나씩 보면서" 확인할 수 있도록 **기능 단위로 구현 → 테스트 → 확인 후 다음 단계로** 진행하는 방식으로 작업함.
+
+### Step 18: 사이드바 반응형(자동 숨김) + 드래그 리사이즈 ✅
+
+**만든/바뀐 파일**
+- `frontend/src/components/SidebarLayout.jsx`(신규) — 사이드바를 쓰는 모든 페이지(HomePage, QuizPage, DocumentsPage, Dashboard, SettingsPage)가 공통으로 쓰는 래퍼. 접힘 상태(`collapsed`)와 폭(`width`)을 여기 한 곳에서만 관리
+- `frontend/src/components/Sidebar.jsx` — 폭 고정(`w-64`) 대신 부모가 주는 폭에 맞추도록 변경(`w-full h-full`), 접기 버튼 추가
+
+**핵심 로직**
+- 브레이크포인트(1024px) 미만으로 창이 좁아지면 자동으로 접힘. `autoCollapsed` ref로 "자동으로 접힌 건지 / 사용자가 직접 접은 건지" 구분해서, 자동으로 접힌 경우에만 창이 다시 넓어질 때 자동으로 펼쳐짐(사용자가 수동으로 접었으면 창을 넓혀도 그대로 유지)
+- `ResizableRightPanel`과 동일한 mousedown/mousemove/mouseup 드래그 패턴을 좌측 사이드바용으로 재사용(방향만 반대), 폭은 `localStorage`에 저장해 새로고침해도 유지
+
+---
+
+### Step 19: 대시보드/노트 목록 화면 분리 ✅
+
+기존엔 로그인 후 첫 화면이 노트 목록 그 자체였는데, "폴더 클릭으로 노트를 보는 방식은 이미 있으니 대시보드는 더 구체적인 요약 화면이어야 한다"는 요청에 따라 분리.
+
+**만든/바뀐 파일**
+- `frontend/src/pages/Dashboard.jsx`(신규) — `/`. 전체 노트 수·카테고리 수 요약 통계, 빠른 실행(새 노트 작성/퀴즈 풀기), 최근 노트 5개 미리보기
+- `frontend/src/App.js` — `/`는 `Dashboard`, 기존 노트 목록 페이지(`HomePage.jsx`, 내용은 무변경)는 `/notes`로 라우트 이동
+- 노트 상세/작성/수정 페이지의 "전체 보기" 이동 경로를 전부 `/notes`로 수정
+
+**후속 요청 반영**: 사이드바에 "Notes" 메뉴를 별도로 추가했다가, "폴더에서 이미 다 볼 수 있는데 중복"이라는 피드백을 받고 제거 — `/notes` 라우트와 페이지 자체는 그대로 두고 폴더 클릭·대시보드의 "전체 보기" 링크로만 접근하도록 정리
+
+---
+
+### Step 20: Settings 페이지 — 계정 관리 ✅
+
+**백엔드 (신규)**
+- `backend/app/schemas/user.py` — `UpdateProfileRequest`, `ChangePasswordRequest`(비밀번호 정책은 회원가입과 동일하게 재검증)
+- `backend/app/services/user_service.py` — `update_profile`(닉네임/이메일 중복 체크 후 수정), `change_password`(현재 비밀번호 검증 후 재해싱), `delete_account`(`db.delete(user)` — DB의 `ON DELETE CASCADE` 제약에 기대어 게시글/카테고리/대화/퀴즈까지 전부 연쇄 삭제)
+- `backend/app/routers/user_router.py` — `GET/PATCH /api/users/me`, `POST /api/users/me/password`, `DELETE /api/users/me` (전부 `Depends(get_current_user)`로 보호)
+
+**프론트 (신규)**
+- `frontend/src/api/users.js`, `frontend/src/pages/SettingsPage.jsx` — 프로필 조회/수정, 비밀번호 변경, 회원 탈퇴(안전장치로 "탈퇴"라는 단어를 직접 입력해야 버튼 활성화) UI
+
+---
+
+### Step 21: 다크 모드 ✅
+
+**만든/바뀐 파일**
+- `frontend/tailwind.config.js` — `darkMode: "class"` 전략 추가
+- `frontend/src/context/ThemeContext.js`(신규) — `localStorage.theme` 우선, 없으면 OS `prefers-color-scheme` 폴백. `<html>` 태그에 `dark` 클래스를 붙였다 뗐다 하는 방식
+- `frontend/src/App.js` — `ThemeProvider`로 앱 전체 래핑
+- 사이드바/대시보드/노트 목록/퀴즈/노트 상세·작성·수정/설정/로그인/회원가입/랜딩페이지 **전체**에 Tailwind `dark:` variant 클래스 적용
+- `frontend/src/pages/SettingsPage.jsx` — "화면 테마" 섹션에 라이트/다크 전환 버튼 추가
+
+**BlockNote 에디터 테마 연동**: 처음엔 노트 본문(BlockNote 영역)만 흰 배경으로 남는 문제가 있었음 — `RichTextEditor.jsx`, `PostDetailPage.jsx`, `QuizPage.jsx`(우측 패널 미리보기) 세 곳에서 하드코딩돼 있던 `theme="light"`를 `useTheme()`의 현재 테마값으로 교체해서 해결.
+
+**폰트 크기 조정 (다크모드 확인 중 발견된 부수 요청)**: BlockNote가 자체적으로 `.bn-default-styles`에 `font-size: 16px`를 강제 주입해서, `.bn-editor`에만 걸어둔 기존 폰트 축소 규칙이 무시되던 것을 발견 → `index.css`에서 두 선택자 모두에 `!important`로 `0.85rem`을 강제 적용. 코드블록은 별도로 `0.78rem`까지 추가로 축소(모노스페이스가 16px 그대로라 유독 커 보였음).
+
+---
+
+### Step 22: 전체 UI 다국어(한/영) ✅
+
+**패키지**: `i18next`, `react-i18next` 추가 (`frontend/package.json`)
+
+**만든 파일**
+- `frontend/src/i18n/index.js` — i18next 초기화. 저장된 언어(`localStorage.language`) 우선, 없으면 한국어(`ko`) 기본
+- `frontend/src/i18n/locales/ko.json`, `en.json` — 페이지별 네임스페이스(`common`, `sidebar`, `dashboard`, `notes`, `quiz`, `documents`, `settings`, `postDetail`, `postCreate`, `postEdit`, `landing`, `login`, `signup`)로 정리, 총 216개 키. 두 파일 키 완전 일치 확인 완료
+
+**적용 범위**: 사이드바, 대시보드, 노트 목록, 퀴즈, 노트 상세/작성/수정, 설정, 로그인/회원가입/랜딩페이지 등 로그인 전후 페이지 전부. 게시글 작성일 같은 날짜 포맷도 언어에 따라 `ko-KR`/`en-US` 로케일로 전환됨.
+
+**언어 전환 UI**: `SettingsPage.jsx`에 "언어" 섹션 추가, 한국어/English 버튼으로 즉시 전환(`i18n.changeLanguage()`), 선택값은 `localStorage`에 저장돼 새로고침 후에도 유지.
+
+**검증 방식**: 이 환경에서는 개발 서버를 직접 띄워 눈으로 확인하기 어려워서, (1) Babel로 모든 수정 파일 문법 검증, (2) `ko.json`/`en.json` 키 완전 일치 여부 스크립트로 검증, (3) 코드 내 `t()` 호출 키가 실제 JSON에 존재하는지 스크립트로 대조, 이후 사용자가 직접 `npm start`로 최종 확인하는 방식으로 진행함.
+
+**환경 이슈 (참고)**: 작업 중 샌드박스의 bash 마운트가 방금 수정한 파일들을 일시적으로 옛날 상태로(끝부분이 잘린 채) 보여주는 현상이 다시 발생 — `mv 파일 파일.bak && mv 파일.bak 파일`로 강제로 다시 읽게 하면 정상화됨을 확인. `Read`/`Edit`/`Write` 도구가 보여주는 내용이 항상 진짜(ground truth)이고, bash `cat`/`wc`/빌드 도구가 상충되게 나오면 이 마운트 캐시 문제를 의심할 것.
+
+### 남은 작업 (다음 라운드 후보)
+- 사용자가 `npm start`로 다국어/다크모드 최종 확인
+- (선택) 문서 페이지(`DocumentsPage.jsx`, 현재 "Coming soon" 상태) 실제 기능 구현
+
+---
+
+## Phase 6 구현 완료 — 할 일 관리, 대시보드 재설계, 반응형 버그 수정, 챗봇/퀴즈 개선
+
+Phase 5(UI 다국어/다크모드) 이후, 실사용 중 발견된 UX 불편(네이티브 time picker, 할 일 관리 부재, 반응형 깨짐)과 AI 기능 품질(챗봇의 "노트에 없는 내용" 구분, 퀴즈 채점 정확도) 문제를 순서대로 해결한 라운드. 매 기능마다 스크린샷으로 확인 → 피드백 → 수정을 반복하며 진행함.
+
+### Step 23: 할 일(Todo) 관리 기능 신규 구현 ✅
+
+**백엔드 (신규)**
+- `backend/app/models/todo.py` — `Todo`(title, is_done, due_date, priority[low/medium/high], position, start_time["HH:MM"], memo)
+- `backend/app/schemas/todo.py`, `backend/app/services/todo_service.py`, `backend/app/routers/todo_router.py` — CRUD + 토글 + 드래그 순서 저장(`PUT /reorder`, `/{todo_id}`보다 먼저 등록해야 라우팅 충돌이 안 남)
+- ⚠️ **Alembic 마이그레이션 미생성** — `todos`는 신규 테이블이라 `Base.metadata.create_all()`이 자동 생성하지만, 기존 `users` 테이블에 추가한 `profile_image` 컬럼(Step 24)은 `create_all()`이 기존 테이블을 ALTER하지 않으므로 실제 배포 전 Alembic 마이그레이션 생성(`alembic revision --autogenerate`) 또는 수동 `ALTER TABLE`이 필요함 (`CLAUDE.md`에도 명시된 알려진 제약)
+
+**프론트 (신규)**
+- `frontend/src/pages/TodoPage.jsx` — 목록 뷰(오늘 할 일만 표시)와 캘린더 뷰 두 가지. 목록 뷰는 우측에 "미완료 목록"(오늘 제외 전체 미완료, 마감일 임박순 정렬) 패널을, 캘린더 뷰는 날짜 클릭 시 그 날의 할 일 패널을 보여줌 — 둘 다 `ResizableRightPanel`로 리사이즈/접기 가능, 날짜 클릭 시 패널이 접혀있어도 자동으로 펼쳐짐
+- `frontend/src/components/TimePicker.jsx`(신규) — 네이티브 `<input type="time">`이 브라우저마다 UI가 다르고 커스터마이징이 안 되는 문제를 해결하기 위해 AM/PM + 시(1-12) + 분(5분 단위) 드롭다운으로 직접 구현
+- `frontend/src/components/ResizableRightPanel.jsx` — `collapsible`(접기/펼치기 버튼 + `localStorage` 저장), `collapsed`/`onCollapsedChange`(부모가 강제로 펼치는 controlled 모드), `minLeftWidth`(드래그 시 좌측 콘텐츠가 너무 좁아지지 않도록 실측 폭 기준으로 방어) 3가지 기능 추가 — 이후 QuizPage/PostDetailPage 우측 패널에도 재사용됨
+
+**트러블슈팅**
+- 우측 패널이 좁아서(288px) 항목에 마우스를 올리면 수정/삭제 아이콘이 나타나며 우선순위 라벨·날짜 배지와 겹쳐 보이던 문제 → `compact` 모드(우선순위는 점만 표시, 날짜는 "MM-DD" 축약) 추가로 해결
+- 상위 폴더 태그에 하위 폴더 태그가 안 보인다는 문제(별도 기능이지만 같은 라운드에 처리) → 원인은 `getAllTags` 호출을 `Boolean(keyword)`에 연동해뒀는데, 폴더 클릭 시 `keyword`가 매번 초기화돼서 조건이 항상 거짓이었던 것. 카테고리가 선택되면 검색 여부와 무관하게 항상 하위 카테고리 포함하도록 수정
+
+---
+
+### Step 24: 대시보드 2x2 재설계 + 프로필 사진 업로드 ✅
+
+**백엔드**
+- `backend/app/models/user.py` — `profile_image` 컬럼 추가 (nullable, 배포 전 마이그레이션 필요 — Step 23 참고)
+- `backend/app/schemas/user.py`, `backend/app/services/user_service.py` — `UserResponse`/`UpdateProfileRequest`에 `profile_image` 추가. 닉네임만 PATCH해도 사진이 지워지지 않도록 요청에 명시적으로 포함된 경우에만 갱신
+- 신규 업로드 엔드포인트를 만들지 않고 기존 `POST /api/uploads/image`(노트 이미지용)를 그대로 재사용
+
+**프론트**
+- `frontend/src/pages/Dashboard.jsx` 전체 재작성 — 2x2 그리드: 좌상단 프로필 카드(닉네임/사진 업로드), 우상단 통계 카드 3개(전체 노트/카테고리/오답노트-추후 기능이라 0 고정), 좌하단 최근 노트, 우하단 오늘 할 일
+- `frontend/src/components/Sidebar.jsx` — 아바타를 이니셜 대신 업로드된 사진(있으면)으로 표시
+
+---
+
+### Step 25: 반응형 레이아웃 버그 3종 수정 ✅
+
+실사용 중 창 크기를 줄였을 때 여러 겹의 문제가 발견되어 순차적으로 원인을 추적함.
+
+**1) 전역 클리핑 — `AppLayout`의 `overflow-hidden`**
+`frontend/src/App.js`의 `AppLayout` 루트 div가 `overflow-hidden`이라, 챗봇 패널이나 본문이 넘칠 때 스크롤 대신 그냥 잘려서 안 보였음. `overflow-x-auto overflow-y-hidden`으로 변경.
+
+**2) BlockNote 코드블록이 창을 계속 밀어내는 문제 (flexbox `min-width:auto` 함정)**
+처음엔 CodeMirror 관련 CSS로 오해하고 수정했으나 효과 없었음 — 실제로는 BlockNote가 Shiki로 코드블록을 렌더링하고(CodeMirror 아님), 이미 `pre`에 `overflow-x:auto`가 걸려 있었지만 그 부모(`.bn-block-content`, `display:flex`)가 `min-width:auto`인 채로 남아있어 flex 아이템이 줄어들지 못해 overflow 규칙 자체가 무력화되고 있었음. `frontend/src/index.css`에 `.bn-block-content`와 코드블록 `pre`에 `min-width:0`을 추가해 해결.
+
+**3) PostDetailPage 자체 리그레션 — `min-w-[480px]`**
+위 수정 과정에서 방어적으로 추가했던 본문 영역의 `min-w-[480px]`가, 읽기 전용 콘텐츠 페이지에는 불필요한 하한선이라 오히려 좁은 창에서 제목/헤더가 줄바꿈되지 못하고 페이지 전체가 가로 스크롤되는 새 문제를 만들었음. 폼/컨트롤이 많은 TodoPage·QuizPage와 달리 읽기 콘텐츠 위주인 PostDetailPage에는 이런 하한선이 맞지 않는다고 판단해 제거(`min-w-0`로 원복), 대신 헤더 브레드크럼에 자체 가로 스크롤, 제목에 `break-words`를 적용해 진짜 반응형으로 줄바꿈되도록 함
+- `ResizableRightPanel`(챗봇 패널)에는 `collapsible`/`autoCollapseBreakpoint={1024}` 적용 — 창이 좁아지면 사이드바처럼 자동으로 접히고, 수동 토글도 가능
+
+---
+
+### Step 26: RAG 유사도 임계값 + 챗봇 "노트 밖 지식" 안내 문구 ✅
+
+**바뀐 파일**
+- `backend/app/services/ai/rag_service.py` — `MIN_SCORE = 0.3` 코사인 유사도 임계값 추가. 기존엔 임계값이 없어 완전히 무관한 질문에도 억지로 가장 가까운 5개를 끌어와서, `chunks`가 비는 경우가 실질적으로 거의 없었음
+- `backend/app/services/ai/graph_service.py` — `generate_answer()`에서 `intent == "rag"`인데 `chunks`가 비어있으면(관련 노트를 못 찾음) 답변 앞뒤에 안내 문구를 붙임: "📌 이 내용은 노트에서 찾지 못해서, AI가 학습한 일반 지식으로 답변합니다" + (AI 답변) + "⚠️ 위 답변은 노트가 아닌 AI의 일반 지식에 기반한 답변이니, 정확한 내용인지 한 번 더 검토해보세요"
+
+**설계 결정**: 안내 문구를 별도 DB 컬럼/구조화된 필드로 만들지 않고 저장되는 메시지 본문(`Message.content`)에 마크다운 굵게(`**`)로 직접 얹었음. 프론트가 이미 `**bold**`를 렌더링하고 줄바꿈을 보존(`whitespace-pre-wrap`)하므로, 스키마 변경 없이 대화 히스토리 재로드 시에도 그대로 정상 표시됨.
+
+`MIN_SCORE=0.3`은 실사용 데이터를 보며 조정이 필요할 수 있는 휴리스틱 값으로 명시해둠.
+
+---
+
+### Step 27: 퀴즈 개선 — 문제 10개, 노트 5개 제한, 빈칸 유형 제거 ✅
+
+**1) 문제 개수 5개 → 10개, 노트 소스 최대 5개로 분리**
+`backend/app/services/quiz_service.py`: 기존엔 `QUESTION_COUNT`(문제 수)가 노트 샘플링 개수도 겸했는데, `MAX_SOURCE_NOTES = 5`로 분리 — 10문제를 최대 5개 노트에 고르게 분배(`_distribute_question_counts`)하고, 노트 단위 GPT 호출은 그대로 병렬 실행.
+
+**2) 직접 노트 선택 기능에 5개 상한**
+`frontend/src/pages/QuizPage.jsx`: `MAX_SELECTED_FILES = 5`(백엔드 `MAX_SOURCE_NOTES`와 동일). 5개 도달 시 검색 입력이 비활성화되고 "최대 5개까지 선택할 수 있어요" 안내, 선택 목록 옆에 "(n/5)" 카운트 표시.
+
+**3) 빈칸 채우기(`blank`) 유형 완전 제거**
+빈칸 채우기는 자유 텍스트 채점이라 오탈자/사소한 표기 차이로 정답인데도 오답 처리되는 문제가 있었음. 처음엔 (a) 정규화 후 완전 일치, (b) 유사 문자열 매칭(`SequenceMatcher`, 임계값 0.8), (c) LLM 채점, (d) GPT가 정답 변형 목록을 함께 생성 4가지 방식을 검토해 유사 문자열 매칭으로 구현·배포까지 마쳤으나, "성능(정확도) 개선에 시간이 오래 걸릴 것 같고 객관식/OX만으로도 충분하다"는 판단에 따라 최종적으로 **빈칸 유형 자체를 제거**하기로 결정. 관련 코드(`QUIZ_TYPE_INSTRUCTIONS["blank"]`, `_normalize_answer`, `_is_blank_answer_correct`, 프론트 입력창 분기, `typeBlank`/`answerPlaceholder` i18n 키)를 전부 삭제하고 객관식/OX 2종만 남김.
+
+**검증**: 유사 문자열 매칭 방식 검토 당시 실제 단어쌍으로 임계값을 테스트("데이터베이스"/"데이타베이스" 0.83, "recieve"/"receive" 0.86 vs "국가"/"국제" 0.5, "머신러닝"/"딥러닝" 0.57)해 0.8을 기준으로 잡았었음 — 최종적으로는 기능 자체를 제거했으므로 더 이상 사용되지 않지만, 향후 다시 도입할 경우 참고할 수 있도록 기록.
+
+---
+
+### 보완: BlockNote 텍스트 추출 시 HTML 엔티티 깨짐 버그 수정 ✅
+
+**증상**: 노트 본문의 코드블록에 `<int:pk>` 같은 텍스트가 있으면, 퀴즈 문제에 `&lt;int:pk&gt;`로 깨져서 노출됨.
+
+**원인**: `backend/app/utils/blocknote.py`의 `extract_text_from_blocknote()`가 (1) JSON 파싱 실패 시(구버전 TipTap raw HTML) 원본을 태그 제거 없이 그대로 반환하고 있었고, (2) JSON 파싱 성공 시에도 추출한 텍스트에 HTML 엔티티가 섞여 있으면 디코드하지 않고 그대로 넘기고 있었음. 이 함수는 퀴즈 생성뿐 아니라 노트 미리보기(`post_service.py`)와 RAG 인덱싱(`embedding_service.py`)에도 쓰이므로 영향 범위가 넓었음.
+
+**수정**: 구버전 HTML 폴백 경로에는 태그 제거(정규식) + `html.unescape()`를 적용하고, JSON 경로에서 추출하는 모든 인라인 텍스트에도 `html.unescape()`를 적용. `python3`으로 기존 테스트 케이스 + `<int:pk>` 재현 케이스(JSON 코드블록, 구버전 HTML 두 경우) 직접 실행해 정상 동작 확인.
+
+---
+
+### 보완: Docker 프론트엔드 빌드 실패 + 회원가입 실패 버그 수정 ✅
+
+Docker Compose로 실제 배포 테스트를 하는 과정에서 발견된 두 가지 버그.
+
+**1) `docker compose up --build` 시 프론트 빌드가 `npm install`에서 ERESOLVE로 실패**
+Phase 5에서 추가한 `i18next@^26.3.4`가 peerOptional로 `typescript ^5 || ^6`을 요구하는데, `react-scripts 5.0.1`이 물고 오는 `typescript`는 `4.9.5`라 npm 7+ 기본(strict) 피어 해석에서 충돌. 로컬 `npm install`은 이전에 이미 성공해 있던 `node_modules`/락파일이 있어 안 드러났지만, Docker는 매번 클린 설치라 바로 걸림. `frontend/Dockerfile`의 `RUN npm install`을 `RUN npm install --legacy-peer-deps`로 변경해 해결 (타입체크용 피어 요구사항이라 런타임에는 영향 없음). 실제로 동일한 `package.json`/`package-lock.json`으로 ERESOLVE를 재현한 뒤 플래그 추가로 해결됨을 확인.
+
+**2) 회원가입이 계속 실패**
+두 가지 원인이 겹쳐 있었음:
+- **DB 스키마 불일치**: Phase 6 Step 24에서 `User` 모델에 `profile_image` 컬럼을 추가했지만 Alembic 마이그레이션을 만들지 않았음(Step 23에서 이미 위험 요소로 기록해뒀던 부분). `main.py`의 `create_all()`은 신규 테이블만 생성하고 기존 `users` 테이블은 ALTER하지 않으므로, 이미 만들어져 있던 DB에서는 회원가입 INSERT 쿼리가 존재하지 않는 `profile_image` 컬럼을 참조해 500 에러로 실패. `backend/alembic/versions/e7a9c3f21b6d_add_user_profile_image.py` 마이그레이션을 새로 만들어 해결 — DB에 `alembic upgrade head` 적용 필요 (신규/빈 DB라면 `create_all()`이 처음부터 정상 스키마로 만들기 때문에 영향 없음).
+- **비밀번호 검증 에러가 500으로 새는 버그**: `auth_service.create_user()`가 `request.validate_password()`에서 발생하는 `ValueError`를 잡지 않아, 비밀번호 정책(8자 이상 + 특수문자 1개 이상)을 안 지킨 입력값이 400이 아니라 원인을 알 수 없는 500 Internal Server Error로 나갔음. `try/except`로 감싸 `HTTPException(400, ...)`으로 변환하도록 수정.
+
+**검증**: 실제 MySQL 연결 없이 코드 리뷰 + 로직 추적으로 두 원인을 특정. 새 Alembic 마이그레이션은 기존 파일들과 동일한 리비전 체인 형식(`down_revision`)으로 작성해 `alembic upgrade head` 한 번으로 적용 가능하도록 함.
+
+**3) `alembic upgrade head` 실행 시 `Duplicate column name 'category_id'`**
+이 프로젝트 DB는 애초에 Alembic으로 만들어진 적이 없고 `create_all()`이 현재 모델 그대로 한 번에 생성한 것이라 `alembic_version` 테이블이 비어있음. 그 상태로 `alembic upgrade head`를 돌리면 Alembic이 "아직 아무 마이그레이션도 적용 안 됨"으로 오판하고 맨 처음(`init`) 마이그레이션부터 재실행하면서, `create_all()`이 이미 만들어둔 컬럼(`category_id` 등)을 또 추가하려다 충돌함. **해결**: 새 마이그레이션을 추가하기 직전의 head(`81b5a3a47d90`)로 우선 `stamp`(실제 DDL 없이 "여기까지 이미 적용됨"이라고만 기록)한 뒤 `upgrade head`를 돌리면, 새로 추가한 마이그레이션(`e7a9c3f21b6d`, profile_image 컬럼) 하나만 실제로 적용됨. Docker Compose 환경 기준:
+```
+docker compose exec backend alembic stamp 81b5a3a47d90
+docker compose exec backend alembic upgrade head
+```
+이 문제는 `create_all()`과 Alembic을 병행해서 쓰는 이 프로젝트의 구조적 특성상 앞으로 컬럼을 추가할 때마다 반복될 수 있음 — PLAN.md 최상단 "환경 세팅" 안내에 있던 `alembic stamp <현재_최신_revision_id>` 절차가 바로 이 문제에 대한 사전 대비였음.
+
+**참고**: 사용자가 Docker로 이미 띄워본 적 있는 MySQL 볼륨이 남아있다면 `alembic upgrade head`(또는 수동 `ALTER TABLE users ADD COLUMN profile_image VARCHAR(255) NULL;`)를 backend 컨테이너/venv에서 실행해야 실제로 반영됨.
+
+---
+
 ## 현재 API 목록
 
 ### 인증
@@ -392,8 +625,31 @@ React 빌드 결과물과 Django 기본 정적 파일 경로가 둘 다 `/static
 ### 퀴즈
 | Method | URL | 설명 |
 |---|---|---|
-| POST | /api/quizzes/generate | 카테고리(+하위) 노트 기반 5문제 생성. Body: `{category_id?, quiz_type}` (quiz_type: multiple_choice/ox/blank) |
+| POST | /api/quizzes/generate | 카테고리(+하위)/직접 선택 노트 기반 10문제 생성(최대 5개 노트에 분배). Body: `{category_id?, quiz_type, post_ids?}` (quiz_type: multiple_choice/ox) |
 | POST | /api/quizzes/{id}/attempt | 답안 제출 및 채점. Body: `{user_answer}` → Response: `{is_correct, correct_answer, explanation}` |
+
+### 할 일 (Todo)
+| Method | URL | 설명 |
+|---|---|---|
+| GET | /api/todos | 본인 할 일 목록 전체 조회 |
+| POST | /api/todos | 생성. Body: `{title, due_date?, priority, start_time?, memo?}` |
+| PUT | /api/todos/{id} | 수정 (제목/날짜/우선순위/시간/메모) |
+| PUT | /api/todos/reorder | 드래그 정렬 순서 일괄 저장. Body: `{ordered_ids}` |
+| PATCH | /api/todos/{id}/toggle | 완료/미완료 토글 |
+| DELETE | /api/todos/{id} | 삭제 |
+
+### 업로드
+| Method | URL | 설명 |
+|---|---|---|
+| POST | /api/uploads/image | 이미지 업로드(jpg/png/gif/webp, 최대 10MB) → `{url}`. 노트 삽입 이미지와 프로필 사진 업로드 공용 |
+
+### 계정 관리
+| Method | URL | 설명 |
+|---|---|---|
+| GET | /api/users/me | 내 프로필 조회 (profile_image 포함) |
+| PATCH | /api/users/me | 닉네임/이메일/프로필사진 수정. Body: `{nickname?, email?, profile_image?}` |
+| POST | /api/users/me/password | 비밀번호 변경. Body: `{current_password, new_password}` |
+| DELETE | /api/users/me | 회원 탈퇴 (연관 데이터 전부 cascade 삭제) |
 
 ---
 
@@ -410,7 +666,8 @@ React 빌드 결과물과 Django 기본 정적 파일 경로가 둘 다 `/static
 ### Frontend
 - React + React Router v7
 - BlockNote (노션 스타일 에디터)
-- Tailwind CSS + Axios
+- Tailwind CSS (dark class 전략) + Axios
+- react-i18next (한국어/영어 다국어 지원)
 
 ---
 
@@ -440,6 +697,6 @@ React 빌드 결과물과 Django 기본 정적 파일 경로가 둘 다 `/static
 - 스트리밍 응답 (SSE) — ChatGPT 스타일 UX
 - RAGAS로 RAG 성능 평가
 - Re-ranking — 검색 결과 재정렬
-- 퀴즈 "혼합" 유형 — GPT가 노트 내용에 따라 문제 유형을 자동 결정 (현재는 3종 중 수동 선택만 지원)
+- 퀴즈 "혼합" 유형 — GPT가 노트 내용에 따라 문제 유형을 자동 결정 (현재는 객관식/OX 2종 중 수동 선택만 지원)
 - SM-2 알고리즘 — `quiz_attempts` 기록 기반 복습 스케줄링 (`next_review_at` 컬럼 추가 필요)
 - 퀴즈 출처 추적 고도화 — 현재는 GPT 자기 보고 방식(best-effort). 노트를 청크 단위로 임베딩해 관련도 기반으로 출처를 추정하면 정확도 향상 가능

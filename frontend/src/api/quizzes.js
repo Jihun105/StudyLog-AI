@@ -7,11 +7,12 @@ const authHeader = (token) => ({
 });
 
 // 퀴즈 생성 (categoryId: null=전체, 0=미분류, 그 외=해당 카테고리+하위 전체)
-// quizType: "multiple_choice" | "ox" | "blank"
-export const generateQuiz = async (categoryId, quizType, token) => {
+// quizType: "multiple_choice" | "ox"
+// postIds: 지정하면 categoryId 대신 해당 글들로만 퀴즈 생성
+export const generateQuiz = async (categoryId, quizType, token, postIds = null) => {
   const response = await axios.post(
     `${BASE_URL}/api/quizzes/generate`,
-    { category_id: categoryId, quiz_type: quizType },
+    { category_id: categoryId, quiz_type: quizType, post_ids: postIds },
     authHeader(token)
   );
   return response.data.quizzes;

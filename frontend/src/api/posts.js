@@ -12,9 +12,9 @@ const authHeader = (token) => ({
 
 // 게시글 목록 조회
 // page와 limit으로 페이지네이션을 지원
-export const getPosts = async (page = 1, limit = 10, keyword = null, tags = null, token = null, categoryId = null) => {
+export const getPosts = async (page = 1, limit = 10, keyword = null, tags = null, token = null, categoryId = null, includeSubcategories = false) => {
   const response = await axios.get(`${BASE_URL}/api/posts`, {
-    params: { page, limit, keyword, tags, category_id: categoryId },
+    params: { page, limit, keyword, tags, category_id: categoryId, include_subcategories: includeSubcategories },
     headers: token ? { Authorization: `Bearer ${token}` } : {},
     paramsSerializer: (params) => {
       const searchParams = new URLSearchParams();
@@ -71,9 +71,9 @@ export const deletePost = async (postId, token) => {
     return response.data;
 }
 
-export const getAllTags = async (token, categoryId = null) => {
+export const getAllTags = async (token, categoryId = null, includeSubcategories = false) => {
   const response = await axios.get(`${BASE_URL}/api/posts/tags/all`, {
-    params: { category_id: categoryId },
+    params: { category_id: categoryId, include_subcategories: includeSubcategories },
     headers: token ? { Authorization: `Bearer ${token}` } : {},
   });
   return response.data;

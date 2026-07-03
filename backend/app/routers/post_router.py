@@ -17,18 +17,20 @@ async def read_posts(
     keyword: Optional[str] = None,
     tags: Optional[List[str]] = Query(None),
     category_id: Optional[int] = None,
+    include_subcategories: bool = False,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user)  
+    current_user: User = Depends(get_current_user)
 ):
-    return await get_posts(page, limit, db, keyword, tags, current_user.id, category_id)
+    return await get_posts(page, limit, db, keyword, tags, current_user.id, category_id, include_subcategories)
 
 @router.get("/tags/all")
 async def read_all_tags(
     category_id: Optional[int] = None,
+    include_subcategories: bool = False,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)  # 인증 추가
 ):
-    return await get_all_tags(db, current_user.id, category_id)
+    return await get_all_tags(db, current_user.id, category_id, include_subcategories)
 
 @router.get("/{post_id}")
 async def read_post(post_id: int, db: AsyncSession = Depends(get_db)):

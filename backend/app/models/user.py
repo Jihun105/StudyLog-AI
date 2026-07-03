@@ -10,6 +10,7 @@ class User(Base):
     email = Column(String(255), unique=True, nullable=False)
     password_hash = Column(String(255), nullable=False)
     nickname = Column(String(50), unique=True, nullable=False)
+    profile_image = Column(String(255), nullable=True)
     created_at = Column(DateTime, server_default=func.now())
 # server_default : 데이터베이스(DB) 레벨에서 해당 컬럼의 기본값(DEFAULT)을 지정하는 설정
 
