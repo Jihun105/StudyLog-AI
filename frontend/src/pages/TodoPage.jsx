@@ -8,7 +8,7 @@ import ResizableRightPanel from "../components/ResizableRightPanel";
 import TimePicker from "../components/TimePicker";
 import {
   ListTodo, Plus, Trash2, GripVertical, Pencil, CheckCircle2, Circle, Calendar, X, Check,
-  List, ChevronLeft, ChevronRight, ChevronDown, CalendarDays, ListChecks, Flag,
+  List, ChevronLeft, ChevronRight, ChevronDown, CalendarDays, Flag, Clock,
 } from "lucide-react";
 
 const PRIORITIES = [
@@ -155,6 +155,30 @@ function formatDueDateShort(dateStr) {
   return `${parts[1]}-${parts[2]}`;
 }
 
+// "YYYY-MM-DD"에 며칠을 더하거나 뺌 (타임테이블 날짜 이동에 사용)
+function addDaysToDateStr(dateStr, delta) {
+  const d = parseLocalDate(dateStr);
+  d.setDate(d.getDate() + delta);
+  return formatDateStr(d.getFullYear(), d.getMonth(), d.getDate());
+}
+
+// 타임테이블에 표시할 시간대 - 오전 5시부터 다음날 새벽 2시까지(밤 늦게까지 활동하는
+// 사람도 고려). 0시/1시는 실제로는 다음 날이지만, "그 날의 늦은 밤"으로 보고 같은
+// 날짜(due_date) 안에서 맨 아래에 이어서 보여줌
+const TIMETABLE_HOURS = [5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 0, 1];
+
+function formatTimetableHourLabel(hour, lang) {
+  if (lang === "ko") {
+    if (hour === 0) return "오전 12시";
+    if (hour < 12) return `오전 ${hour}시`;
+    if (hour === 12) return "오후 12시";
+    return `오후 ${hour - 12}시`;
+  }
+  const period = hour < 12 ? "AM" : "PM";
+  const hour12 = hour % 12 === 0 ? 12 : hour % 12;
+  return `${hour12} ${period}`;
+}
+
 function todayDateString() {
   const now = new Date();
   return formatDateStr(now.getFullYear(), now.getMonth(), now.getDate());
@@ -187,12 +211,14 @@ function buildCalendarCells(year, month) {
 function TodoRow({
   todo, editing, editTitle, editDueDate, editPriority,
   setEditTitle, setEditDueDate, setEditPriority,
-  onToggle, onDelete, onStartEdit, onCancelEdit, onSaveEdit, onSaveDetails,
+  onToggle, onDelete, onStartEdit, onCancelEdit, onSaveEdit, onSaveDetails, onPostpone,
   draggable, onDragStart, onDragOver, onDrop, overdue, t, compact = false, hideDate = false,
 }) {
   const meta = priorityMeta(todo.priority);
   const [detailOpen, setDetailOpen] = useState(false);
+  const [postponeOpen, setPostponeOpen] = useState(false);
   const [draftStartTime, setDraftStartTime] = useState(todo.start_time || "");
+  const [draftEndTime, setDraftEndTime] = useState(todo.end_time || "");
   const [draftMemo, setDraftMemo] = useState(todo.memo || "");
   // 저장 버튼을 잠깐 초록색으로 바꿔서 "저장 완료"임을 눈에 띄게 보여줌
   const [justSaved, setJustSaved] = useState(false);
@@ -205,6 +231,7 @@ function TodoRow({
     if (!detailOpen) {
       // 펼칠 때는 현재 저장된 값으로 다시 맞춰서 편집 시작
       setDraftStartTime(todo.start_time || "");
+      setDraftEndTime(todo.end_time || "");
       setDraftMemo(todo.memo || "");
     }
     setDetailOpen((prev) => !prev);
@@ -215,13 +242,19 @@ function TodoRow({
     setDraftStartTime(value);
   };
 
+  const handleDraftEndTimeChange = (value) => {
+    setJustSaved(false);
+    setDraftEndTime(value);
+  };
+
   const handleDraftMemoChange = (e) => {
     setJustSaved(false);
     setDraftMemo(e.target.value);
   };
 
   const handleSaveDetail = async () => {
-    const success = await onSaveDetails(draftStartTime || null, draftMemo.trim() || null);
+    // 종료 시간을 안 넣었으면 null로 보내고, 백엔드가 시작 시간+1시간으로 채워줌
+    const success = await onSaveDetails(draftStartTime || null, draftEndTime || null, draftMemo.trim() || null);
     if (success) {
       setJustSaved(true);
       if (savedTimeoutRef.current) clearTimeout(savedTimeoutRef.current);
@@ -328,6 +361,8 @@ function TodoRow({
         <div className="px-4 pb-3 pt-0 flex flex-col gap-2 border-t border-gray-50 dark:border-gray-700/60 mt-0.5">
           <div className="flex items-center gap-2 pt-3">
             <TimePicker value={draftStartTime} onChange={handleDraftStartTimeChange} />
+            <span className="text-xs text-gray-400 dark:text-gray-500">~</span>
+            <TimePicker value={draftEndTime} onChange={handleDraftEndTimeChange} placeholder={t("todo.endTimeOptional")} />
           </div>
           <textarea
             value={draftMemo}
@@ -336,14 +371,44 @@ function TodoRow({
             placeholder={t("todo.memoPlaceholder")}
             className="w-full text-sm border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 dark:text-gray-100 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
           />
-          <button
-            onClick={handleSaveDetail}
-            className={`self-end flex items-center gap-1 text-xs text-white font-medium px-3 py-1.5 rounded-lg transition-colors ${
-              justSaved ? "bg-green-600 hover:bg-green-600" : "bg-blue-600 hover:bg-blue-700"
-            }`}
-          >
-            <Check size={12} /> {justSaved ? t("common.saved") : t("common.save")}
-          </button>
+          <div className="flex items-center justify-between gap-2">
+            {postponeOpen ? (
+              <div className="flex items-center gap-1">
+                <input
+                  type="date"
+                  autoFocus
+                  onChange={(e) => {
+                    if (e.target.value) onPostpone(e.target.value);
+                    setPostponeOpen(false);
+                  }}
+                  className="text-xs border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 dark:text-gray-100 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <button
+                  type="button"
+                  onClick={() => setPostponeOpen(false)}
+                  className="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 p-1"
+                >
+                  <X size={12} />
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setPostponeOpen(true)}
+                className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-gray-600 rounded-lg px-2.5 py-1.5 hover:border-gray-300 dark:hover:border-gray-500 transition-colors"
+              >
+                <Calendar size={12} /> {t("todo.postpone")}
+              </button>
+            )}
+            <button
+              onClick={handleSaveDetail}
+              className={`flex items-center gap-1 text-xs text-white font-medium px-3 py-1.5 rounded-lg transition-colors ${
+                justSaved ? "bg-green-600 hover:bg-green-600" : "bg-blue-600 hover:bg-blue-700"
+              }`}
+            >
+              <Check size={12} /> {justSaved ? t("common.saved") : t("common.save")}
+            </button>
+          </div>
         </div>
       )}
     </div>
@@ -366,8 +431,15 @@ function TodoPage() {
   const [newDueDate, setNewDueDate] = useState(() => todayDateString());
   const [newPriority, setNewPriority] = useState("medium");
   const [newStartTime, setNewStartTime] = useState("");
+  const [newEndTime, setNewEndTime] = useState("");
   const [newMemo, setNewMemo] = useState("");
   const [adding, setAdding] = useState(false);
+  // 시작/종료 시간·메모 입력란을 상시 노출하지 않고, "+추가" 버튼 옆 토글로 펼쳤을 때만 보여줌
+  const [newDetailOpen, setNewDetailOpen] = useState(false);
+
+  // 목록 보기 우측 패널 - 미완료 목록 대신 타임테이블(시작 시간이 있는 할 일만).
+  // 날짜를 골라가며 볼 수 있음(캘린더 보기의 selectedDate와는 별개).
+  const [timetableDate, setTimetableDate] = useState(() => todayDateString());
 
   // 인라인 수정 (목록 보기 / 달력 패널 공용)
   const [editingId, setEditingId] = useState(null);
@@ -419,16 +491,17 @@ function TodoPage() {
     setAdding(true);
     setError("");
     try {
-      // 시작 시간/메모는 선택 입력 - 비어 있어도 그냥 null로 생성됨
+      // 시작/종료 시간·메모는 선택 입력 - 종료 시간을 안 넣으면 백엔드가 시작 시간+1시간으로 채움
       const created = await createTodo(
         newTitle.trim(), newDueDate || null, newPriority, token,
-        newStartTime || null, newMemo.trim() || null
+        newStartTime || null, newMemo.trim() || null, newEndTime || null
       );
       setTodos((prev) => [...prev, created]);
       setNewTitle("");
       setNewDueDate(todayDateString());
       setNewPriority("medium");
       setNewStartTime("");
+      setNewEndTime("");
       setNewMemo("");
     } catch (err) {
       setError(t("todo.saveFailed"));
@@ -487,10 +560,10 @@ function TodoPage() {
     if (!editTitle.trim()) return;
     const current = todos.find((td) => td.id === todoId);
     try {
-      // 제목/마감일/우선순위만 수정 - 이미 있는 시작시간/메모는 그대로 유지
+      // 제목/마감일/우선순위만 수정 - 이미 있는 시작·종료시간/메모는 그대로 유지
       const updated = await updateTodo(
         todoId, editTitle.trim(), editDueDate || null, editPriority,
-        current?.start_time ?? null, current?.memo ?? null, token
+        current?.start_time ?? null, current?.end_time ?? null, current?.memo ?? null, token
       );
       setTodos((prev) => prev.map((td) => (td.id === todoId ? updated : td)));
       setEditingId(null);
@@ -499,21 +572,35 @@ function TodoPage() {
     }
   };
 
-  // 세부 내용(시작 시간/메모)만 저장 - 제목/마감일/우선순위는 그대로 유지
+  // 세부 내용(시작·종료 시간/메모)만 저장 - 제목/마감일/우선순위는 그대로 유지
   // 성공/실패 여부를 반환해서, 호출한 쪽(TodoRow)이 저장 버튼을 초록색으로 바꿔
   // "저장 완료"를 보여줄지 판단할 수 있게 함
-  const saveDetails = async (todoId, startTime, memo) => {
+  const saveDetails = async (todoId, startTime, endTime, memo) => {
     const current = todos.find((td) => td.id === todoId);
     if (!current) return false;
     try {
       const updated = await updateTodo(
-        todoId, current.title, current.due_date, current.priority, startTime, memo, token
+        todoId, current.title, current.due_date, current.priority, startTime, endTime, memo, token
       );
       setTodos((prev) => prev.map((td) => (td.id === todoId ? updated : td)));
       return true;
     } catch (err) {
       setError(t("todo.saveFailed"));
       return false;
+    }
+  };
+
+  // 할 일 미루기: 마감일만 선택한 날짜로 변경하고 나머지 필드는 그대로 유지
+  const postponeTodo = async (todoId, newDueDate) => {
+    const current = todos.find((td) => td.id === todoId);
+    if (!current) return;
+    try {
+      const updated = await updateTodo(
+        todoId, current.title, newDueDate, current.priority, current.start_time, current.end_time, current.memo, token
+      );
+      setTodos((prev) => prev.map((td) => (td.id === todoId ? updated : td)));
+    } catch (err) {
+      setError(t("todo.saveFailed"));
     }
   };
 
@@ -554,11 +641,6 @@ function TodoPage() {
   const activeTodos = todayTodos.filter((td) => !td.is_done);
   const doneTodos = todayTodos.filter((td) => td.is_done);
 
-  // 오른쪽 패널: 오늘 것을 제외한 미완료 항목 전체 (지난 항목 + 예정 항목), 마감일 오름차순
-  const pendingTodos = todos
-    .filter((td) => !td.is_done && td.due_date !== todayStr)
-    .sort((a, b) => (a.due_date || "").localeCompare(b.due_date || ""));
-
   const rowProps = (todo, draggable, compact = false, hideDate = false) => ({
     todo,
     editing: editingId === todo.id,
@@ -569,7 +651,8 @@ function TodoPage() {
     onStartEdit: () => startEdit(todo),
     onCancelEdit: cancelEdit,
     onSaveEdit: () => saveEdit(todo.id),
-    onSaveDetails: (startTime, memo) => saveDetails(todo.id, startTime, memo),
+    onSaveDetails: (startTime, endTime, memo) => saveDetails(todo.id, startTime, endTime, memo),
+    onPostpone: (newDueDate) => postponeTodo(todo.id, newDueDate),
     draggable,
     onDragStart: draggable ? () => handleDragStart(todo.id) : undefined,
     onDragOver: draggable ? handleDragOver : undefined,
@@ -589,6 +672,27 @@ function TodoPage() {
     });
     return map;
   }, [todos]);
+
+  // 목록 보기 우측 타임테이블 - 시작 시간이 있는 할 일만 대상으로, 고른 날짜(timetableDate)의
+  // 항목을 시간(hour)별로 묶어서 보여줌. 0시/1시는 그 날짜의 "늦은 밤"으로 취급해 맨 아래에 이어 붙임
+  const timetableTodos = (todosByDate[timetableDate] || []).filter((td) => td.start_time);
+  const timetableItemsByHour = useMemo(() => {
+    const map = {};
+    timetableTodos.forEach((td) => {
+      const hour = Number(td.start_time.split(":")[0]);
+      (map[hour] ||= []).push(td);
+    });
+    Object.values(map).forEach((list) => list.sort((a, b) => a.start_time.localeCompare(b.start_time)));
+    return map;
+  }, [timetableTodos]);
+  const goToPrevTimetableDay = () => setTimetableDate((prev) => addDaysToDateStr(prev, -1));
+  const goToNextTimetableDay = () => setTimetableDate((prev) => addDaysToDateStr(prev, 1));
+  const goToTodayTimetable = () => setTimetableDate(todayDateString());
+  const timetableDateLabel = new Intl.DateTimeFormat(i18n.language === "ko" ? "ko-KR" : "en-US", {
+    month: "long",
+    day: "numeric",
+    weekday: "short",
+  }).format(parseLocalDate(timetableDate));
 
   const calendarCells = useMemo(
     () => buildCalendarCells(calendarMonth.getFullYear(), calendarMonth.getMonth()),
@@ -673,7 +777,7 @@ function TodoPage() {
 
           {viewMode === "list" ? (
             <>
-              {/* 추가 폼 - 시작 시간/메모는 안 채워도 생성 가능한 선택 입력이라 아래 줄에 상시 노출 */}
+              {/* 추가 폼 - 시작/종료 시간·메모는 "세부사항" 토글을 눌러야만 보이는 선택 입력 */}
               <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-5 mb-6 flex flex-col gap-2">
                 <div className="flex items-center gap-2 flex-wrap">
                   <input
@@ -692,6 +796,18 @@ function TodoPage() {
                   />
                   <PriorityDropdown value={newPriority} onChange={setNewPriority} />
                   <button
+                    onClick={() => setNewDetailOpen((prev) => !prev)}
+                    title={t("todo.detailToggle")}
+                    className={`flex items-center gap-1 text-xs shrink-0 px-2 py-2 rounded-lg border transition-colors ${
+                      newDetailOpen
+                        ? "border-blue-200 dark:border-blue-500/40 text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-500/10"
+                        : "border-gray-200 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-500"
+                    }`}
+                  >
+                    {t("todo.detailLabel")}
+                    <ChevronDown size={13} className={`transition-transform ${newDetailOpen ? "rotate-180" : ""}`} />
+                  </button>
+                  <button
                     onClick={handleAdd}
                     disabled={adding || !newTitle.trim()}
                     className="flex items-center gap-1.5 bg-blue-600 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
@@ -699,17 +815,25 @@ function TodoPage() {
                     <Plus size={14} /> {t("todo.add")}
                   </button>
                 </div>
-                <div className="flex items-center gap-2 flex-wrap">
-                  <TimePicker value={newStartTime} onChange={setNewStartTime} placeholder={t("todo.startTimeOptional")} />
-                  <input
-                    type="text"
-                    value={newMemo}
-                    onChange={(e) => setNewMemo(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && handleAdd()}
-                    placeholder={t("todo.memoPlaceholder")}
-                    className="flex-1 min-w-[200px] border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 dark:text-gray-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
+                {newDetailOpen && (
+                  <>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <TimePicker value={newStartTime} onChange={setNewStartTime} placeholder={t("todo.startTimeOptional")} />
+                      <span className="text-xs text-gray-400 dark:text-gray-500">~</span>
+                      <TimePicker value={newEndTime} onChange={setNewEndTime} placeholder={t("todo.endTimeOptional")} />
+                    </div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <input
+                        type="text"
+                        value={newMemo}
+                        onChange={(e) => setNewMemo(e.target.value)}
+                        onKeyDown={(e) => e.key === "Enter" && handleAdd()}
+                        placeholder={t("todo.memoPlaceholder")}
+                        className="flex-1 min-w-[200px] border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 dark:text-gray-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                  </>
+                )}
               </div>
 
               {/* 필터 */}
@@ -845,30 +969,80 @@ function TodoPage() {
 
       {viewMode === "list" && (
         <ResizableRightPanel
-          className="p-5 flex flex-col gap-3 sticky top-0 h-screen"
-          defaultWidth={320}
-          minWidth={260}
+          className="p-5 flex flex-col gap-2 sticky top-0 h-screen"
+          defaultWidth={340}
+          minWidth={280}
           maxWidth={480}
           minLeftWidth={520}
           collapsible
-          storageKey="todoListPanelCollapsed"
+          storageKey="todoTimetablePanelCollapsed"
         >
-          <div className="flex items-center gap-2 text-sm font-semibold text-gray-800 dark:text-gray-100 mb-1 shrink-0">
-            <ListChecks size={15} className="text-blue-600 dark:text-blue-400" />
-            {t("todo.pendingTitle")}
-            <span className="ml-auto text-xs font-normal text-gray-400 dark:text-gray-500 bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded-full">
-              {pendingTodos.length}
-            </span>
+          {/* 시작 시간을 넣은 할 일만 여기(타임테이블)에 뜨고, 안 넣은 할 일은 위 본문
+              목록에 그대로 나옴. 날짜는 화살표로 골라가며 볼 수 있음(캘린더 보기와 별개) */}
+          <div className="flex items-center justify-between mb-1 shrink-0">
+            <button
+              onClick={goToPrevTimetableDay}
+              className="text-gray-400 dark:text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700/60"
+            >
+              <ChevronLeft size={16} />
+            </button>
+            <button
+              onClick={goToTodayTimetable}
+              title={t("todo.today")}
+              className="flex items-center gap-1.5 text-sm font-semibold text-gray-800 dark:text-gray-100 hover:text-blue-600 dark:hover:text-blue-400"
+            >
+              <Clock size={14} className="text-blue-600 dark:text-blue-400 shrink-0" />
+              {timetableDateLabel}
+            </button>
+            <button
+              onClick={goToNextTimetableDay}
+              className="text-gray-400 dark:text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700/60"
+            >
+              <ChevronRight size={16} />
+            </button>
           </div>
 
-          <div className="flex flex-col gap-2 overflow-y-auto flex-1">
-            {pendingTodos.length === 0 ? (
-              <div className="text-sm text-gray-400 dark:text-gray-500 py-6 text-center">{t("todo.pendingEmpty")}</div>
-            ) : (
-              pendingTodos.map((todo) => (
-                <TodoRow key={todo.id} {...rowProps(todo, false, true)} />
-              ))
+          <div className="flex-1 overflow-y-auto border-t border-gray-100 dark:border-gray-700">
+            {timetableTodos.length === 0 && (
+              <div className="text-sm text-gray-400 dark:text-gray-500 py-6 text-center">{t("todo.timetableEmpty")}</div>
             )}
+            {TIMETABLE_HOURS.map((hour) => {
+              const items = timetableItemsByHour[hour] || [];
+              return (
+                <div key={hour} className="flex items-start gap-2 border-b border-gray-50 dark:border-gray-700/40 py-1.5 min-h-[40px]">
+                  <span className="text-[11px] text-gray-400 dark:text-gray-500 w-14 shrink-0 pt-0.5">
+                    {formatTimetableHourLabel(hour, i18n.language)}
+                  </span>
+                  <div className="flex-1 min-w-0 flex flex-col gap-1">
+                    {items.map((todo) => {
+                      const meta = priorityMeta(todo.priority);
+                      return (
+                        <button
+                          key={todo.id}
+                          onClick={() => handleToggle(todo.id)}
+                          title={todo.memo || undefined}
+                          className={`flex items-center gap-1.5 text-left text-xs rounded-lg px-2 py-1.5 border border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-blue-200 dark:hover:border-blue-500/40 transition-colors ${
+                            todo.is_done ? "opacity-50" : ""
+                          }`}
+                        >
+                          <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${meta.dot}`} />
+                          <span className="text-gray-400 dark:text-gray-500 shrink-0">
+                            {todo.start_time}{todo.end_time ? `–${todo.end_time}` : ""}
+                          </span>
+                          <span
+                            className={`truncate ${
+                              todo.is_done ? "line-through text-gray-400 dark:text-gray-500" : "text-gray-800 dark:text-gray-100"
+                            }`}
+                          >
+                            {todo.title}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </ResizableRightPanel>
       )}

@@ -193,6 +193,10 @@ function HomePage() {
   const subCategories =
     selectedCategoryId === -1 ? categories : (selectedCategoryNode?.children || []);
 
+  // 특정 폴더를 보고 있을 땐 "최근 노트"라는 일반 문구 대신 그 폴더 이름을 보여줌
+  // (전체보기일 땐 특정 폴더가 없으니 그대로 "최근 노트" 유지)
+  const notesSectionTitle = selectedCategoryNode?.name || t("notes.recentNotes");
+
   return (
   <SidebarLayout
     selectedCategoryId={selectedCategoryId}
@@ -263,17 +267,17 @@ function HomePage() {
         )}
 
         {subCategories.length > 0 && (
-          <div className="mb-8">
-            <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100 mb-4">{t("notes.subfolders")}</h2>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          <div className="mb-6">
+            <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100 mb-3">{t("notes.subfolders")}</h2>
+            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
               {subCategories.map((child) => (
                 <button
                   key={child.id}
                   onClick={() => handleSelectCategory(child.id)}
-                  className="flex items-center gap-2 bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-4 text-left hover:border-blue-200 dark:hover:border-blue-500/40 hover:shadow-sm transition-all"
+                  className="flex flex-col items-center gap-1 bg-white dark:bg-gray-800 rounded-lg border border-gray-100 dark:border-gray-700 p-2.5 text-center hover:border-blue-200 dark:hover:border-blue-500/40 hover:shadow-sm transition-all"
                 >
-                  <Folder size={16} className="text-blue-500 dark:text-blue-400 shrink-0" />
-                  <span className="text-sm font-medium text-gray-700 dark:text-gray-200 truncate">{child.name}</span>
+                  <Folder size={18} className="text-blue-500 dark:text-blue-400 shrink-0" />
+                  <span className="text-xs font-medium text-gray-700 dark:text-gray-200 truncate w-full">{child.name}</span>
                 </button>
               ))}
             </div>
@@ -281,7 +285,7 @@ function HomePage() {
         )}
 
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100">{t("notes.recentNotes")}</h2>
+          <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100">{notesSectionTitle}</h2>
           <button className="text-sm text-blue-600 dark:text-blue-400 hover:underline">{t("notes.viewAll")} →</button>
         </div>
 
@@ -309,7 +313,7 @@ function HomePage() {
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
             {posts.map((post) => (
               <div
                 key={post.id}
@@ -321,7 +325,7 @@ function HomePage() {
                   setDraggingPostId(post.id);
                 }}
                 onDragEnd={() => setDraggingPostId(null)}
-                className={`relative bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-5 cursor-pointer hover:shadow-md hover:border-blue-100 dark:hover:border-blue-500/40 transition-all ${
+                className={`relative bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-4 cursor-pointer hover:shadow-md hover:border-blue-100 dark:hover:border-blue-500/40 transition-all ${
                   draggingPostId === post.id ? "opacity-40" : ""
                 }`}
               >
@@ -360,21 +364,28 @@ function HomePage() {
                   <FileText size={12} />
                   <span>{post.category_id ? (findCategoryName(categories, post.category_id) || t("notes.categoryPrefix")) : t("notes.uncategorized")}</span>
                 </div>
-                <h3 className="text-base font-semibold text-gray-800 dark:text-gray-100 mb-2 line-clamp-2">
+                <h3 className="text-base font-semibold text-gray-800 dark:text-gray-100 mb-1.5 line-clamp-2">
                   {post.title}
                 </h3>
-                <p className="text-gray-400 dark:text-gray-500 text-sm mb-4 line-clamp-2">
+                <p className="text-gray-400 dark:text-gray-500 text-sm mb-3 line-clamp-2">
                   {post.preview}
                 </p>
-                <div className="flex flex-wrap gap-2">
-                  {post.tags.map((tag) => (
+                {/* 태그가 많아도 카드 높이가 늘어나지 않도록 한 줄만 보여주고, 다 못 보여준
+                    나머지는 "..."으로 더 있다는 것만 표시 (줄바꿈 없이 딱 3개까지만).
+                    태그가 아예 없는 노트는 이 영역이 통째로 비어서 높이가 0이 되어버리니,
+                    태그 유무와 상관없이 모든 카드 높이가 같도록 min-h로 자리를 항상 확보해둠 */}
+                <div className="flex items-center gap-2 overflow-hidden min-h-[26px]">
+                  {post.tags.slice(0, 3).map((tag) => (
                     <span
                       key={tag}
-                      className="text-xs bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 px-2 py-1 rounded-full"
+                      className="shrink-0 text-xs bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 px-2 py-1 rounded-full"
                     >
                       # {tag}
                     </span>
                   ))}
+                  {post.tags.length > 3 && (
+                    <span className="shrink-0 text-xs text-gray-400 dark:text-gray-500">...</span>
+                  )}
                 </div>
               </div>
             ))}

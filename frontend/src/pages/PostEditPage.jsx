@@ -5,8 +5,9 @@ import { getPost, updatePost } from "../api/posts";
 import { getCategories } from "../api/categories";
 import { useAuth } from "../context/AuthContext";
 import RichTextEditor from "../components/RichTextEditor";
-import { Lightbulb, FileText, ChevronRight } from "lucide-react";
-import ResizableRightPanel from "../components/ResizableRightPanel";
+import TagInput from "../components/TagInput";
+import { ChevronRight } from "lucide-react";
+import SidebarLayout, { SidebarSpacer } from "../components/SidebarLayout";
 
 function flattenCategories(categories, depth = 0) {
   const result = [];
@@ -24,7 +25,7 @@ function PostEditPage() {
   const { id } = useParams();
   const [title, setTitle] = useState("");
   const [content, setContent] = useState(null); // null = 로드 전
-  const [tagInput, setTagInput] = useState("");
+  const [tags, setTags] = useState([]);
   const [categoryId, setCategoryId] = useState(null);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -41,7 +42,7 @@ function PostEditPage() {
         ]);
         setTitle(postData.title);
         setContent(postData.content);
-        setTagInput(postData.tags.join(", "));
+        setTags(postData.tags);
         setCategoryId(postData.category_id != null ? Number(postData.category_id) : null);
         setCategories(flattenCategories(categoryData));
       } catch (error) {
@@ -51,12 +52,16 @@ function PostEditPage() {
     fetchData();
   }, [id]);
 
+  // 사이드바에서 카테고리를 누르면 노트 목록 페이지로 이동 (다른 페이지들과 동일한 동작)
+  const handleSelectCategory = (catId) => {
+    navigate(catId === null ? "/notes" : `/notes?category=${catId}`);
+  };
+
   const handleUpdate = async () => {
     if (!title || !content) {
       setErrorMessage(t("postEdit.requiredFields"));
       return;
     }
-    const tags = tagInput.split(",").map((tag) => tag.trim()).filter((tag) => tag);
     setLoading(true);
     setErrorMessage("");
     try {
@@ -70,12 +75,13 @@ function PostEditPage() {
   };
 
   return (
-    <div className="flex h-full w-full">
+    <SidebarLayout selectedCategoryId={categoryId} onSelectCategory={handleSelectCategory}>
       {/* 메인 작성 영역 */}
       <div className="flex-1 overflow-y-auto bg-gray-50 dark:bg-gray-900">
         {/* 상단 헤더 */}
         <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 px-8 py-4 flex items-center justify-between z-10">
           <div className="flex items-center gap-1.5 text-sm text-gray-400 dark:text-gray-500">
+            <SidebarSpacer />
             <button onClick={() => navigate("/notes")} className="hover:text-blue-600 dark:hover:text-blue-400">{t("postEdit.allNotes")}</button>
             <ChevronRight size={14} className="text-gray-300 dark:text-gray-600" />
             <button onClick={() => navigate(`/posts/${id}`)} className="hover:text-blue-600 dark:hover:text-blue-400 truncate max-w-32">
@@ -141,38 +147,11 @@ function PostEditPage() {
           )}
 
           <div className="mt-6">
-            <input
-              type="text"
-              value={tagInput}
-              onChange={(e) => setTagInput(e.target.value)}
-              placeholder={`🏷 ${t("postEdit.tagsPlaceholder")}`}
-              className="w-full text-sm text-gray-500 dark:text-gray-300 border border-gray-200 dark:border-gray-600 dark:bg-gray-800 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
+            <TagInput tags={tags} onChange={setTags} placeholder={`🏷 ${t("postEdit.tagsPlaceholder")}`} />
           </div>
         </div>
       </div>
-
-      {/* 우측 AI 패널 */}
-      <ResizableRightPanel className="p-5 flex flex-col gap-4">
-        <div className="border border-gray-100 dark:border-gray-700 rounded-xl p-4">
-          <div className="flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
-            <Lightbulb size={15} className="text-yellow-500" /> {t("postEdit.aiContextTitle")}
-          </div>
-          <p className="text-xs text-gray-400 dark:text-gray-500 italic">
-            {t("postEdit.aiContextPlaceholder")}
-          </p>
-        </div>
-
-        <div className="border border-gray-100 dark:border-gray-700 rounded-xl p-4">
-          <div className="flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
-            <FileText size={15} className="text-blue-500 dark:text-blue-400" /> {t("postEdit.relatedNotesTitle")}
-          </div>
-          <p className="text-xs text-gray-400 dark:text-gray-500 italic">
-            {t("postEdit.relatedNotesPlaceholder")}
-          </p>
-        </div>
-      </ResizableRightPanel>
-    </div>
+    </SidebarLayout>
   );
 }
 

@@ -13,6 +13,7 @@ import PostEditPage from "./pages/PostEditPage";
 import QuizPage from "./pages/QuizPage";
 import DocumentsPage from "./pages/DocumentsPage";
 import TodoPage from "./pages/TodoPage";
+import AllFoldersPage from "./pages/AllFoldersPage";
 import SettingsPage from "./pages/SettingsPage";
 import Sidebar from "./components/Sidebar";
 import SessionExpiredBanner from "./components/SessionExpiredBanner";
@@ -55,6 +56,7 @@ function App() {
           {/* 로그인 후 페이지 (사이드바 포함) */}
           <Route path="/" element={<AppLayout><RootRoute /></AppLayout>} />
           <Route path="/notes" element={<AppLayout><PrivateRoute><HomePage /></PrivateRoute></AppLayout>} />
+          <Route path="/folders" element={<AppLayout><PrivateRoute><AllFoldersPage /></PrivateRoute></AppLayout>} />
           <Route path="/posts/:id" element={<AppLayout><PrivateRoute><PostDetailPage /></PrivateRoute></AppLayout>} />
           <Route path="/posts/create" element={<AppLayout><PrivateRoute><PostCreatePage /></PrivateRoute></AppLayout>} />
           <Route path="/posts/:id/edit" element={<AppLayout><PrivateRoute><PostEditPage /></PrivateRoute></AppLayout>} />

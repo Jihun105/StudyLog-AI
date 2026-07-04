@@ -11,6 +11,17 @@ def _validate_priority(priority: str) -> None:
         raise HTTPException(status_code=400, detail="우선순위는 low/medium/high 중 하나여야 합니다.")
 
 
+def _resolve_end_time(start_time: str | None, end_time: str | None) -> str | None:
+    """종료 시간을 안 넣었으면 시작 시간 + 1시간으로 기본값을 채움 (자정 넘어가면 다음날로 순환)."""
+    if end_time:
+        return end_time
+    if not start_time:
+        return None
+    hour, minute = map(int, start_time.split(":"))
+    hour = (hour + 1) % 24
+    return f"{hour:02d}:{minute:02d}"
+
+
 async def get_todos(user_id: int, db: AsyncSession) -> list[Todo]:
     result = await db.execute(
         select(Todo).filter(Todo.user_id == user_id).order_by(Todo.position, Todo.created_at)
@@ -32,6 +43,7 @@ async def create_todo(request: TodoCreateRequest, user_id: int, db: AsyncSession
         due_date=request.due_date,
         priority=request.priority,
         start_time=request.start_time,
+        end_time=_resolve_end_time(request.start_time, request.end_time),
         memo=request.memo,
         position=next_position,
     )
@@ -61,6 +73,7 @@ async def update_todo(todo_id: int, request: TodoUpdateRequest, user_id: int, db
     todo.due_date = request.due_date
     todo.priority = request.priority
     todo.start_time = request.start_time
+    todo.end_time = _resolve_end_time(request.start_time, request.end_time)
     todo.memo = request.memo
     await db.commit()
     await db.refresh(todo)

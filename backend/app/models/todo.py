@@ -14,6 +14,7 @@ class Todo(Base):
     priority = Column(String(10), nullable=False, server_default="medium")  # low | medium | high
     position = Column(Integer, nullable=False, server_default="0")  # 드래그로 정한 정렬 순서
     start_time = Column(String(5), nullable=True)  # "HH:MM" 형태
+    end_time = Column(String(5), nullable=True)  # "HH:MM" 형태 - 안 넣으면 서비스 레이어에서 시작+1시간으로 기본값 설정
     memo = Column(Text, nullable=True)  # 간략한 메모
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())

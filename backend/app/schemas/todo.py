@@ -10,6 +10,7 @@ class TodoCreateRequest(BaseModel):
     due_date: Optional[date] = None
     priority: str = "medium"
     start_time: Optional[str] = None  # "HH:MM"
+    end_time: Optional[str] = None  # "HH:MM" - 안 넣으면 서비스에서 시작 시간 + 1시간으로 채움
     memo: Optional[str] = None
 
 
@@ -18,6 +19,7 @@ class TodoUpdateRequest(BaseModel):
     due_date: Optional[date] = None
     priority: str = "medium"
     start_time: Optional[str] = None  # "HH:MM"
+    end_time: Optional[str] = None  # "HH:MM" - 안 넣으면 서비스에서 시작 시간 + 1시간으로 채움
     memo: Optional[str] = None
 
 
@@ -33,6 +35,7 @@ class TodoResponse(BaseModel):
     priority: str
     position: int
     start_time: Optional[str] = None
+    end_time: Optional[str] = None
     memo: Optional[str] = None
     created_at: datetime
 

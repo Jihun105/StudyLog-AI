@@ -12,21 +12,21 @@ export const getTodos = async (token) => {
   return response.data;
 };
 
-// 할 일 생성 (시작 시간/메모는 선택 - 안 넣으면 null로 생성됨)
-export const createTodo = async (title, dueDate, priority, token, startTime = null, memo = null) => {
+// 할 일 생성 (시작/종료 시간·메모는 선택 - 종료 시간을 안 넣으면 백엔드가 시작 시간+1시간으로 채움)
+export const createTodo = async (title, dueDate, priority, token, startTime = null, memo = null, endTime = null) => {
   const response = await axios.post(
     `${BASE_URL}/api/todos`,
-    { title, due_date: dueDate, priority, start_time: startTime, memo },
+    { title, due_date: dueDate, priority, start_time: startTime, end_time: endTime, memo },
     authHeader(token)
   );
   return response.data;
 };
 
-// 할 일 수정 (제목/마감일/우선순위/시작시간/메모)
-export const updateTodo = async (todoId, title, dueDate, priority, startTime, memo, token) => {
+// 할 일 수정 (제목/마감일/우선순위/시작·종료시간/메모)
+export const updateTodo = async (todoId, title, dueDate, priority, startTime, endTime, memo, token) => {
   const response = await axios.put(
     `${BASE_URL}/api/todos/${todoId}`,
-    { title, due_date: dueDate, priority, start_time: startTime, memo },
+    { title, due_date: dueDate, priority, start_time: startTime, end_time: endTime, memo },
     authHeader(token)
   );
   return response.data;

@@ -6,7 +6,7 @@ import { getCategories, createCategory, deleteCategory, renameCategory, reorderC
 import { movePost } from "../api/posts";
 import {
   LayoutDashboard, FileText, BrainCircuit, Settings,
-  LogOut, FolderPlus, Folder, FolderOpen,
+  LogOut, FolderPlus, Folder, FolderOpen, FolderTree,
   ChevronDown, ChevronRight, Plus, Pencil, X, ClipboardList,
   PanelLeftClose, FilePlus2, Trash2, ListTodo
 } from "lucide-react";
@@ -603,6 +603,20 @@ function Sidebar({ selectedCategoryId, onSelectCategory, onCollapse }) {
           <span className="w-3 shrink-0" />
           <ClipboardList size={14} className="shrink-0" />
           <span>{t("sidebar.allNotes")}</span>
+        </button>
+
+        {/* 전체 폴더보기 - 내가 만든 모든 폴더를 트리 깊이와 상관없이 한 페이지에서 한눈에 보는 화면.
+            카테고리 선택이 아니라 별도 페이지 이동이라 onSelectCategory 대신 navigate 사용 */}
+        <button
+          onClick={() => navigate("/folders")}
+          className={`w-full flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-sm mb-0.5 transition-colors
+            ${location.pathname === "/folders"
+              ? "bg-blue-50 text-blue-600 font-medium dark:bg-blue-500/10 dark:text-blue-400"
+              : "text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700/60"}`}
+        >
+          <span className="w-3 shrink-0" />
+          <FolderTree size={14} className="shrink-0" />
+          <span>{t("sidebar.allFolders")}</span>
         </button>
 
         {/* 빈 공간 우클릭 메뉴 - 새 폴더 추가만 제공 */}

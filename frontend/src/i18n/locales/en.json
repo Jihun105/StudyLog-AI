@@ -27,6 +27,7 @@
     "rename": "Rename",
     "delete": "Delete",
     "allNotes": "All Notes",
+    "allFolders": "All Folders",
     "uncategorized": "Uncategorized",
     "folderNamePlaceholder": "Folder name",
     "add": "Add",
@@ -111,6 +112,10 @@
   "documents": {
     "comingSoon": "Coming soon"
   },
+  "folders": {
+    "title": "All Folders",
+    "empty": "You haven't created any folders yet."
+  },
   "todo": {
     "addPlaceholder": "Enter a task",
     "add": "Add",
@@ -132,10 +137,11 @@
     "detailToggle": "Show/hide details",
     "detailLabel": "Details",
     "startTimeOptional": "Start time (optional)",
+    "endTimeOptional": "End time (optional)",
     "memoPlaceholder": "Add a note",
     "emptyStateToday": "No tasks due today.",
-    "pendingTitle": "Pending tasks",
-    "pendingEmpty": "No pending tasks."
+    "timetableEmpty": "No tasks with a start time on this date.",
+    "postpone": "Postpone"
   },
   "settings": {
     "title": "Settings",
@@ -194,7 +200,7 @@
     "newPost": "New Post",
     "titlePlaceholder": "Post Title",
     "selectCategory": "Uncategorized",
-    "tagsPlaceholder": "Add tags (comma separated)",
+    "tagsPlaceholder": "Add tags",
     "save": "Save Post",
     "saving": "Saving...",
     "cancel": "Cancel",
@@ -213,7 +219,7 @@
     "edit": "Edit",
     "titlePlaceholder": "Post Title",
     "selectCategory": "Uncategorized",
-    "tagsPlaceholder": "Add tags (comma separated)",
+    "tagsPlaceholder": "Add tags",
     "save": "Save Post",
     "saving": "Saving...",
     "cancel": "Cancel",

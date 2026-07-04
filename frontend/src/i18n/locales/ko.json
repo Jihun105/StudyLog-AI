@@ -27,6 +27,7 @@
     "rename": "이름 수정",
     "delete": "삭제",
     "allNotes": "전체 보기",
+    "allFolders": "전체 폴더보기",
     "uncategorized": "기본",
     "folderNamePlaceholder": "폴더 이름",
     "add": "추가",
@@ -111,6 +112,10 @@
   "documents": {
     "comingSoon": "곧 지원됩니다"
   },
+  "folders": {
+    "title": "전체 폴더보기",
+    "empty": "아직 만든 폴더가 없습니다."
+  },
   "todo": {
     "addPlaceholder": "할 일을 입력하세요",
     "add": "추가",
@@ -132,10 +137,11 @@
     "detailToggle": "세부 내용 펼치기/접기",
     "detailLabel": "세부사항",
     "startTimeOptional": "시작 시간 (선택)",
+    "endTimeOptional": "종료 시간 (선택)",
     "memoPlaceholder": "메모를 입력하세요",
     "emptyStateToday": "오늘 마감인 할 일이 없습니다.",
-    "pendingTitle": "미완료 목록",
-    "pendingEmpty": "미완료 항목이 없습니다."
+    "timetableEmpty": "이 날짜에 시작 시간을 넣은 할 일이 없습니다.",
+    "postpone": "날짜변경"
   },
   "settings": {
     "title": "설정",
@@ -194,7 +200,7 @@
     "newPost": "새 글",
     "titlePlaceholder": "글 제목",
     "selectCategory": "기본",
-    "tagsPlaceholder": "태그 추가 (쉼표로 구분)",
+    "tagsPlaceholder": "태그 추가",
     "save": "저장하기",
     "saving": "저장 중...",
     "cancel": "취소",
@@ -213,7 +219,7 @@
     "edit": "수정",
     "titlePlaceholder": "글 제목",
     "selectCategory": "기본",
-    "tagsPlaceholder": "태그 추가 (쉼표로 구분)",
+    "tagsPlaceholder": "태그 추가",
     "save": "저장하기",
     "saving": "저장 중...",
     "cancel": "취소",
