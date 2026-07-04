@@ -11,14 +11,17 @@
   font-family: 'Pretendard', 'Inter', sans-serif;
 }
 
-/* BlockNote 빈 블록 placeholder 숨기기 */
-.bn-inline-content::before {
-  display: none !important;
-}
-
 /* BlockNote 에디터 최소 높이 */
 .bn-editor {
   min-height: 500px;
+}
+
+/* BlockNote는 자체적으로 @blocknote/core/fonts/inter.css를 불러와서
+   .bn-editor/.bn-default-styles에 Inter를 강제 지정함(클래스 선택자라 위의
+   전역 * 규칙보다 우선순위가 높음). 노트 작성 영역도 Pretendard로 보이도록 덮어씀 */
+.bn-editor,
+.bn-default-styles {
+  font-family: 'Pretendard', 'Inter', sans-serif !important;
 }
 
 /* BlockNote 폰트 크기 축소

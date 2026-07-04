@@ -14,6 +14,28 @@
     "sessionExpiredMessage": "Your session has expired. Please log in again.",
     "reLogin": "Log in"
   },
+  "richTextEditor": {
+    "insertTable": "Insert table",
+    "insertImage": "Insert image",
+    "formatPanel": "Format",
+    "style": "Style",
+    "paragraph": "Body",
+    "bulletList": "Bulleted list",
+    "numberedList": "Numbered list",
+    "checkList": "Checklist",
+    "divider": "Divider",
+    "textFormat": "Text format",
+    "bold": "Bold",
+    "italic": "Italic",
+    "underline": "Underline",
+    "strikethrough": "Strikethrough",
+    "alignment": "Alignment",
+    "alignLeft": "Align left",
+    "alignCenter": "Align center",
+    "alignRight": "Align right",
+    "tableOfContents": "Table of contents",
+    "noHeadings": "Add a heading to see it listed here."
+  },
   "sidebar": {
     "premiumPlan": "Premium Plan",
     "dashboard": "Dashboard",

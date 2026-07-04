@@ -6,6 +6,7 @@ import { getCategories } from "../api/categories";
 import { useAuth } from "../context/AuthContext";
 import RichTextEditor from "../components/RichTextEditor";
 import TagInput from "../components/TagInput";
+import CategorySelect from "../components/CategorySelect";
 import { ChevronRight } from "lucide-react";
 import SidebarLayout, { SidebarSpacer } from "../components/SidebarLayout";
 
@@ -76,10 +77,11 @@ function PostEditPage() {
 
   return (
     <SidebarLayout selectedCategoryId={categoryId} onSelectCategory={handleSelectCategory}>
-      {/* 메인 작성 영역 */}
-      <div className="flex-1 overflow-y-auto bg-gray-50 dark:bg-gray-900">
+      {/* 메인 작성 영역 - Apple Pages처럼 회색 캔버스 위에 흰 "문서 페이지"가
+          떠 있는 느낌을 주기 위해 배경(캔버스)과 실제 편집 카드(페이지)를 분리함 */}
+      <div className="flex-1 overflow-y-auto bg-gray-100 dark:bg-gray-950">
         {/* 상단 헤더 */}
-        <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 px-8 py-4 flex items-center justify-between z-10">
+        <div className="sticky top-0 bg-gray-100/90 dark:bg-gray-950/90 backdrop-blur-sm border-b border-gray-200 dark:border-gray-800 px-8 py-4 flex items-center justify-between z-10">
           <div className="flex items-center gap-1.5 text-sm text-gray-400 dark:text-gray-500">
             <SidebarSpacer />
             <button onClick={() => navigate("/notes")} className="hover:text-blue-600 dark:hover:text-blue-400">{t("postEdit.allNotes")}</button>
@@ -106,48 +108,44 @@ function PostEditPage() {
             </button>
             <button
               onClick={() => navigate(`/posts/${id}`)}
-              className="text-sm text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-gray-600 px-4 py-1.5 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700"
+              className="text-sm text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-gray-600 px-4 py-1.5 rounded-lg hover:bg-white dark:hover:bg-gray-700"
             >
               {t("postEdit.cancel")}
             </button>
           </div>
         </div>
 
-        {/* 수정 폼 */}
-        <div className="px-8 py-8 max-w-4xl">
-          {errorMessage && (
-            <div className="bg-red-50 dark:bg-red-500/10 text-red-500 dark:text-red-400 px-4 py-3 rounded-lg mb-4 text-sm">{errorMessage}</div>
-          )}
+        {/* 문서 페이지 - 폭을 문서처럼 제한하고 캔버스 위에 흰 카드로 띄움 */}
+        <div className="px-8 py-10">
+          <div className="max-w-3xl mx-auto bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 px-14 py-12">
+            {errorMessage && (
+              <div className="bg-red-50 dark:bg-red-500/10 text-red-500 dark:text-red-400 px-4 py-3 rounded-lg mb-4 text-sm">{errorMessage}</div>
+            )}
 
-          <input
-            type="text"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder={t("postEdit.titlePlaceholder")}
-            className="w-full text-3xl font-bold text-gray-800 dark:text-gray-100 placeholder-gray-300 dark:placeholder-gray-600 border-none outline-none mb-6 bg-transparent"
-          />
+            <input
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder={t("postEdit.titlePlaceholder")}
+              className="w-full text-3xl font-bold text-gray-800 dark:text-gray-100 placeholder-gray-300 dark:placeholder-gray-600 border-none outline-none mb-6 bg-transparent"
+            />
 
-          <div className="mb-6">
-            <select
-              value={categoryId ?? ""}
-              onChange={(e) => setCategoryId(e.target.value ? Number(e.target.value) : null)}
-              className="text-sm text-gray-500 dark:text-gray-300 border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-800"
-            >
-              <option value="">📁 {t("postEdit.selectCategory")}</option>
-              {categories.map((cat) => (
-                <option key={cat.id} value={cat.id}>
-                  {"　".repeat(cat.depth)}📁 {cat.name}
-                </option>
-              ))}
-            </select>
-          </div>
+            <div className="mb-6">
+              <CategorySelect
+                categories={categories}
+                value={categoryId}
+                onChange={setCategoryId}
+                placeholder={t("postEdit.selectCategory")}
+              />
+            </div>
 
-          {content !== null && (
-            <RichTextEditor initialContent={content} onChange={setContent} />
-          )}
+            {content !== null && (
+              <RichTextEditor initialContent={content} onChange={setContent} />
+            )}
 
-          <div className="mt-6">
-            <TagInput tags={tags} onChange={setTags} placeholder={`🏷 ${t("postEdit.tagsPlaceholder")}`} />
+            <div className="mt-6">
+              <TagInput tags={tags} onChange={setTags} placeholder={`🏷 ${t("postEdit.tagsPlaceholder")}`} />
+            </div>
           </div>
         </div>
       </div>
