@@ -8,6 +8,7 @@ import { getMyProfile, updateMyProfile } from "../api/users";
 import { uploadImage } from "../api/uploads";
 import { useAuth } from "../context/AuthContext";
 import SidebarLayout, { SidebarSpacer } from "../components/SidebarLayout";
+import NoteCarousel from "../components/NoteCarousel";
 import {
   Plus, BrainCircuit, ArrowRight, NotebookText, FolderTree, CheckCircle2, Circle, ListTodo,
   Camera, FileWarning,
@@ -15,10 +16,12 @@ import {
 
 const PRIORITY_DOT = { low: "bg-gray-400 dark:bg-gray-500", medium: "bg-amber-500", high: "bg-red-500" };
 
+// 참고 이미지의 대시보드는 카드 아이콘에 색색깔 배지 없이 잉크색 하나로 통일돼 있어서,
+// blue/purple/amber 구분 없이 전부 같은 무채색 톤으로 맞춤(호출부의 color prop은 그대로 둠)
 const STAT_COLOR = {
-  blue: "bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400",
-  purple: "bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400",
-  amber: "bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400",
+  blue: "text-gray-700 dark:text-gray-300",
+  purple: "text-gray-700 dark:text-gray-300",
+  amber: "text-gray-700 dark:text-gray-300",
 };
 
 function todayDateString() {
@@ -43,11 +46,11 @@ function countCategories(categories) {
 function StatCard({ icon: Icon, color, label, value, soon, t }) {
   return (
     <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-4 flex flex-col gap-2">
-      <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${STAT_COLOR[color]}`}>
+      <div className={`w-8 h-8 flex items-center justify-center shrink-0 ${STAT_COLOR[color]}`}>
         <Icon size={16} />
       </div>
       <div className="text-xl font-bold text-gray-800 dark:text-gray-100">{value}</div>
-      <div className="text-xs text-gray-400 dark:text-gray-500">{label}</div>
+      <div className="font-mono text-xs text-gray-400 dark:text-gray-500">{label}</div>
       {soon && <div className="text-[10px] text-gray-300 dark:text-gray-600">{t("documents.comingSoon")}</div>}
     </div>
   );
@@ -61,6 +64,7 @@ function Dashboard() {
   const [categoryCount, setCategoryCount] = useState(null);
   const [recentPosts, setRecentPosts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [activeNoteIndex, setActiveNoteIndex] = useState(0); // 최근 노트 캐러셀에서 가운데(활성) 카드 인덱스
   const [todayTodos, setTodayTodos] = useState([]);
   const [todosLoading, setTodosLoading] = useState(true);
 
@@ -76,7 +80,7 @@ function Dashboard() {
       setLoading(true);
       try {
         const [postsData, categories] = await Promise.all([
-          getPosts(1, 5, null, null, token, null),
+          getPosts(1, 10, null, null, token, null),
           getCategories(token),
         ]);
         setTotalNotes(postsData.total);
@@ -167,7 +171,7 @@ function Dashboard() {
   return (
     <SidebarLayout selectedCategoryId={null} onSelectCategory={handleSelectCategory}>
       <div className="flex-1 overflow-y-auto bg-gray-50 dark:bg-gray-900">
-        <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 px-8 py-4 flex items-center justify-between z-10">
+        <div className="sticky top-0 bg-gray-50/90 dark:bg-gray-900/90 backdrop-blur-sm border-b border-gray-200 dark:border-gray-800 px-8 py-4 flex items-center justify-between z-10">
           <div className="flex items-center gap-2">
             <SidebarSpacer />
             <h1 className="text-lg font-bold text-gray-800 dark:text-gray-100">{t("dashboard.title")}</h1>
@@ -237,8 +241,8 @@ function Dashboard() {
             </div>
           </div>
 
-          {/* 하단: 최근 노트 + 오늘 할 일 */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* 하단: 최근 노트, 그 아래에 오늘 할 일 (참고 이미지처럼 세로로 쌓는 구조) */}
+          <div className="flex flex-col gap-8">
             {/* 최근 노트 */}
             <div>
               <div className="flex items-center justify-between mb-4">
@@ -263,18 +267,35 @@ function Dashboard() {
                   </button>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-                  {recentPosts.map((post) => (
-                    <div
-                      key={post.id}
-                      onClick={() => navigate(`/posts/${post.id}`)}
-                      className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-5 cursor-pointer hover:shadow-md hover:border-blue-100 dark:hover:border-blue-500/40 transition-all"
-                    >
-                      <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-100 mb-1 line-clamp-1">{post.title}</h3>
-                      <p className="text-gray-400 dark:text-gray-500 text-xs line-clamp-2">{post.preview}</p>
-                    </div>
-                  ))}
-                </div>
+                <NoteCarousel
+                  activeIndex={activeNoteIndex}
+                  setActiveIndex={setActiveNoteIndex}
+                  items={[
+                    // 새 노트 작성 카드 - 참고 이미지처럼 점선 테두리 + 가운데 + 아이콘 (대시보드에서만)
+                    {
+                      id: "create-new",
+                      onActivate: () => navigate("/posts/create"),
+                      content: (
+                        <div className="w-full h-full rounded-xl border border-dashed border-gray-300 dark:border-gray-600 flex flex-col items-center justify-center gap-3 text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-gray-900 hover:border-blue-300 dark:hover:border-blue-500/50 hover:text-blue-500 dark:hover:text-blue-400 transition-colors">
+                          <span className="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+                            <Plus size={18} />
+                          </span>
+                          <span className="text-xs">{t("dashboard.newNote")}</span>
+                        </div>
+                      ),
+                    },
+                    ...recentPosts.map((post) => ({
+                      id: post.id,
+                      onActivate: () => navigate(`/posts/${post.id}`),
+                      content: (
+                        <div className="w-full h-full bg-gray-100 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 flex flex-col shadow-sm hover:shadow-md hover:border-blue-100 dark:hover:border-blue-500/40 transition-shadow">
+                          <h3 className="text-base font-semibold text-gray-800 dark:text-gray-100 mb-2 truncate">{post.title}</h3>
+                          <p className="text-gray-400 dark:text-gray-500 text-xs line-clamp-4">{post.preview}</p>
+                        </div>
+                      ),
+                    })),
+                  ]}
+                />
               )}
             </div>
 

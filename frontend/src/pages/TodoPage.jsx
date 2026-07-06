@@ -732,12 +732,12 @@ function TodoPage() {
 
   return (
     <SidebarLayout selectedCategoryId={null} onSelectCategory={handleSelectCategory}>
-      <div className="flex-1 min-w-[520px] overflow-y-auto bg-gray-50 dark:bg-gray-900">
-        <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 px-8 py-4 flex items-center justify-between z-10">
-          <div className="flex items-center gap-2 text-lg font-bold text-gray-800 dark:text-gray-100">
+      <div className="app-serif-panel flex-1 min-w-[520px] overflow-y-auto bg-gray-50 dark:bg-gray-900">
+        <div className="sticky top-0 bg-gray-50/90 dark:bg-gray-900/90 backdrop-blur-sm border-b border-gray-200 dark:border-gray-800 px-8 py-4 flex items-center justify-between z-10">
+          <h1 className="flex items-center gap-2 text-lg font-bold text-gray-800 dark:text-gray-100" style={{ fontFamily: "'Newsreader', 'Noto Serif KR', Georgia, serif" }}>
             <SidebarSpacer />
             <ListTodo size={20} className="text-blue-600 dark:text-blue-400" /> {t("sidebar.todo")}
-          </div>
+          </h1>
           {todayTodos.length > 0 && (
             <span className="text-sm text-gray-400 dark:text-gray-500">
               {t("todo.completedCount", { done: doneTodos.length, total: todayTodos.length })}

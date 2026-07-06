@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
@@ -11,7 +11,7 @@ import "@blocknote/core/fonts/inter.css";
 import "@blocknote/mantine/style.css";
 import { codeBlockConfig } from "../lib/editorSchema";
 import {
-  BrainCircuit, CheckCircle2, XCircle, Loader2, RotateCcw, FileText, ArrowLeft, Search, X, Maximize2, Minimize2
+  BrainCircuit, CheckCircle2, XCircle, Loader2, RotateCcw, FileText, ArrowLeft, Search, X, Maximize2, Minimize2, ChevronDown
 } from "lucide-react";
 import SidebarLayout, { SidebarSpacer } from "../components/SidebarLayout";
 import ResizableRightPanel from "../components/ResizableRightPanel";
@@ -112,6 +112,18 @@ function QuizPage() {
 
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState("");
+
+  // 범위(전체/미분류/카테고리) 드롭다운 - 네이티브 <select>는 옵션 목록에 폰트 등
+  // 커스텀 CSS가 잘 안 먹혀서(OS가 렌더링) 다른 곳처럼 직접 만든 드롭다운으로 대체
+  const [scopeOpen, setScopeOpen] = useState(false);
+  const scopeRef = useRef(null);
+  useEffect(() => {
+    const handleOutside = (e) => {
+      if (scopeRef.current && !scopeRef.current.contains(e.target)) setScopeOpen(false);
+    };
+    document.addEventListener("mousedown", handleOutside);
+    return () => document.removeEventListener("mousedown", handleOutside);
+  }, []);
 
   // 카테고리 대신 글을 직접 검색해서 골라 퀴즈 범위를 지정하는 기능
   const [fileQuery, setFileQuery] = useState("");
@@ -295,6 +307,14 @@ function QuizPage() {
   const correctCount = Object.values(results).filter((r) => r.is_correct).length;
   const pendingSubmitCount = quizzes.filter((q) => selectedAnswers[q.id] && !results[q.id]).length;
   const categoryOptions = flattenCategories(categories);
+  // 드롭다운에 쓸 전체 옵션 목록: "전체 노트" / "미분류" 고정 항목 + 실제 카테고리들
+  const scopeOptions = [
+    { id: "all", label: t("quiz.scopeAll") },
+    { id: "uncategorized", label: t("quiz.scopeUncategorized") },
+    ...categoryOptions,
+  ];
+  const selectedScopeLabel =
+    scopeOptions.find((opt) => String(opt.id) === String(scope))?.label || t("quiz.scopeAll");
 
   const panelTitle =
     selectedCategoryId === null ? t("quiz.scopeAll")
@@ -304,15 +324,15 @@ function QuizPage() {
   return (
     <SidebarLayout selectedCategoryId={selectedCategoryId} onSelectCategory={handleSelectCategory}>
       <div className="flex-1 min-w-[480px] overflow-y-auto bg-gray-50 dark:bg-gray-900">
-        <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 px-8 py-4 flex items-center justify-between z-10">
-          <div className="flex items-center gap-2 text-lg font-bold text-gray-800 dark:text-gray-100">
+        <div className="sticky top-0 bg-gray-50/90 dark:bg-gray-900/90 backdrop-blur-sm border-b border-gray-200 dark:border-gray-800 px-8 py-4 flex items-center justify-between z-10">
+          <h1 className="flex items-center gap-2 text-lg font-bold text-gray-800 dark:text-gray-100" style={{ fontFamily: "'Newsreader', 'Noto Serif KR', Georgia, serif" }}>
             <SidebarSpacer />
             <BrainCircuit size={20} className="text-blue-600 dark:text-blue-400" /> {t("quiz.title")}
-          </div>
+          </h1>
         </div>
 
         <div className="px-8 py-8 max-w-3xl">
-          <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-6 mb-6">
+          <div className="app-serif-panel bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-6 mb-6">
             <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">{t("quiz.instructions")}</p>
 
             <div className="flex items-center gap-1 mb-3">
@@ -332,19 +352,40 @@ function QuizPage() {
             </div>
 
             <div className="flex items-center gap-3 flex-wrap">
-              <select
-                value={scope}
-                onChange={(e) => handleScopeChange(e.target.value)}
-                disabled={selectedFiles.length > 0}
-                title={selectedFiles.length > 0 ? t("quiz.scopeDisabledByFiles") : undefined}
-                className="border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-800 dark:text-gray-100 disabled:opacity-50"
-              >
-                <option value="all">{t("quiz.scopeAll")}</option>
-                <option value="uncategorized">{t("quiz.scopeUncategorized")}</option>
-                {categoryOptions.map((opt) => (
-                  <option key={opt.id} value={opt.id}>{opt.label}</option>
-                ))}
-              </select>
+              <div className="relative" ref={scopeRef}>
+                <button
+                  type="button"
+                  onClick={() => setScopeOpen((v) => !v)}
+                  disabled={selectedFiles.length > 0}
+                  title={selectedFiles.length > 0 ? t("quiz.scopeDisabledByFiles") : undefined}
+                  className="flex items-center gap-2 border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-800 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 transition-colors"
+                >
+                  <span className="truncate max-w-[160px] whitespace-pre">{selectedScopeLabel}</span>
+                  <ChevronDown size={14} className={`text-gray-400 transition-transform shrink-0 ${scopeOpen ? "rotate-180" : ""}`} />
+                </button>
+
+                {scopeOpen && (
+                  <div className="absolute z-30 top-full left-0 mt-1.5 w-56 max-h-72 overflow-y-auto bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-xl shadow-lg p-1.5">
+                    {scopeOptions.map((opt) => {
+                      const isSelected = String(scope) === String(opt.id);
+                      return (
+                        <button
+                          key={opt.id}
+                          type="button"
+                          onClick={() => { handleScopeChange(String(opt.id)); setScopeOpen(false); }}
+                          className={`w-full flex items-center text-sm rounded-lg py-1.5 px-2.5 text-left transition-colors whitespace-pre ${
+                            isSelected
+                              ? "bg-blue-600 text-white"
+                              : "text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
+                          }`}
+                        >
+                          <span className="truncate">{opt.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
 
               <div className="relative">
                 <div

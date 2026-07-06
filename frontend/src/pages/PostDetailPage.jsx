@@ -195,12 +195,12 @@ function PostDetailPage() {
 
   if (loading) return (
     <SidebarLayout selectedCategoryId={null} onSelectCategory={handleSelectCategory}>
-      <div className="flex-1 flex items-center justify-center h-full text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-gray-900">{t("common.loading")}</div>
+      <div className="flex-1 flex items-center justify-center h-full text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-gray-950">{t("common.loading")}</div>
     </SidebarLayout>
   );
   if (errorMessage) return (
     <SidebarLayout selectedCategoryId={null} onSelectCategory={handleSelectCategory}>
-      <div className="flex-1 p-8 text-red-500 dark:text-red-400 bg-gray-50 dark:bg-gray-900 h-full">{errorMessage}</div>
+      <div className="flex-1 p-8 text-red-500 dark:text-red-400 bg-gray-50 dark:bg-gray-950 h-full">{errorMessage}</div>
     </SidebarLayout>
   );
   if (!post) return null;
@@ -209,10 +209,11 @@ function PostDetailPage() {
 
   return (
     <SidebarLayout selectedCategoryId={post.category_id ?? null} onSelectCategory={handleSelectCategory}>
-      {/* 메인 본문 */}
-      <div className="flex-1 min-w-0 overflow-y-auto bg-gray-50 dark:bg-gray-900">
+      {/* 메인 본문 - Apple Pages처럼 회색 캔버스 위에 흰 "문서 페이지" 카드가
+          떠 있는 느낌으로, 글쓰기/수정 페이지와 동일한 레이아웃을 씀 */}
+      <div className="flex-1 min-w-0 overflow-y-auto bg-gray-50 dark:bg-gray-950">
         {/* 상단 헤더 */}
-        <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 px-8 py-4 flex items-center justify-between gap-3 z-10">
+        <div className="sticky top-0 bg-gray-50/90 dark:bg-gray-950/90 backdrop-blur-sm border-b border-gray-200 dark:border-gray-800 px-8 py-4 flex items-center justify-between gap-3 z-10">
           <div className="flex items-center gap-1.5 text-sm text-gray-400 dark:text-gray-500 min-w-0 overflow-x-auto whitespace-nowrap">
             <SidebarSpacer />
             <button onClick={() => navigate("/notes")} className="hover:text-blue-600 dark:hover:text-blue-400 shrink-0">{t("postDetail.allNotes")}</button>
@@ -229,15 +230,11 @@ function PostDetailPage() {
             ))}
           </div>
           <div className="flex items-center gap-3 shrink-0">
-            <div className="flex items-center gap-1.5 bg-green-50 dark:bg-green-500/10 text-green-600 dark:text-green-400 text-xs font-medium px-3 py-1.5 rounded-full">
-              <span className="w-1.5 h-1.5 bg-green-500 rounded-full"></span>
-              {t("common.aiStatusOnline")}
-            </div>
             {user && user.nickname === post.nickname && (
               <div className="flex gap-2">
                 <button
                   onClick={() => navigate(`/posts/${id}/edit`)}
-                  className="text-sm text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-gray-600 px-3 py-1.5 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700"
+                  className="text-sm text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-gray-600 px-3 py-1.5 rounded-lg hover:bg-white dark:hover:bg-gray-700"
                 >
                   {t("postDetail.edit")}
                 </button>
@@ -252,28 +249,30 @@ function PostDetailPage() {
           </div>
         </div>
 
-        {/* 본문 */}
-        <div className="px-8 py-8">
-          <h1 className="text-3xl font-bold text-gray-800 dark:text-gray-100 mb-3 break-words">{post.title}</h1>
-          <div className="flex items-center gap-4 text-sm text-gray-400 dark:text-gray-500 mb-4">
-            <span className="flex items-center gap-1.5">
-              <Calendar size={13} />
-              {new Date(post.created_at).toLocaleDateString(i18n.language === "en" ? "en-US" : "ko-KR", { year: "numeric", month: "long", day: "numeric" })}
-            </span>
-            <span className="flex items-center gap-1.5">
-              <Lock size={13} />
-              {t("postDetail.privateNotes")}
-            </span>
-          </div>
-          <div className="flex flex-wrap gap-2 mb-8">
-            {post.tags.map((tag) => (
-              <span key={tag} className="text-xs bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 px-2.5 py-1 rounded-full">
-                # {tag}
+        {/* 문서 페이지 - 폭을 문서처럼 제한하고 캔버스 위에 흰 카드로 띄움 */}
+        <div className="px-8 py-10">
+          <div className="max-w-3xl mx-auto bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 px-14 py-12">
+            <h1 className="text-3xl font-bold text-gray-800 dark:text-gray-100 mb-3 break-words">{post.title}</h1>
+            <div className="flex items-center gap-4 text-sm text-gray-400 dark:text-gray-500 mb-4">
+              <span className="flex items-center gap-1.5">
+                <Calendar size={13} />
+                {new Date(post.created_at).toLocaleDateString(i18n.language === "en" ? "en-US" : "ko-KR", { year: "numeric", month: "long", day: "numeric" })}
               </span>
-            ))}
+              <span className="flex items-center gap-1.5">
+                <Lock size={13} />
+                {t("postDetail.privateNotes")}
+              </span>
+            </div>
+            <div className="flex flex-wrap gap-2 mb-8">
+              {post.tags.map((tag) => (
+                <span key={tag} className="text-xs bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 px-2.5 py-1 rounded-full">
+                  # {tag}
+                </span>
+              ))}
+            </div>
+            <hr className="mb-8 border-gray-100 dark:border-gray-700" />
+            <BlockNoteView editor={editor} editable={false} theme={theme} />
           </div>
-          <hr className="mb-8 border-gray-100 dark:border-gray-700" />
-          <BlockNoteView editor={editor} editable={false} theme={theme} />
         </div>
       </div>
 

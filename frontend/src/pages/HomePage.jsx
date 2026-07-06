@@ -204,7 +204,7 @@ function HomePage() {
   >
     <div className="flex-1 overflow-y-auto bg-gray-50 dark:bg-gray-900">
       {/* 상단 헤더 */}
-      <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 px-8 py-4 flex items-center justify-between z-10">
+      <div className="sticky top-0 bg-gray-50/90 dark:bg-gray-900/90 backdrop-blur-sm border-b border-gray-200 dark:border-gray-800 px-8 py-4 flex items-center justify-between z-10">
         <div className="flex items-center gap-2 text-sm text-gray-400 dark:text-gray-500">
           <SidebarSpacer />
           <button onClick={() => handleSelectCategory(null)} className="hover:text-blue-600 dark:hover:text-blue-400">
@@ -212,10 +212,6 @@ function HomePage() {
           </button>
         </div>
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1.5 bg-green-50 dark:bg-green-500/10 text-green-600 dark:text-green-400 text-xs font-medium px-3 py-1.5 rounded-full">
-            <span className="w-1.5 h-1.5 bg-green-500 rounded-full"></span>
-            {t("common.aiStatusOnline")}
-          </div>
           <button
             onClick={handleCreatePost}
             className="flex items-center gap-2 bg-blue-600 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
@@ -234,13 +230,13 @@ function HomePage() {
             onChange={(e) => setInputKeyword(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder={t("notes.searchPlaceholder")}
-            className="w-full pl-9 pr-4 py-2.5 border border-gray-200 dark:border-gray-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-800 dark:text-gray-100"
+            className="w-full pl-9 pr-4 py-2.5 border border-gray-200 dark:border-gray-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 dark:bg-gray-900 dark:text-gray-100"
           />
         </div>
         <div className="flex items-center gap-3 mb-6 flex-wrap">
           <button
             onClick={handleSearch}
-            className="flex items-center gap-2 border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 text-sm px-4 py-2.5 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700"
+            className="flex items-center gap-2 border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-900 text-gray-600 dark:text-gray-300 text-sm px-4 py-2.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
           >
             <SlidersHorizontal size={14} /> {t("notes.category")}
           </button>
@@ -251,7 +247,7 @@ function HomePage() {
               className={`text-sm px-3 py-2 rounded-full border transition-colors ${
                 selectedTags.includes(tag)
                   ? "bg-blue-600 text-white border-blue-600"
-                  : "bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-600 hover:border-blue-400 dark:hover:border-blue-500"
+                  : "bg-gray-50 dark:bg-gray-900 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-600 hover:border-blue-400 dark:hover:border-blue-500"
               }`}
             >
               # {tag}
@@ -274,7 +270,7 @@ function HomePage() {
                 <button
                   key={child.id}
                   onClick={() => handleSelectCategory(child.id)}
-                  className="flex flex-col items-center gap-1 bg-white dark:bg-gray-800 rounded-lg border border-gray-100 dark:border-gray-700 p-2.5 text-center hover:border-blue-200 dark:hover:border-blue-500/40 hover:shadow-sm transition-all"
+                  className="flex flex-col items-center gap-1 bg-gray-100 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-2.5 text-center hover:border-blue-200 dark:hover:border-blue-500/40 hover:shadow-sm transition-all"
                 >
                   <Folder size={18} className="text-blue-500 dark:text-blue-400 shrink-0" />
                   <span className="text-xs font-medium text-gray-700 dark:text-gray-200 truncate w-full">{child.name}</span>
@@ -325,7 +321,7 @@ function HomePage() {
                   setDraggingPostId(post.id);
                 }}
                 onDragEnd={() => setDraggingPostId(null)}
-                className={`relative bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-4 cursor-pointer hover:shadow-md hover:border-blue-100 dark:hover:border-blue-500/40 transition-all ${
+                className={`relative bg-gray-100 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 cursor-pointer hover:shadow-md hover:border-blue-100 dark:hover:border-blue-500/40 transition-all ${
                   draggingPostId === post.id ? "opacity-40" : ""
                 }`}
               >

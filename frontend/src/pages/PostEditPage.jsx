@@ -79,9 +79,9 @@ function PostEditPage() {
     <SidebarLayout selectedCategoryId={categoryId} onSelectCategory={handleSelectCategory}>
       {/* 메인 작성 영역 - Apple Pages처럼 회색 캔버스 위에 흰 "문서 페이지"가
           떠 있는 느낌을 주기 위해 배경(캔버스)과 실제 편집 카드(페이지)를 분리함 */}
-      <div className="flex-1 overflow-y-auto bg-gray-100 dark:bg-gray-950">
+      <div className="flex-1 overflow-y-auto bg-gray-50 dark:bg-gray-950">
         {/* 상단 헤더 */}
-        <div className="sticky top-0 bg-gray-100/90 dark:bg-gray-950/90 backdrop-blur-sm border-b border-gray-200 dark:border-gray-800 px-8 py-4 flex items-center justify-between z-10">
+        <div className="sticky top-0 bg-gray-50/90 dark:bg-gray-950/90 backdrop-blur-sm border-b border-gray-200 dark:border-gray-800 px-8 py-4 flex items-center justify-between z-10">
           <div className="flex items-center gap-1.5 text-sm text-gray-400 dark:text-gray-500">
             <SidebarSpacer />
             <button onClick={() => navigate("/notes")} className="hover:text-blue-600 dark:hover:text-blue-400">{t("postEdit.allNotes")}</button>
@@ -93,10 +93,6 @@ function PostEditPage() {
             <span className="text-gray-700 dark:text-gray-300 font-medium">{t("postEdit.edit")}</span>
           </div>
           <div className="flex items-center gap-3">
-            <div className="flex items-center gap-1.5 bg-green-50 dark:bg-green-500/10 text-green-600 dark:text-green-400 text-xs font-medium px-3 py-1.5 rounded-full">
-              <span className="w-1.5 h-1.5 bg-green-500 rounded-full"></span>
-              {t("common.aiStatusOnline")}
-            </div>
             <button
               onClick={handleUpdate}
               disabled={loading}
@@ -127,7 +123,7 @@ function PostEditPage() {
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder={t("postEdit.titlePlaceholder")}
-              className="w-full text-3xl font-bold text-gray-800 dark:text-gray-100 placeholder-gray-300 dark:placeholder-gray-600 border-none outline-none mb-6 bg-transparent"
+              className="w-full font-serif text-3xl font-bold text-gray-800 dark:text-gray-100 placeholder-gray-300 dark:placeholder-gray-600 border-none outline-none mb-6 bg-transparent"
             />
 
             <div className="mb-6">

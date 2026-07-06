@@ -7,6 +7,16 @@
          다른 폴백 폰트로 그려지며 화살표(→) 같은 기호 뒤에서 자간이 갑자기 벌어져 보이는
          문제를 막음 -->
     <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
+    <!-- Noto Serif KR: 제목류에서 한글이 나올 때 Newsreader(한글 미지원) 대신
+         자연스럽게 폴백되도록 하는 세리프 폰트 -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@500;600;700&display=swap" rel="stylesheet">
+    <!-- 사용자가 지정한 디자인 시스템 폰트 3종: Newsreader(제목/세리프),
+         Work Sans(본문), JetBrains Mono(라벨/메타정보). 셋 다 한글 글리프가 없어서
+         한글 텍스트는 자동으로 Pretendard/Noto Serif KR로 폴백됨(라틴/숫자만 이 폰트로 보임) -->
+    <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Work+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <!-- Nanum Gothic Coding: JetBrains Mono엔 한글이 없어서, 라벨류 텍스트에 한글이 나올 때
+         일반 폰트로 튀지 않고 계속 "고정폭 느낌"을 유지하도록 쓰는 한글 모노스페이스 폰트 -->
+    <link href="https://fonts.googleapis.com/css2?family=Nanum+Gothic+Coding:wght@400;700&display=swap" rel="stylesheet">
     <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#000000" />

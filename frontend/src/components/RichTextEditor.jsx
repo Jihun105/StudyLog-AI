@@ -9,7 +9,7 @@ import "@blocknote/mantine/style.css";
 import {
   Bold, Italic, Underline, Strikethrough, AlignLeft, AlignCenter, AlignRight,
   Heading1, Heading2, Heading3, Pilcrow, List, ListOrdered, ListChecks,
-  Table, Image as ImageIcon, PanelRight, ListTree, Minus, X,
+  Table, Image as ImageIcon, PanelRight, ListTree, Minus, X, Quote,
 } from "lucide-react";
 import { codeBlockConfig } from "../lib/editorSchema";
 import { useTheme } from "../context/ThemeContext";
@@ -342,6 +342,9 @@ function RichTextEditor({ initialContent, onChange }) {
               </FormatIconButton>
               <FormatIconButton onClick={insertDivider} title={t("richTextEditor.divider")}>
                 <Minus size={14} />
+              </FormatIconButton>
+              <FormatIconButton active={blockType === "quote"} onClick={() => setBlockType("quote")} title={t("richTextEditor.quote")}>
+                <Quote size={14} />
               </FormatIconButton>
             </div>
           </div>

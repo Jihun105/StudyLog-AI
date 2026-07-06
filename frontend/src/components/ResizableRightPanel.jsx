@@ -147,7 +147,7 @@ function ResizableRightPanel({
       <div
         ref={panelRef}
         style={{ width: `${width}px` }}
-        className={`shrink-0 bg-white dark:bg-gray-800 border-l border-gray-100 dark:border-gray-700 overflow-y-auto overflow-x-auto min-w-0 ${className}`}
+        className={`shrink-0 bg-gray-50 dark:bg-gray-900 border-l border-gray-200 dark:border-gray-800 overflow-y-auto overflow-x-auto min-w-0 ${className}`}
       >
         {children}
       </div>

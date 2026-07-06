@@ -135,8 +135,8 @@ function CategoryItem({
       <div
         className={`flex items-center justify-between px-2 py-1.5 rounded-lg cursor-pointer group text-sm
           ${isSelected
-            ? "bg-blue-50 text-blue-600 font-medium dark:bg-blue-500/10 dark:text-blue-400"
-            : "text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700/60"}
+            ? "bg-blue-100 text-blue-600 font-medium dark:bg-blue-500/10 dark:text-blue-400"
+            : "text-gray-600 hover:bg-gray-200 dark:text-gray-300 dark:hover:bg-gray-700/60"}
           ${isDragOverThis && dragOver?.zone === "before" ? "border-t-2 border-blue-500" : "border-t-2 border-transparent"}
           ${isDragOverThis && dragOver?.zone === "after" ? "border-b-2 border-blue-500" : "border-b-2 border-transparent"}
           ${isDragOverThis && dragOver?.zone === "into" ? "ring-2 ring-inset ring-blue-400" : ""}`}
@@ -515,8 +515,10 @@ function Sidebar({ selectedCategoryId, onSelectCategory, onCollapse }) {
     { label: t("sidebar.todo"), icon: <ListTodo size={16} />, path: "/todos" },
   ];
 
+  // 참고 이미지는 사이드바가 캔버스보다 한 톤 더 짙어서 영역이 뚜렷이 구분됨 -
+  // 지금까진 캔버스랑 완전히 같은 톤(gray-50)이라 경계가 안 보였음
   return (
-    <div className="w-full h-full bg-white dark:bg-gray-800 border-r border-gray-100 dark:border-gray-700 flex flex-col">
+    <div className="sidebar-root w-full h-full bg-gray-100 dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 flex flex-col">
       {/* 로고 */}
       <div className="px-5 py-5">
         <div className="flex items-center gap-3">
@@ -526,7 +528,7 @@ function Sidebar({ selectedCategoryId, onSelectCategory, onCollapse }) {
               : (user?.nickname?.[0] || "S")}
           </div>
           <div className="flex-1 min-w-0">
-            <div className="font-bold text-gray-800 dark:text-gray-100 text-sm truncate">{t("common.appName")}</div>
+            <div className="font-serif font-bold text-gray-800 dark:text-gray-100 text-sm truncate">{t("common.appName")}</div>
             <div className="text-xs text-gray-400 dark:text-gray-500">{t("sidebar.premiumPlan")}</div>
           </div>
           {onCollapse && (
@@ -549,8 +551,8 @@ function Sidebar({ selectedCategoryId, onSelectCategory, onCollapse }) {
             onClick={() => navigate(item.path)}
             className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors mb-0.5
               ${location.pathname === item.path
-                ? "bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400"
-                : "text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-700/60 dark:hover:text-gray-200"}`}
+                ? "bg-blue-100 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400"
+                : "text-gray-500 hover:bg-gray-200 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-700/60 dark:hover:text-gray-200"}`}
           >
             <span className="shrink-0">{item.icon}</span>
             <span>{item.label}</span>
@@ -597,8 +599,8 @@ function Sidebar({ selectedCategoryId, onSelectCategory, onCollapse }) {
           onClick={() => onSelectCategory?.(null)}
           className={`w-full flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-sm mb-0.5 transition-colors
             ${selectedCategoryId === null
-              ? "bg-blue-50 text-blue-600 font-medium dark:bg-blue-500/10 dark:text-blue-400"
-              : "text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700/60"}`}
+              ? "bg-blue-100 text-blue-600 font-medium dark:bg-blue-500/10 dark:text-blue-400"
+              : "text-gray-500 hover:bg-gray-200 dark:text-gray-400 dark:hover:bg-gray-700/60"}`}
         >
           <span className="w-3 shrink-0" />
           <ClipboardList size={14} className="shrink-0" />
@@ -611,8 +613,8 @@ function Sidebar({ selectedCategoryId, onSelectCategory, onCollapse }) {
           onClick={() => navigate("/folders")}
           className={`w-full flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-sm mb-0.5 transition-colors
             ${location.pathname === "/folders"
-              ? "bg-blue-50 text-blue-600 font-medium dark:bg-blue-500/10 dark:text-blue-400"
-              : "text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700/60"}`}
+              ? "bg-blue-100 text-blue-600 font-medium dark:bg-blue-500/10 dark:text-blue-400"
+              : "text-gray-500 hover:bg-gray-200 dark:text-gray-400 dark:hover:bg-gray-700/60"}`}
         >
           <span className="w-3 shrink-0" />
           <FolderTree size={14} className="shrink-0" />
@@ -681,7 +683,7 @@ function Sidebar({ selectedCategoryId, onSelectCategory, onCollapse }) {
               <button onClick={handleAddRoot}
                 className="text-xs bg-blue-500 text-white px-2 py-1 rounded-lg hover:bg-blue-600">{t("sidebar.add")}</button>
               <button onClick={() => setIsAdding(false)}
-                className="text-xs text-gray-500 dark:text-gray-400 px-2 py-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700/60">{t("sidebar.cancel")}</button>
+                className="text-xs text-gray-500 dark:text-gray-400 px-2 py-1 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700/60">{t("sidebar.cancel")}</button>
             </div>
           </div>
         )}
@@ -693,8 +695,8 @@ function Sidebar({ selectedCategoryId, onSelectCategory, onCollapse }) {
           onClick={() => navigate("/settings")}
           className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm mb-0.5 transition-colors
             ${location.pathname === "/settings"
-              ? "bg-blue-50 text-blue-600 font-medium dark:bg-blue-500/10 dark:text-blue-400"
-              : "text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700/60"}`}
+              ? "bg-blue-100 text-blue-600 font-medium dark:bg-blue-500/10 dark:text-blue-400"
+              : "text-gray-500 hover:bg-gray-200 dark:text-gray-400 dark:hover:bg-gray-700/60"}`}
         >
           <Settings size={16} /> {t("sidebar.settings")}
         </button>

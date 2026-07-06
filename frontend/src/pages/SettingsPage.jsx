@@ -110,7 +110,7 @@ function SettingsPage() {
   return (
     <SidebarLayout selectedCategoryId={null} onSelectCategory={handleGoToNotes}>
       <div className="flex-1 overflow-y-auto bg-gray-50 dark:bg-gray-900">
-        <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 px-8 py-4 flex items-center z-10">
+        <div className="sticky top-0 bg-gray-50/90 dark:bg-gray-900/90 backdrop-blur-sm border-b border-gray-200 dark:border-gray-800 px-8 py-4 flex items-center z-10">
           <div className="flex items-center gap-2">
             <SidebarSpacer />
             <h1 className="text-lg font-bold text-gray-800 dark:text-gray-100">{t("settings.title")}</h1>
