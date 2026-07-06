@@ -9,7 +9,7 @@ import { useCreateBlockNote } from "@blocknote/react";
 import { BlockNoteView } from "@blocknote/mantine";
 import "@blocknote/core/fonts/inter.css";
 import "@blocknote/mantine/style.css";
-import { codeBlockConfig } from "../lib/editorSchema";
+import { getCodeBlockConfig } from "../lib/editorSchema";
 import {
   BrainCircuit, CheckCircle2, XCircle, Loader2, RotateCcw, FileText, ArrowLeft, Search, X, Maximize2, Minimize2, ChevronDown
 } from "lucide-react";
@@ -58,8 +58,8 @@ function scopeToSelectedCategoryId(scope) {
 // 우측 패널에서 노트 내용을 읽기 전용으로 보여주는 하위 컴포넌트
 // (BlockNote 에디터 훅은 조건부로 뗐다 붙였다 할 수 없어서 별도 컴포넌트로 분리)
 function NotePreview({ post }) {
-  const editor = useCreateBlockNote({ codeBlock: codeBlockConfig });
   const { theme } = useTheme();
+  const editor = useCreateBlockNote({ codeBlock: getCodeBlockConfig(theme) });
 
   useEffect(() => {
     if (!editor || !post?.content) return;

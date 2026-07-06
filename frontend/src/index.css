@@ -3,7 +3,15 @@
 @tailwind utilities;
 
 /* gray/blue 팔레트의 실제 색상값을 CSS 변수로 분리해둠 (tailwind.config.js에서
-   gray-50~950 / blue-50~950을 전부 var(--color-...)로 참조하게 해뒀음).
+   gray-50~950 / blue-50~950을 전부 rgb(var(--color-...) / <alpha-value>)로 참조하게
+   해뒀음). 값 자체는 "R G B" 형식(스페이스로 구분된 십진수, # 없음)으로 저장함 -
+   순수 hex 문자열(#rrggbb)로 저장하면 bg-blue-500/10 같은 "투명도가 붙은" 유틸리티를
+   tailwind가 아예 생성을 못 하고 조용히 버려버리는 문제가 있었음(실제로 빌드해서 확인함
+   - bg-blue-900/30처럼 슬래시 투명도가 붙으면 결과 CSS에 규칙 자체가 안 나타남).
+   "R G B" 형식으로 저장하고 rgb(var(...) / <alpha-value>) 패턴을 쓰면 투명도 붙은
+   유틸리티도 정상적으로 rgb(R G B / 0.3) 같은 값을 만들어냄 - 이게 이 프로젝트에서
+   실제로 있었던 "다크모드에서 선택 표시가 흰 박스로 뜨는" 버그(할 일 시간 선택기 등)의
+   진짜 원인이었음.
    :root(라이트모드)는 기존 아이보리/네이비 값을 그대로 유지하고, .dark 스코프에서만
    gray/blue 둘 다 새 다크 팔레트("Metallic Industrial" - Primary #E2E4E9/Secondary
    #A8A9AD/Tertiary #1A1C1E/Neutral #787777 기준, blue는 참고 이미지에 색 강조가 전혀
@@ -12,29 +20,29 @@
    하나도 안 고쳐도 전부 새 다크 팔레트를 자동으로 쓰게 됨 (구체적인 dark 값은
    아래 .dark 블록 참고) */
 :root {
-  --color-gray-50: #f9f7f2;
-  --color-gray-100: #efece5;
-  --color-gray-200: #e5e1d8;
-  --color-gray-300: #c7beac;
-  --color-gray-400: #a99c82;
-  --color-gray-500: #85795f;
-  --color-gray-600: #655a45;
-  --color-gray-700: #4a4132;
-  --color-gray-800: #2e2820;
-  --color-gray-900: #1c1810;
-  --color-gray-950: #100d08;
+  --color-gray-50: 249 247 242;
+  --color-gray-100: 239 236 229;
+  --color-gray-200: 229 225 216;
+  --color-gray-300: 199 190 172;
+  --color-gray-400: 169 156 130;
+  --color-gray-500: 133 121 95;
+  --color-gray-600: 101 90 69;
+  --color-gray-700: 74 65 50;
+  --color-gray-800: 46 40 32;
+  --color-gray-900: 28 24 16;
+  --color-gray-950: 16 13 8;
 
-  --color-blue-50: #eef0f2;
-  --color-blue-100: #dcdfe3;
-  --color-blue-200: #b9c0c9;
-  --color-blue-300: #8894a3;
-  --color-blue-400: #7183a5;
-  --color-blue-500: #3d4f68;
-  --color-blue-600: #203047;
-  --color-blue-700: #162232;
-  --color-blue-800: #0f1723;
-  --color-blue-900: #0a1018;
-  --color-blue-950: #060a0f;
+  --color-blue-50: 238 240 242;
+  --color-blue-100: 220 223 227;
+  --color-blue-200: 185 192 201;
+  --color-blue-300: 136 148 163;
+  --color-blue-400: 113 131 165;
+  --color-blue-500: 61 79 104;
+  --color-blue-600: 32 48 71;
+  --color-blue-700: 22 34 50;
+  --color-blue-800: 15 23 35;
+  --color-blue-900: 10 16 24;
+  --color-blue-950: 6 10 15;
 }
 
 .dark {
@@ -43,17 +51,17 @@
      (처음엔 800/900이 너무 붙어있어서 카드와 배경이 거의 구분이 안 되는 문제가 있었음 -
      카드로 쓰이는 800을 눈에 띄게 밝히고, 테두리로 쓰이는 700도 좀 더 밝혀서
      카드 영역이 배경 위에 확실히 "떠 보이도록" 대비를 키움) */
-  --color-gray-50: #f4f5f7;
-  --color-gray-100: #e2e4e9;
-  --color-gray-200: #c5c7cc;
-  --color-gray-300: #a8a9ad;
-  --color-gray-400: #8f8f8d;
-  --color-gray-500: #787777;
-  --color-gray-600: #55565a;
-  --color-gray-700: #45474b;
-  --color-gray-800: #303236;
-  --color-gray-900: #1a1c1e;
-  --color-gray-950: #101113;
+  --color-gray-50: 244 245 247;
+  --color-gray-100: 226 228 233;
+  --color-gray-200: 197 199 204;
+  --color-gray-300: 168 169 173;
+  --color-gray-400: 143 143 141;
+  --color-gray-500: 120 119 119;
+  --color-gray-600: 85 86 90;
+  --color-gray-700: 69 71 75;
+  --color-gray-800: 48 50 54;
+  --color-gray-900: 26 28 30;
+  --color-gray-950: 16 17 19;
 
   /* 참고 이미지의 다크모드는 파란 강조색이 전혀 없는 완전 흑백/그레이스케일
      ("Metallic Industrial") 톤이라, blue 팔레트도 다크모드에서는 gray와 동일한
@@ -67,7 +75,7 @@
   --color-blue-500: var(--color-gray-400);
   --color-blue-600: var(--color-gray-700);
   --color-blue-700: var(--color-gray-800);
-  --color-blue-800: var(--color-gray-850, #1e1f21);
+  --color-blue-800: 30 31 33;
   --color-blue-900: var(--color-gray-900);
   --color-blue-950: var(--color-gray-950);
 }
@@ -190,7 +198,7 @@ button, .text-xs, button * {
    에디터(라이브러리 자체 색) 순으로 톤이 어긋나 보이는 문제가 있었음. 에디터 배경도
    카드와 같은 gray-800로 맞춰서 하나의 "종이" 영역처럼 이어지도록 함 */
 .dark .bn-editor, .dark .bn-default-styles {
-  background-color: var(--color-gray-800) !important;
+  background-color: rgb(var(--color-gray-800)) !important;
 }
 
 /* BlockNote 에디터 최소 높이 */
@@ -226,30 +234,36 @@ button, .text-xs, button * {
   font-size: 1.05rem;
 }
 
-/* 코드 블록 배경색 - 위 인용구(quote) 배경과 똑같은 색으로 맞춰서 노트 안에서
-   같은 계열의 "박스" 요소로 통일감 있게 보이도록 함.
-   (글자색은 여기서 강제로 지정하지 않음 - lib/editorSchema.js에서 shiki 하이라이터의
-   테마 순서를 github-light가 먼저 오도록 맞춰서, 코드 안의 각 토큰이 원래 의도된
-   구문 강조 색(키워드/문자열/주석 등 여러 색)으로 이 밝은 배경 위에서도 잘 보이도록
-   했음. 예전엔 여기서 전부 검정 한 가지 색으로 강제 통일했었는데, 그러면 구문 강조가
-   아예 안 보이는 문제가 있어서 뺌) */
+/* 코드 블록 배경색 - 라이트모드는 위 인용구(quote) 배경과 똑같은 색으로 맞춰서 노트 안에서
+   같은 계열의 "박스" 요소로 통일감 있게 보이도록 함. 다크모드는 검정으로 지정.
+   (글자색은 여기서 강제로 지정하지 않음 - lib/editorSchema.js의 getCodeBlockConfig가
+   지금 라이트/다크 모드에 맞는 shiki 테마를 첫 번째로 골라 넘겨줘서, 코드 안의 각 토큰이
+   그 배경에 맞는 구문 강조 색(키워드/문자열/주석 등 여러 색)으로 잘 보이도록 함.
+   예전엔 여기서 전부 검정 한 가지 색으로 강제 통일했었는데, 그러면 구문 강조가 아예 안
+   보이는 문제가 있어서 뺌) */
 .bn-block-content[data-content-type="codeBlock"] {
   background-color: #f9f7f2 !important;
 }
 
 .dark .bn-block-content[data-content-type="codeBlock"] {
-  background-color: #f9f7f2 !important;
+  background-color: #000000 !important;
 }
 
-/* 코드 블록 왼쪽 위의 언어 선택 드롭다운 - 코드 블록 배경을 다크모드에서도 항상
-   밝은 톤으로 고정했으므로(위 참고), select 글자색도 라이트/다크 구분 없이 항상
-   어두운 톤 하나로 통일 */
+/* 코드 블록 왼쪽 위의 언어 선택 드롭다운 - 라이트모드는 밝은 배경에 맞춰 어두운 글자,
+   다크모드는 검정 배경에 맞춰 밝은 글자로 반대로 지정 */
 .bn-block-content[data-content-type="codeBlock"] select {
   color: #000000 !important;
 }
 .bn-block-content[data-content-type="codeBlock"] select option {
   background-color: #f9f7f2 !important;
   color: #2e2820 !important;
+}
+.dark .bn-block-content[data-content-type="codeBlock"] select {
+  color: #e2e4e9 !important;
+}
+.dark .bn-block-content[data-content-type="codeBlock"] select option {
+  background-color: #000000 !important;
+  color: #e2e4e9 !important;
 }
 
 /* 코드 블록 폰트 크기 축소 (기본값이 16px 모노스페이스라 유난히 크게 보임) */
@@ -259,19 +273,23 @@ button, .text-xs, button * {
   line-height: 1.5 !important;
 }
 
-/* 코드 블록이 길어도 페이지 전체가 옆으로 늘어나지 않고, 코드 블록 안에서만 가로 스크롤
-   되도록 함. BlockNote 기본 CSS가 pre에 overflow-x:auto를 걸어두긴 하지만, pre가
-   flex 아이템(.bn-block-content가 display:flex)인데 min-width:0이 빠져 있어서 flexbox가
-   줄어들지 못하게 막아버림 -> overflow 규칙이 무시되고 코드 블록 전체가 옆으로 계속 늘어나면서
-   페이지 전체를 밀어냈던 게 진짜 원인. min-width:0을 추가해서 flex 아이템이 실제로
-   줄어들 수 있게 해야 overflow-x:auto가 제대로 동작함 */
+/* 코드 블록이 길어도 페이지 전체가 옆으로 늘어나지 않도록 함. BlockNote 기본 CSS가
+   pre에 overflow-x:auto를 걸어두긴 하지만, pre가 flex 아이템(.bn-block-content가
+   display:flex)인데 min-width:0이 빠져 있어서 flexbox가 줄어들지 못하게 막아버림
+   -> overflow 규칙이 무시되고 코드 블록 전체가 옆으로 계속 늘어나면서 페이지 전체를
+   밀어냈던 게 진짜 원인. min-width:0을 추가해서 flex 아이템이 실제로 줄어들 수 있게 함.
+   (우측 AI 패널을 열어서 본문 폭이 좁아지면, 긴 코드 줄이 가로 스크롤 없이는 오른쪽이
+   가려서 안 보이는 문제가 있었음 - 가로 스크롤 대신 줄바꿈으로 바꿔서, 줄이 길어도
+   전부 화면 안에서 보이도록 함. white-space: pre-wrap이라 들여쓰기/줄바꿈은 그대로 유지되고
+   "넘치는 부분만" 다음 줄로 내려감) */
 .bn-block-content {
   min-width: 0;
 }
 .bn-block-content[data-content-type="codeBlock"] pre {
   min-width: 0 !important;
-  overflow-x: auto !important;
   max-width: 100%;
+  white-space: pre-wrap !important;
+  overflow-wrap: anywhere !important;
 }
 
 /* 브라우저 자동완성(로그인/회원가입 등) 시 입력창이 흰색/노란색으로 강제 표시되는 것 방지 */
@@ -287,17 +305,17 @@ input:-webkit-autofill:focus {
 .dark input:-webkit-autofill,
 .dark input:-webkit-autofill:hover,
 .dark input:-webkit-autofill:focus {
-  -webkit-box-shadow: 0 0 0px 1000px var(--color-gray-800) inset !important;
-  box-shadow: 0 0 0px 1000px var(--color-gray-800) inset !important;
-  -webkit-text-fill-color: var(--color-gray-100) !important;
+  -webkit-box-shadow: 0 0 0px 1000px rgb(var(--color-gray-800)) inset !important;
+  box-shadow: 0 0 0px 1000px rgb(var(--color-gray-800)) inset !important;
+  -webkit-text-fill-color: rgb(var(--color-gray-100)) !important;
 }
 
 /* 스크롤바 스타일 - 위의 gray 팔레트(아이보리 톤)와 맞춤. 다크모드는 CSS 변수가
    자동으로 Metallic Industrial 팔레트로 바뀌므로 별도 다크 규칙 없이도 맞게 나옴 */
 ::-webkit-scrollbar { width: 6px; }
-::-webkit-scrollbar-track { background: var(--color-gray-100); }
-::-webkit-scrollbar-thumb { background: var(--color-gray-300); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: var(--color-gray-400); }
+::-webkit-scrollbar-track { background: rgb(var(--color-gray-100)); }
+::-webkit-scrollbar-thumb { background: rgb(var(--color-gray-300)); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgb(var(--color-gray-400)); }
 
 /* ============================================================
    다크모드 전용 "Metallic Industrial" 장식 요소 - 참고 이미지(Memoir 앱)의
@@ -323,14 +341,14 @@ input:-webkit-autofill:focus {
 .dark .corner-bracket::before {
   top: -1px;
   left: -1px;
-  border-top: 1.5px solid var(--color-gray-400);
-  border-left: 1.5px solid var(--color-gray-400);
+  border-top: 1.5px solid rgb(var(--color-gray-400));
+  border-left: 1.5px solid rgb(var(--color-gray-400));
 }
 .dark .corner-bracket::after {
   bottom: -1px;
   right: -1px;
-  border-bottom: 1.5px solid var(--color-gray-400);
-  border-right: 1.5px solid var(--color-gray-400);
+  border-bottom: 1.5px solid rgb(var(--color-gray-400));
+  border-right: 1.5px solid rgb(var(--color-gray-400));
 }
 
 /* 캔버스 전체에 까는 미세한 그리드 배경 텍스처 */
@@ -346,7 +364,7 @@ input:-webkit-autofill:focus {
   font-family: 'JetBrains Mono', 'Nanum Gothic Coding', monospace;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: var(--color-gray-500);
+  color: rgb(var(--color-gray-500));
 }
 
 /* "COMMIT" 버튼처럼 배경 없이 얇은 테두리 + 모노 라벨만 있는 아웃라인 버튼 */
@@ -354,12 +372,12 @@ input:-webkit-autofill:focus {
   font-family: 'JetBrains Mono', 'Nanum Gothic Coding', monospace;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  background-color: var(--color-gray-800);
-  border: 1px solid var(--color-gray-600);
-  color: var(--color-gray-200);
+  background-color: rgb(var(--color-gray-800));
+  border: 1px solid rgb(var(--color-gray-600));
+  color: rgb(var(--color-gray-200));
   transition: background-color 0.15s, border-color 0.15s;
 }
 .dark .btn-outline-mono:hover {
-  background-color: var(--color-gray-700);
-  border-color: var(--color-gray-500);
+  background-color: rgb(var(--color-gray-700));
+  border-color: rgb(var(--color-gray-500));
 }

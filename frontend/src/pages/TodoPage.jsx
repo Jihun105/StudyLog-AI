@@ -1009,8 +1009,8 @@ function TodoPage() {
             {TIMETABLE_HOURS.map((hour) => {
               const items = timetableItemsByHour[hour] || [];
               return (
-                <div key={hour} className="flex items-start gap-2 border-b border-gray-50 dark:border-gray-700/40 py-1.5 min-h-[40px]">
-                  <span className="text-[11px] text-gray-400 dark:text-gray-500 w-14 shrink-0 pt-0.5">
+                <div key={hour} className="flex items-start gap-2 border-b border-gray-50 dark:border-transparent py-1.5 min-h-[40px]">
+                  <span className="text-[11px] text-gray-400 dark:text-gray-100 w-14 shrink-0 pt-0.5">
                     {formatTimetableHourLabel(hour, i18n.language)}
                   </span>
                   <div className="flex-1 min-w-0 flex flex-col gap-1">

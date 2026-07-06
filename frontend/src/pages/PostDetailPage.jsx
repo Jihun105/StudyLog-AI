@@ -9,7 +9,7 @@ import { useCreateBlockNote } from "@blocknote/react";
 import { BlockNoteView } from "@blocknote/mantine";
 import "@blocknote/core/fonts/inter.css";
 import "@blocknote/mantine/style.css";
-import { codeBlockConfig } from "../lib/editorSchema";
+import { getCodeBlockConfig } from "../lib/editorSchema";
 import {
   Sparkles, MessageSquare, BrainCircuit, Calendar, Lock, ChevronRight, Send,
   History, Plus, Loader2
@@ -79,7 +79,7 @@ function PostDetailPage() {
   const [loadingHistory, setLoadingHistory] = useState(false);
 
   // 읽기 전용 BlockNote 에디터
-  const editor = useCreateBlockNote({ codeBlock: codeBlockConfig });
+  const editor = useCreateBlockNote({ codeBlock: getCodeBlockConfig(theme) });
 
   useEffect(() => {
     const fetchPost = async () => {

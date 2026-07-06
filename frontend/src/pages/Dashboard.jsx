@@ -11,10 +11,22 @@ import SidebarLayout, { SidebarSpacer } from "../components/SidebarLayout";
 import NoteCarousel from "../components/NoteCarousel";
 import {
   Plus, BrainCircuit, ArrowRight, NotebookText, FolderTree, CheckCircle2, Circle, ListTodo,
-  Camera, FileWarning,
+  Camera, FileWarning, Folder,
 } from "lucide-react";
 
 const PRIORITY_DOT = { low: "bg-gray-400 dark:bg-gray-500", medium: "bg-amber-500", high: "bg-red-500" };
+
+// 카테고리 트리에서 id로 이름 찾기 (HomePage.jsx와 동일한 로직 - 최근 노트 카드에 폴더명을 보여주기 위함)
+function findCategoryName(categories, id) {
+  for (const category of categories) {
+    if (category.id === id) return category.name;
+    if (category.children?.length > 0) {
+      const found = findCategoryName(category.children, id);
+      if (found) return found;
+    }
+  }
+  return null;
+}
 
 // 참고 이미지의 대시보드는 카드 아이콘에 색색깔 배지 없이 잉크색 하나로 통일돼 있어서,
 // blue/purple/amber 구분 없이 전부 같은 무채색 톤으로 맞춤(호출부의 color prop은 그대로 둠)
@@ -62,6 +74,7 @@ function Dashboard() {
   const navigate = useNavigate();
   const [totalNotes, setTotalNotes] = useState(null);
   const [categoryCount, setCategoryCount] = useState(null);
+  const [categories, setCategories] = useState([]); // 최근 노트 카드에 폴더명을 보여주기 위해 트리 그대로 보관
   const [recentPosts, setRecentPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeNoteIndex, setActiveNoteIndex] = useState(0); // 최근 노트 캐러셀에서 가운데(활성) 카드 인덱스
@@ -79,13 +92,14 @@ function Dashboard() {
     const load = async () => {
       setLoading(true);
       try {
-        const [postsData, categories] = await Promise.all([
+        const [postsData, categoriesData] = await Promise.all([
           getPosts(1, 10, null, null, token, null),
           getCategories(token),
         ]);
         setTotalNotes(postsData.total);
         setRecentPosts(postsData.posts);
-        setCategoryCount(countCategories(categories));
+        setCategoryCount(countCategories(categoriesData));
+        setCategories(categoriesData);
       } catch (error) {
         // 무시 (요약 통계는 참고용이라 실패해도 페이지는 그대로 보여줌)
       } finally {
@@ -290,7 +304,32 @@ function Dashboard() {
                       content: (
                         <div className="corner-bracket w-full h-full bg-gray-100 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 flex flex-col shadow-sm hover:shadow-md hover:border-blue-100 dark:hover:border-blue-500/40 transition-shadow">
                           <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-2 truncate">{post.title}</h3>
+                          <hr className="border-gray-200 dark:border-gray-700 mb-2" />
                           <p className="text-gray-400 dark:text-gray-500 text-xs line-clamp-4">{post.preview}</p>
+
+                          {/* 맨 아래: 어느 폴더인지 + 태그. mt-auto로 카드 하단에 고정 */}
+                          <div className="mt-auto pt-3 border-t border-gray-200 dark:border-gray-700 flex flex-col gap-1.5">
+                            <div className="flex items-center gap-1 text-xs text-gray-400 dark:text-gray-500 min-w-0">
+                              <Folder size={11} className="shrink-0" />
+                              <span className="truncate">
+                                {post.category_id
+                                  ? (findCategoryName(categories, post.category_id) || t("notes.categoryPrefix"))
+                                  : t("notes.uncategorized")}
+                              </span>
+                            </div>
+                            {post.tags.length > 0 && (
+                              <div className="flex items-center gap-1 flex-wrap">
+                                {post.tags.slice(0, 3).map((tag) => (
+                                  <span
+                                    key={tag}
+                                    className="text-[10px] bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 px-2 py-0.5 rounded-full"
+                                  >
+                                    # {tag}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                          </div>
                         </div>
                       ),
                     })),

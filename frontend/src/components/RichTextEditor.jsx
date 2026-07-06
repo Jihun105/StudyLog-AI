@@ -11,7 +11,7 @@ import {
   Heading1, Heading2, Heading3, Pilcrow, List, ListOrdered, ListChecks,
   Table, Image as ImageIcon, PanelRight, ListTree, Minus, X, Quote,
 } from "lucide-react";
-import { codeBlockConfig } from "../lib/editorSchema";
+import { getCodeBlockConfig } from "../lib/editorSchema";
 import { useTheme } from "../context/ThemeContext";
 import { useAuth } from "../context/AuthContext";
 import { uploadImage } from "../api/uploads";
@@ -107,7 +107,9 @@ function RichTextEditor({ initialContent, onChange }) {
 
   const editor = useCreateBlockNote({
     schema: editorSchema,
-    codeBlock: codeBlockConfig,
+    // 코드 블록 하이라이터는 에디터를 처음 만들 때의 라이트/다크 상태를 기준으로 고정됨
+    // (에디터를 만든 뒤 테마를 토글해도 실시간으로 안 바뀜 - editorSchema.js 참고)
+    codeBlock: getCodeBlockConfig(theme),
     initialContent: parsedInitial,
     // 이미지/파일 블록에서 "업로드" 버튼, 드래그&드롭, 붙여넣기로 사진을 넣을 수 있게 함
     uploadFile: async (file) => uploadImage(file, token),

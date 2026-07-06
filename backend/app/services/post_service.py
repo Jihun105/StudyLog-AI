@@ -71,7 +71,7 @@ async def get_posts(page: int, limit: int, db: AsyncSession, keyword: str = None
             {
                 "id": post.id,
                 "title": post.title,
-                "preview": extract_text_from_blocknote(post.content)[:100],
+                "preview": extract_text_from_blocknote(post.content)[:300],
                 "nickname": post.user.nickname,
                 "tags": [tag.name for tag in post.tags],
                 "created_at": post.created_at,

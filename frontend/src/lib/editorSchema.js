@@ -38,18 +38,23 @@ function withGreenComments(theme) {
 const githubLightWithGreenComments = withGreenComments(githubLightTheme);
 const githubDarkWithGreenComments = withGreenComments(githubDarkTheme);
 
-export const codeBlockConfig = {
-  defaultLanguage: "javascript",
-  supportedLanguages,
-  // BlockNote/prosemirror-highlight는 실제로 강조할 때 이 배열 중 "첫 번째" 테마만
-  // 씀(라이트/다크 모드에 따라 자동으로 안 바뀜). 코드 블록 배경을 밝은 아이보리 톤으로
-  // 쓰고 있어서, 어두운 배경 기준 팔레트인 github-dark가 첫 번째면 글자색(연한 톤)이
-  // 밝은 배경 위에서 거의 안 보임 - 그래서 밝은 배경에 맞는 github-light를 첫 번째로 둠.
-  // 문자열 이름 대신 위에서 주석 색을 바꿔둔 테마 객체를 직접 넘김(shiki가 문자열/객체
-  // 둘 다 지원함)
-  createHighlighter: () =>
-    createHighlighter({
-      themes: [githubLightWithGreenComments, githubDarkWithGreenComments],
-      langs: [],
-    }),
-};
+// BlockNote/prosemirror-highlight는 실제로 강조할 때 themes 배열 중 "첫 번째" 테마만
+// 씀(라이트/다크 모드에 따라 자동으로 안 바뀜) - 그래서 코드 블록 배경이 밝은지 어두운지에
+// 맞는 테마를 첫 번째로 둬야 함(어두운 배경엔 github-dark, 밝은 배경엔 github-light).
+// 문자열 이름 대신 위에서 주석 색을 바꿔둔 테마 객체를 직접 넘김(shiki가 문자열/객체 둘 다 지원함).
+// appTheme("light"|"dark")는 에디터를 처음 만들 때(useCreateBlockNote 호출 시점) 한 번만
+// 반영됨 - 에디터를 만든 후에 라이트/다크를 토글해도 이미 만들어진 하이라이터가 실시간으로
+// 안 바뀌는 건 라이브러리 자체의 제약(위 getLoadedThemes()[0] 참고)이라 어쩔 수 없음
+export function getCodeBlockConfig(appTheme) {
+  const themes = appTheme === "dark"
+    ? [githubDarkWithGreenComments, githubLightWithGreenComments]
+    : [githubLightWithGreenComments, githubDarkWithGreenComments];
+  return {
+    defaultLanguage: "javascript",
+    supportedLanguages,
+    createHighlighter: () => createHighlighter({ themes, langs: [] }),
+  };
+}
+
+// 하위 호환용 - appTheme을 모르는 호출부는 계속 라이트 기준으로 동작
+export const codeBlockConfig = getCodeBlockConfig("light");
