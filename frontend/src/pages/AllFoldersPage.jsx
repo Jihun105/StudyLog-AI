@@ -155,7 +155,7 @@ function AllFoldersPage() {
                     <div
                       key={post.id}
                       onClick={() => navigate(`/posts/${post.id}`)}
-                      className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-4 cursor-pointer hover:shadow-md hover:border-blue-100 dark:hover:border-blue-500/40 transition-all"
+                      className="corner-bracket bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-4 cursor-pointer hover:shadow-md hover:border-blue-100 dark:hover:border-blue-500/40 transition-all"
                     >
                       <div className="text-xs text-gray-400 dark:text-gray-500 mb-2 flex items-center gap-1">
                         <FileText size={12} />

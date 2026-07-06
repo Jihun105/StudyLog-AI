@@ -45,12 +45,12 @@ function countCategories(categories) {
 // 통계 카드 하나 (전체 노트 / 카테고리 / 오답노트)
 function StatCard({ icon: Icon, color, label, value, soon, t }) {
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-4 flex flex-col gap-2">
+    <div className="corner-bracket bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-4 flex flex-col gap-2">
       <div className={`w-8 h-8 flex items-center justify-center shrink-0 ${STAT_COLOR[color]}`}>
         <Icon size={16} />
       </div>
       <div className="text-xl font-bold text-gray-800 dark:text-gray-100">{value}</div>
-      <div className="font-mono text-xs text-gray-400 dark:text-gray-500">{label}</div>
+      <div className="terminal-label text-xs text-gray-400 dark:text-gray-500">{label}</div>
       {soon && <div className="text-[10px] text-gray-300 dark:text-gray-600">{t("documents.comingSoon")}</div>}
     </div>
   );
@@ -170,7 +170,7 @@ function Dashboard() {
 
   return (
     <SidebarLayout selectedCategoryId={null} onSelectCategory={handleSelectCategory}>
-      <div className="flex-1 overflow-y-auto bg-gray-50 dark:bg-gray-900">
+      <div className="grid-bg flex-1 overflow-y-auto bg-gray-50 dark:bg-gray-900">
         <div className="sticky top-0 bg-gray-50/90 dark:bg-gray-900/90 backdrop-blur-sm border-b border-gray-200 dark:border-gray-800 px-8 py-4 flex items-center justify-between z-10">
           <div className="flex items-center gap-2">
             <SidebarSpacer />
@@ -183,13 +183,13 @@ function Dashboard() {
           <div className="flex items-center gap-3 mb-6">
             <button
               onClick={() => navigate("/posts/create")}
-              className="flex items-center gap-2 bg-blue-600 text-white text-sm font-medium px-4 py-2.5 rounded-lg hover:bg-blue-700 transition-colors"
+              className="flex items-center gap-2 bg-blue-600 text-white dark:bg-gray-100 dark:text-gray-900 text-sm font-medium px-4 py-2.5 rounded-lg hover:bg-blue-700 dark:hover:bg-white transition-colors"
             >
               <Plus size={14} /> {t("dashboard.newNote")}
             </button>
             <button
               onClick={() => navigate("/quiz")}
-              className="flex items-center gap-2 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 text-sm px-4 py-2.5 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700"
+              className="btn-outline-mono flex items-center gap-2 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 text-sm px-4 py-2.5 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700"
             >
               <BrainCircuit size={14} /> {t("dashboard.takeQuiz")}
             </button>
@@ -198,7 +198,7 @@ function Dashboard() {
           {/* 상단: 프로필 카드 + 통계 카드 */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
             {/* 프로필 카드 */}
-            <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-6 flex items-center gap-5">
+            <div className="corner-bracket bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-6 flex items-center gap-5">
               <div className="relative shrink-0">
                 <div className="w-16 h-16 rounded-full overflow-hidden bg-blue-600 flex items-center justify-center text-white text-xl font-bold">
                   {displayPhoto
@@ -276,7 +276,7 @@ function Dashboard() {
                       id: "create-new",
                       onActivate: () => navigate("/posts/create"),
                       content: (
-                        <div className="w-full h-full rounded-xl border border-dashed border-gray-300 dark:border-gray-600 flex flex-col items-center justify-center gap-3 text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-gray-900 hover:border-blue-300 dark:hover:border-blue-500/50 hover:text-blue-500 dark:hover:text-blue-400 transition-colors">
+                        <div className="corner-bracket w-full h-full rounded-xl border border-dashed border-gray-300 dark:border-gray-600 flex flex-col items-center justify-center gap-3 text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-gray-900 hover:border-blue-300 dark:hover:border-blue-500/50 hover:text-blue-500 dark:hover:text-blue-400 transition-colors">
                           <span className="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
                             <Plus size={18} />
                           </span>
@@ -288,8 +288,8 @@ function Dashboard() {
                       id: post.id,
                       onActivate: () => navigate(`/posts/${post.id}`),
                       content: (
-                        <div className="w-full h-full bg-gray-100 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 flex flex-col shadow-sm hover:shadow-md hover:border-blue-100 dark:hover:border-blue-500/40 transition-shadow">
-                          <h3 className="text-base font-semibold text-gray-800 dark:text-gray-100 mb-2 truncate">{post.title}</h3>
+                        <div className="corner-bracket w-full h-full bg-gray-100 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 flex flex-col shadow-sm hover:shadow-md hover:border-blue-100 dark:hover:border-blue-500/40 transition-shadow">
+                          <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-2 truncate">{post.title}</h3>
                           <p className="text-gray-400 dark:text-gray-500 text-xs line-clamp-4">{post.preview}</p>
                         </div>
                       ),
@@ -321,7 +321,7 @@ function Dashboard() {
                   {todayTodos.map((todo) => (
                     <div
                       key={todo.id}
-                      className="flex items-center gap-3 bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 px-4 py-3"
+                      className="corner-bracket flex items-center gap-3 bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 px-4 py-3"
                     >
                       <button onClick={() => handleToggleTodo(todo.id)} className="shrink-0">
                         {todo.is_done

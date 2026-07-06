@@ -135,7 +135,7 @@ function CategoryItem({
       <div
         className={`flex items-center justify-between px-2 py-1.5 rounded-lg cursor-pointer group text-sm
           ${isSelected
-            ? "bg-blue-100 text-blue-600 font-medium dark:bg-blue-500/10 dark:text-blue-400"
+            ? "bg-blue-100 text-blue-600 font-medium dark:bg-transparent dark:text-gray-100 dark:font-semibold"
             : "text-gray-600 hover:bg-gray-200 dark:text-gray-300 dark:hover:bg-gray-700/60"}
           ${isDragOverThis && dragOver?.zone === "before" ? "border-t-2 border-blue-500" : "border-t-2 border-transparent"}
           ${isDragOverThis && dragOver?.zone === "after" ? "border-b-2 border-blue-500" : "border-b-2 border-transparent"}
@@ -529,7 +529,7 @@ function Sidebar({ selectedCategoryId, onSelectCategory, onCollapse }) {
           </div>
           <div className="flex-1 min-w-0">
             <div className="font-serif font-bold text-gray-800 dark:text-gray-100 text-sm truncate">{t("common.appName")}</div>
-            <div className="text-xs text-gray-400 dark:text-gray-500">{t("sidebar.premiumPlan")}</div>
+            <div className="terminal-label text-xs text-gray-400 dark:text-gray-500">{t("sidebar.premiumPlan")}</div>
           </div>
           {onCollapse && (
             <button
@@ -551,7 +551,7 @@ function Sidebar({ selectedCategoryId, onSelectCategory, onCollapse }) {
             onClick={() => navigate(item.path)}
             className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors mb-0.5
               ${location.pathname === item.path
-                ? "bg-blue-100 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400"
+                ? "bg-blue-100 text-blue-600 dark:bg-transparent dark:text-gray-100 dark:font-semibold"
                 : "text-gray-500 hover:bg-gray-200 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-700/60 dark:hover:text-gray-200"}`}
           >
             <span className="shrink-0">{item.icon}</span>
@@ -599,7 +599,7 @@ function Sidebar({ selectedCategoryId, onSelectCategory, onCollapse }) {
           onClick={() => onSelectCategory?.(null)}
           className={`w-full flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-sm mb-0.5 transition-colors
             ${selectedCategoryId === null
-              ? "bg-blue-100 text-blue-600 font-medium dark:bg-blue-500/10 dark:text-blue-400"
+              ? "bg-blue-100 text-blue-600 font-medium dark:bg-transparent dark:text-gray-100 dark:font-semibold"
               : "text-gray-500 hover:bg-gray-200 dark:text-gray-400 dark:hover:bg-gray-700/60"}`}
         >
           <span className="w-3 shrink-0" />
@@ -613,7 +613,7 @@ function Sidebar({ selectedCategoryId, onSelectCategory, onCollapse }) {
           onClick={() => navigate("/folders")}
           className={`w-full flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-sm mb-0.5 transition-colors
             ${location.pathname === "/folders"
-              ? "bg-blue-100 text-blue-600 font-medium dark:bg-blue-500/10 dark:text-blue-400"
+              ? "bg-blue-100 text-blue-600 font-medium dark:bg-transparent dark:text-gray-100 dark:font-semibold"
               : "text-gray-500 hover:bg-gray-200 dark:text-gray-400 dark:hover:bg-gray-700/60"}`}
         >
           <span className="w-3 shrink-0" />
@@ -695,7 +695,7 @@ function Sidebar({ selectedCategoryId, onSelectCategory, onCollapse }) {
           onClick={() => navigate("/settings")}
           className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm mb-0.5 transition-colors
             ${location.pathname === "/settings"
-              ? "bg-blue-100 text-blue-600 font-medium dark:bg-blue-500/10 dark:text-blue-400"
+              ? "bg-blue-100 text-blue-600 font-medium dark:bg-transparent dark:text-gray-100 dark:font-semibold"
               : "text-gray-500 hover:bg-gray-200 dark:text-gray-400 dark:hover:bg-gray-700/60"}`}
         >
           <Settings size={16} /> {t("sidebar.settings")}

@@ -623,7 +623,7 @@ function QuizPage() {
                 <div
                   key={post.id}
                   onClick={() => handleViewPost(post.id)}
-                  className="bg-white dark:bg-gray-800 rounded-lg border border-gray-100 dark:border-gray-700 p-3 cursor-pointer hover:border-blue-200 dark:hover:border-blue-500/40 hover:shadow-sm transition-all"
+                  className="corner-bracket bg-white dark:bg-gray-800 rounded-lg border border-gray-100 dark:border-gray-700 p-3 cursor-pointer hover:border-blue-200 dark:hover:border-blue-500/40 hover:shadow-sm transition-all"
                 >
                   <h4 className="text-sm font-medium text-gray-800 dark:text-gray-100 mb-1 line-clamp-1">{post.title}</h4>
                   <p className="text-xs text-gray-400 dark:text-gray-500 line-clamp-2">{post.preview}</p>

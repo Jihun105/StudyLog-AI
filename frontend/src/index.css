@@ -2,6 +2,76 @@
 @tailwind components;
 @tailwind utilities;
 
+/* gray/blue 팔레트의 실제 색상값을 CSS 변수로 분리해둠 (tailwind.config.js에서
+   gray-50~950 / blue-50~950을 전부 var(--color-...)로 참조하게 해뒀음).
+   :root(라이트모드)는 기존 아이보리/네이비 값을 그대로 유지하고, .dark 스코프에서만
+   gray/blue 둘 다 새 다크 팔레트("Metallic Industrial" - Primary #E2E4E9/Secondary
+   #A8A9AD/Tertiary #1A1C1E/Neutral #787777 기준, blue는 참고 이미지에 색 강조가 전혀
+   없어서 gray와 동일한 값으로 모노크롬화)로 덮어씀. 이렇게 해두면 앱 전체에 이미
+   쓰여있는 dark:bg-gray-900, dark:text-blue-400 같은 클래스들이 컴포넌트 파일을
+   하나도 안 고쳐도 전부 새 다크 팔레트를 자동으로 쓰게 됨 (구체적인 dark 값은
+   아래 .dark 블록 참고) */
+:root {
+  --color-gray-50: #f9f7f2;
+  --color-gray-100: #efece5;
+  --color-gray-200: #e5e1d8;
+  --color-gray-300: #c7beac;
+  --color-gray-400: #a99c82;
+  --color-gray-500: #85795f;
+  --color-gray-600: #655a45;
+  --color-gray-700: #4a4132;
+  --color-gray-800: #2e2820;
+  --color-gray-900: #1c1810;
+  --color-gray-950: #100d08;
+
+  --color-blue-50: #eef0f2;
+  --color-blue-100: #dcdfe3;
+  --color-blue-200: #b9c0c9;
+  --color-blue-300: #8894a3;
+  --color-blue-400: #7183a5;
+  --color-blue-500: #3d4f68;
+  --color-blue-600: #203047;
+  --color-blue-700: #162232;
+  --color-blue-800: #0f1723;
+  --color-blue-900: #0a1018;
+  --color-blue-950: #060a0f;
+}
+
+.dark {
+  /* 100=Primary, 300=Secondary, 500=Neutral, 900=Tertiary는 디자인 토큰 이미지의 값
+     그대로이고, 나머지 단계는 그 사이를 자연스럽게 보간한 값.
+     (처음엔 800/900이 너무 붙어있어서 카드와 배경이 거의 구분이 안 되는 문제가 있었음 -
+     카드로 쓰이는 800을 눈에 띄게 밝히고, 테두리로 쓰이는 700도 좀 더 밝혀서
+     카드 영역이 배경 위에 확실히 "떠 보이도록" 대비를 키움) */
+  --color-gray-50: #f4f5f7;
+  --color-gray-100: #e2e4e9;
+  --color-gray-200: #c5c7cc;
+  --color-gray-300: #a8a9ad;
+  --color-gray-400: #8f8f8d;
+  --color-gray-500: #787777;
+  --color-gray-600: #55565a;
+  --color-gray-700: #45474b;
+  --color-gray-800: #303236;
+  --color-gray-900: #1a1c1e;
+  --color-gray-950: #101113;
+
+  /* 참고 이미지의 다크모드는 파란 강조색이 전혀 없는 완전 흑백/그레이스케일
+     ("Metallic Industrial") 톤이라, blue 팔레트도 다크모드에서는 gray와 동일한
+     값으로 맞춰서 앱 전체의 파란 강조(선택 상태, 포커스 링 등)가 자동으로
+     모노크롬 톤으로 바뀌게 함 */
+  --color-blue-50: var(--color-gray-50);
+  --color-blue-100: var(--color-gray-100);
+  --color-blue-200: var(--color-gray-200);
+  --color-blue-300: var(--color-gray-300);
+  --color-blue-400: var(--color-gray-300);
+  --color-blue-500: var(--color-gray-400);
+  --color-blue-600: var(--color-gray-700);
+  --color-blue-700: var(--color-gray-800);
+  --color-blue-800: var(--color-gray-850, #1e1f21);
+  --color-blue-900: var(--color-gray-900);
+  --color-blue-950: var(--color-gray-950);
+}
+
 /* Inter는 한글 글리프가 없어서 한글이 나오면 브라우저가 다른 폰트(예: 맑은 고딕)로
    자동 대체함. 이때 화살표(→) 같은 라틴/기호 문자는 Inter로, 뒤이은 한글은 다른 폰트로
    그려지면서 두 폰트의 자간 계산이 달라 글자 사이가 벌어져 보임(영어만 치면 계속 Inter로만
@@ -82,6 +152,45 @@ button, .text-xs, button * {
 .app-serif-panel,
 .app-serif-panel * {
   font-family: 'Newsreader', 'Noto Serif KR', Georgia, serif;
+}
+
+/* ============================================================
+   다크모드 전용 "Metallic Industrial" 폰트 - Headline: Geist,
+   Body: Hanken Grotesk. 라이트모드의 Newsreader/Work Sans 규칙은
+   그대로 두고, .dark 스코프에서만 더 높은 특이도로 덮어씀.
+   Label(JetBrains Mono)은 다크/라이트 공통이라 별도 처리 없음.
+   ============================================================ */
+.dark, .dark * {
+  font-family: 'Hanken Grotesk', 'Pretendard', 'Inter', sans-serif;
+}
+.dark h1, .dark h2, .dark h3, .dark h4, .dark h5, .dark h6 {
+  font-family: 'Geist', 'Pretendard', 'Inter', sans-serif;
+}
+.dark .bn-editor [data-content-type="heading"] .bn-inline-content {
+  font-family: 'Geist', 'Pretendard', 'Inter', sans-serif;
+}
+.dark [data-content-type="quote"] blockquote {
+  font-family: 'Geist', 'Pretendard', 'Inter', sans-serif !important;
+}
+/* 사이드바 + app-serif-panel은 "사이드바와 같은 폰트"가 목적이라, 다크모드에서는
+   Newsreader 대신 Geist를 쓰도록 같이 덮어씀 (버튼/모노 라벨 규칙보다 특이도가
+   높아야 해서 클래스 두 개를 겹쳐서 지정) */
+.dark .sidebar-root, .dark .sidebar-root * {
+  font-family: 'Geist', 'Pretendard', 'Inter', sans-serif;
+}
+.dark .app-serif-panel, .dark .app-serif-panel * {
+  font-family: 'Geist', 'Pretendard', 'Inter', sans-serif;
+}
+.dark .bn-editor, .dark .bn-default-styles {
+  font-family: 'Hanken Grotesk', 'Pretendard', 'Inter', sans-serif !important;
+}
+
+/* BlockNoteView에 theme="dark"를 넘기면 라이브러리 자체 다크 테마(우리 팔레트와
+   무관한, 훨씬 더 짙은 고정 배경색)가 적용돼서 캔버스(gray-900) - 카드(gray-800) -
+   에디터(라이브러리 자체 색) 순으로 톤이 어긋나 보이는 문제가 있었음. 에디터 배경도
+   카드와 같은 gray-800로 맞춰서 하나의 "종이" 영역처럼 이어지도록 함 */
+.dark .bn-editor, .dark .bn-default-styles {
+  background-color: var(--color-gray-800) !important;
 }
 
 /* BlockNote 에디터 최소 높이 */
@@ -178,13 +287,79 @@ input:-webkit-autofill:focus {
 .dark input:-webkit-autofill,
 .dark input:-webkit-autofill:hover,
 .dark input:-webkit-autofill:focus {
-  -webkit-box-shadow: 0 0 0px 1000px #2e2820 inset !important;
-  box-shadow: 0 0 0px 1000px #2e2820 inset !important;
-  -webkit-text-fill-color: #efece5 !important;
+  -webkit-box-shadow: 0 0 0px 1000px var(--color-gray-800) inset !important;
+  box-shadow: 0 0 0px 1000px var(--color-gray-800) inset !important;
+  -webkit-text-fill-color: var(--color-gray-100) !important;
 }
 
-/* 스크롤바 스타일 - 위의 gray 팔레트(아이보리 톤)와 맞춤 */
+/* 스크롤바 스타일 - 위의 gray 팔레트(아이보리 톤)와 맞춤. 다크모드는 CSS 변수가
+   자동으로 Metallic Industrial 팔레트로 바뀌므로 별도 다크 규칙 없이도 맞게 나옴 */
 ::-webkit-scrollbar { width: 6px; }
-::-webkit-scrollbar-track { background: #efece5; }
-::-webkit-scrollbar-thumb { background: #c7beac; border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: #a99c82; }
+::-webkit-scrollbar-track { background: var(--color-gray-100); }
+::-webkit-scrollbar-thumb { background: var(--color-gray-300); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--color-gray-400); }
+
+/* ============================================================
+   다크모드 전용 "Metallic Industrial" 장식 요소 - 참고 이미지(Memoir 앱)의
+   모서리 괄호 마크(⌐), 미세 그리드 배경, 터미널풍 대문자 모노 라벨, 아웃라인
+   커밋 버튼을 재사용 가능한 클래스로 만들어둠. 라이트모드에서는 아무 효과 없음
+   (전부 .dark 스코프 안에서만 정의됨) */
+
+/* 카드/패널 모서리에 작은 ⌐ 모양 괄호 마크. 부모에 position:relative가 있어야
+   보임(카드 컴포넌트들이 대부분 rounded-xl 등으로 이미 relative 없이 쓰이는 경우가
+   많아서, 이 클래스를 붙이면 자동으로 relative도 같이 걸어줌) */
+.dark .corner-bracket {
+  position: relative;
+}
+.dark .corner-bracket::before,
+.dark .corner-bracket::after {
+  content: "";
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  pointer-events: none;
+  opacity: 0.6;
+}
+.dark .corner-bracket::before {
+  top: -1px;
+  left: -1px;
+  border-top: 1.5px solid var(--color-gray-400);
+  border-left: 1.5px solid var(--color-gray-400);
+}
+.dark .corner-bracket::after {
+  bottom: -1px;
+  right: -1px;
+  border-bottom: 1.5px solid var(--color-gray-400);
+  border-right: 1.5px solid var(--color-gray-400);
+}
+
+/* 캔버스 전체에 까는 미세한 그리드 배경 텍스처 */
+.dark .grid-bg {
+  background-image:
+    linear-gradient(to right, rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+  background-size: 28px 28px;
+}
+
+/* "STATUS: DRAFT_SYNC", "SYS.MEM: OK" 같은 터미널/코드 느낌의 대문자 라벨 */
+.dark .terminal-label {
+  font-family: 'JetBrains Mono', 'Nanum Gothic Coding', monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-gray-500);
+}
+
+/* "COMMIT" 버튼처럼 배경 없이 얇은 테두리 + 모노 라벨만 있는 아웃라인 버튼 */
+.dark .btn-outline-mono {
+  font-family: 'JetBrains Mono', 'Nanum Gothic Coding', monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  background-color: var(--color-gray-800);
+  border: 1px solid var(--color-gray-600);
+  color: var(--color-gray-200);
+  transition: background-color 0.15s, border-color 0.15s;
+}
+.dark .btn-outline-mono:hover {
+  background-color: var(--color-gray-700);
+  border-color: var(--color-gray-500);
+}

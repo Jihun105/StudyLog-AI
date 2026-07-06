@@ -321,7 +321,7 @@ function HomePage() {
                   setDraggingPostId(post.id);
                 }}
                 onDragEnd={() => setDraggingPostId(null)}
-                className={`relative bg-gray-100 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 cursor-pointer hover:shadow-md hover:border-blue-100 dark:hover:border-blue-500/40 transition-all ${
+                className={`corner-bracket relative bg-gray-100 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 cursor-pointer hover:shadow-md hover:border-blue-100 dark:hover:border-blue-500/40 transition-all ${
                   draggingPostId === post.id ? "opacity-40" : ""
                 }`}
               >

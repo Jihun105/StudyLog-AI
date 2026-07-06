@@ -14,36 +14,36 @@ module.exports = {
         mono: ["'JetBrains Mono'", "'Nanum Gothic Coding'", "monospace"],
       },
       colors: {
-        // 디자인 시스템 이미지의 Neutral(#F9F7F2)/Tertiary(#E5E1D8)를 정확히 반영.
-        // 50=Neutral, 200=Tertiary, 100은 그 사이 보간값. 300 이후(본문/다크모드용)는
-        // 참고 이미지에 없어서 기존에 맞춰둔 톤을 그대로 이어감
+        // 실제 색상값은 index.css의 CSS 변수(:root / .dark)에서 정의함.
+        // gray/blue 팔레트를 var(--...)로 간접 참조하게 해두면, 앱 어디서든
+        // 이미 쓰이고 있는 dark:bg-gray-900 / dark:text-gray-100 같은 클래스들이
+        // 컴포넌트 파일을 하나도 안 고쳐도 .dark 스코프에서 자동으로 다른(Metallic
+        // Industrial) 팔레트를 쓰게 됨 - 라이트모드는 :root 값(기존 아이보리/네이비) 그대로 유지
         gray: {
-          50: "#f9f7f2",
-          100: "#efece5",
-          200: "#e5e1d8",
-          300: "#c7beac",
-          400: "#a99c82",
-          500: "#85795f",
-          600: "#655a45",
-          700: "#4a4132",
-          800: "#2e2820",
-          900: "#1c1810",
-          950: "#100d08",
+          50: "var(--color-gray-50)",
+          100: "var(--color-gray-100)",
+          200: "var(--color-gray-200)",
+          300: "var(--color-gray-300)",
+          400: "var(--color-gray-400)",
+          500: "var(--color-gray-500)",
+          600: "var(--color-gray-600)",
+          700: "var(--color-gray-700)",
+          800: "var(--color-gray-800)",
+          900: "var(--color-gray-900)",
+          950: "var(--color-gray-950)",
         },
-        // 디자인 시스템의 Primary(#203047, 짙은 네이비)를 정확히 반영. 앱 전체 강조
-        // 버튼/링크/포커스링/활성 상태가 blue-*를 쓰고 있어서 여기서 한 번에 적용됨
         blue: {
-          50: "#eef0f2",
-          100: "#dcdfe3",
-          200: "#b9c0c9",
-          300: "#8894a3",
-          400: "#7183a5",
-          500: "#3d4f68",
-          600: "#203047",
-          700: "#162232",
-          800: "#0f1723",
-          900: "#0a1018",
-          950: "#060a0f",
+          50: "var(--color-blue-50)",
+          100: "var(--color-blue-100)",
+          200: "var(--color-blue-200)",
+          300: "var(--color-blue-300)",
+          400: "var(--color-blue-400)",
+          500: "var(--color-blue-500)",
+          600: "var(--color-blue-600)",
+          700: "var(--color-blue-700)",
+          800: "var(--color-blue-800)",
+          900: "var(--color-blue-900)",
+          950: "var(--color-blue-950)",
         },
       },
     },
