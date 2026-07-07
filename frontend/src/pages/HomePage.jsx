@@ -6,7 +6,7 @@ import { getCategories } from "../api/categories";
 import { useAuth } from "../context/AuthContext";
 import {
   Search, SlidersHorizontal, FileText,
-  Play, Plus, Folder, X
+  Play, Plus, Folder, X, ArrowUpDown, Check
 } from "lucide-react";
 import SidebarLayout, { SidebarSpacer } from "../components/SidebarLayout";
 import { POST_DRAG_TYPE } from "../components/Sidebar";
@@ -35,6 +35,65 @@ function findCategoryNode(categories, id) {
   return null;
 }
 
+// 정렬 기준 - 백엔드 sort_by 값과 1:1로 대응
+const SORT_OPTIONS = [
+  { value: "created_at", labelKey: "notes.sortCreated" },
+  { value: "updated_at", labelKey: "notes.sortUpdated" },
+  { value: "title", labelKey: "notes.sortTitle" },
+];
+
+// 정렬 기준을 고르는 드롭다운 - 카테고리 필터 버튼과 같은 자리에서 눌러 펼치는 방식.
+// 다른 커스텀 드롭다운들(PriorityDropdown 등)과 동일하게 fixed 포지션 팝오버로 구현해서
+// 스크롤 영역 안에서도 메뉴가 잘리지 않게 함
+function SortDropdown({ value, onChange, t }) {
+  const [open, setOpen] = useState(false);
+  const [menuPos, setMenuPos] = useState(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const handleOutsideClick = () => setOpen(false);
+    document.addEventListener("click", handleOutsideClick);
+    return () => document.removeEventListener("click", handleOutsideClick);
+  }, [open]);
+
+  const current = SORT_OPTIONS.find((opt) => opt.value === value) || SORT_OPTIONS[0];
+
+  const handleToggle = (e) => {
+    e.stopPropagation();
+    const rect = e.currentTarget.getBoundingClientRect();
+    setMenuPos({ top: rect.bottom + 4, left: rect.left });
+    setOpen((prev) => !prev);
+  };
+
+  return (
+    <div className="relative" onClick={(e) => e.stopPropagation()}>
+      <button
+        onClick={handleToggle}
+        className="flex items-center gap-2 border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-900 text-gray-600 dark:text-gray-300 text-sm px-4 py-2.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
+      >
+        <ArrowUpDown size={14} /> {t(current.labelKey)}
+      </button>
+      {open && menuPos && (
+        <div
+          className="fixed z-[60] bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-lg shadow-lg py-1 min-w-[160px]"
+          style={{ top: menuPos.top, left: menuPos.left }}
+        >
+          {SORT_OPTIONS.map((opt) => (
+            <button
+              key={opt.value}
+              onClick={() => { onChange(opt.value); setOpen(false); }}
+              className="w-full flex items-center justify-between gap-2 px-3 py-2 text-sm text-left hover:bg-gray-50 dark:hover:bg-gray-700/60"
+            >
+              <span className="text-gray-700 dark:text-gray-200">{t(opt.labelKey)}</span>
+              {opt.value === value && <Check size={13} className="text-blue-600 dark:text-blue-400" />}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function HomePage() {
   const { t } = useTranslation();
   const [posts, setPosts] = useState([]);
@@ -58,6 +117,8 @@ function HomePage() {
   // 노트 카드 우측 상단 X 버튼을 눌렀을 때 - 상세 페이지 들어가지 않고 바로 삭제할 수 있도록
   // 눌린 카드 밑에 "정말 삭제하시겠습니까?" 확인 팝업을 보여줌 (한 번에 하나만 열림)
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
+  // 노트 정렬 기준 - 제목순 / 만든 날짜순 / 수정한 날짜순
+  const [sortBy, setSortBy] = useState("created_at");
 
   const { token } = useAuth();
   const navigate = useNavigate();
@@ -99,7 +160,8 @@ function HomePage() {
         selectedTags.length > 0 ? selectedTags : null,
         token,
         categoryParam,
-        Boolean(keyword) // 상위 폴더에서 검색할 땐 하위 폴더의 노트까지 함께 검색
+        Boolean(keyword), // 상위 폴더에서 검색할 땐 하위 폴더의 노트까지 함께 검색
+        sortBy
       );
       setPosts(data.posts);
       setTotal(data.total);
@@ -110,7 +172,7 @@ function HomePage() {
     }
   };
 
-  useEffect(() => { fetchPosts(); }, [page, keyword, selectedTags, selectedCategoryId]);
+  useEffect(() => { fetchPosts(); }, [page, keyword, selectedTags, selectedCategoryId, sortBy]);
 
   // 사이드바에서 노트를 드래그해서 다른 폴더로 옮기면(Sidebar.jsx가 이 이벤트를 쏨),
   // 지금 보고 있는 목록도 최신 상태로 다시 불러옴
@@ -118,7 +180,7 @@ function HomePage() {
     const handlePostsChanged = () => fetchPosts();
     window.addEventListener("studylog:posts-changed", handlePostsChanged);
     return () => window.removeEventListener("studylog:posts-changed", handlePostsChanged);
-  }, [page, keyword, selectedTags, selectedCategoryId]);
+  }, [page, keyword, selectedTags, selectedCategoryId, sortBy]);
 
   const handleSearch = () => {
     setPage(1);
@@ -127,6 +189,11 @@ function HomePage() {
 
   const handleKeyDown = (e) => {
     if (e.key === "Enter") handleSearch();
+  };
+
+  const handleSortChange = (value) => {
+    setPage(1);
+    setSortBy(value);
   };
 
   const handleTagToggle = (tag) => {
@@ -240,6 +307,7 @@ function HomePage() {
           >
             <SlidersHorizontal size={14} /> {t("notes.category")}
           </button>
+          <SortDropdown value={sortBy} onChange={handleSortChange} t={t} />
           {allTags.map((tag) => (
             <button
               key={tag}

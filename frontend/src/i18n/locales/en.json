@@ -59,7 +59,7 @@
     "logout": "Log out",
     "collapse": "Collapse sidebar",
     "expand": "Open sidebar",
-    "confirmDeleteFolder": "Deleting a folder also deletes its subfolders. Continue?",
+    "confirmDeleteFolder": "Deleting a folder also permanently deletes its subfolders and the notes inside them. This can't be undone. Continue?",
     "addFolderFailed": "Failed to add the folder.",
     "moveFailed": "Failed to move.",
     "moveIntoOwnSubfolder": "A folder can't be moved into its own subfolder."
@@ -95,7 +95,10 @@
     "noPostsYet": "No posts yet.",
     "writeFirstNote": "Write your first note",
     "uncategorized": "Uncategorized",
-    "categoryPrefix": "Category"
+    "categoryPrefix": "Category",
+    "sortCreated": "Date created",
+    "sortUpdated": "Date updated",
+    "sortTitle": "Title"
   },
   "quiz": {
     "title": "AI Quiz",
@@ -137,7 +140,12 @@
   },
   "folders": {
     "title": "All Folders",
-    "empty": "You haven't created any folders yet."
+    "empty": "You haven't created any folders yet.",
+    "uncategorized": "Uncategorized",
+    "uncategorizedHint": "Notes left over from folders that were deleted in the past, not belonging to any folder",
+    "deleteAllUncategorized": "Delete all",
+    "confirmDeleteAllUncategorized": "Delete all uncategorized notes? This can't be undone.",
+    "deleteFailed": "Failed to delete."
   },
   "todo": {
     "addPlaceholder": "Enter a task",
@@ -158,6 +166,8 @@
     "viewPlan": "Plan",
     "planAddPlaceholder": "Add a task with no deadline",
     "emptyStatePlan": "No plan items yet.",
+    "categoryPlaceholder": "Category (optional)",
+    "optionalDueDate": "Due date (optional - if set, shows in List/Calendar view)",
     "today": "Today",
     "selectDatePrompt": "Select a date to view and add tasks for that day.",
     "detailToggle": "Show/hide details",
@@ -167,7 +177,12 @@
     "memoPlaceholder": "Add a note",
     "emptyStateToday": "No tasks due today.",
     "timetableEmpty": "No tasks with a start time on this date.",
-    "postpone": "Postpone"
+    "postpone": "Postpone",
+    "eventAddPlaceholder": "Enter an event title",
+    "eventStartDateLabel": "Start date",
+    "eventEndDateLabel": "End date (leave blank for a single-day event)",
+    "emptyStateEvent": "No events on this date.",
+    "confirmDeleteEvent": "Delete this event?"
   },
   "settings": {
     "title": "Settings",

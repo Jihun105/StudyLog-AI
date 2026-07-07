@@ -59,7 +59,7 @@
     "logout": "로그아웃",
     "collapse": "사이드바 접기",
     "expand": "사이드바 열기",
-    "confirmDeleteFolder": "폴더를 삭제하면 하위 폴더도 모두 삭제됩니다. 계속할까요?",
+    "confirmDeleteFolder": "폴더를 삭제하면 하위 폴더와 그 안의 노트가 모두 함께 삭제됩니다. 되돌릴 수 없어요. 계속할까요?",
     "addFolderFailed": "폴더 추가에 실패했습니다.",
     "moveFailed": "이동에 실패했습니다.",
     "moveIntoOwnSubfolder": "폴더를 자기 자신의 하위로 옮길 수 없습니다."
@@ -95,7 +95,10 @@
     "noPostsYet": "아직 작성된 게시글이 없습니다.",
     "writeFirstNote": "첫 번째 노트 작성하기",
     "uncategorized": "기본",
-    "categoryPrefix": "카테고리"
+    "categoryPrefix": "카테고리",
+    "sortCreated": "만든 날짜순",
+    "sortUpdated": "수정한 날짜순",
+    "sortTitle": "제목순"
   },
   "quiz": {
     "title": "AI 퀴즈",
@@ -137,7 +140,12 @@
   },
   "folders": {
     "title": "전체 폴더보기",
-    "empty": "아직 만든 폴더가 없습니다."
+    "empty": "아직 만든 폴더가 없습니다.",
+    "uncategorized": "미분류",
+    "uncategorizedHint": "예전에 폴더를 삭제했을 때 남겨진, 어떤 폴더에도 속하지 않은 노트들",
+    "deleteAllUncategorized": "전체 삭제",
+    "confirmDeleteAllUncategorized": "미분류 노트를 전부 삭제할까요? 되돌릴 수 없어요.",
+    "deleteFailed": "삭제에 실패했습니다."
   },
   "todo": {
     "addPlaceholder": "할 일을 입력하세요",
@@ -158,6 +166,8 @@
     "viewPlan": "플랜",
     "planAddPlaceholder": "기간 제한 없는 할 일을 입력하세요",
     "emptyStatePlan": "등록된 플랜이 없습니다.",
+    "categoryPlaceholder": "카테고리 (선택)",
+    "optionalDueDate": "마감일 (선택 - 넣으면 목록/달력 보기에 표시됨)",
     "today": "오늘",
     "selectDatePrompt": "날짜를 선택하면 그 날의 할 일을 보고 추가할 수 있어요.",
     "detailToggle": "세부 내용 펼치기/접기",
@@ -167,7 +177,12 @@
     "memoPlaceholder": "메모를 입력하세요",
     "emptyStateToday": "오늘 마감인 할 일이 없습니다.",
     "timetableEmpty": "이 날짜에 시작 시간을 넣은 할 일이 없습니다.",
-    "postpone": "날짜변경"
+    "postpone": "날짜변경",
+    "eventAddPlaceholder": "일정 제목을 입력하세요",
+    "eventStartDateLabel": "시작일",
+    "eventEndDateLabel": "종료일 (비워두면 하루짜리 일정)",
+    "emptyStateEvent": "이 날짜에 등록된 일정이 없습니다.",
+    "confirmDeleteEvent": "이 일정을 삭제할까요?"
   },
   "settings": {
     "title": "설정",

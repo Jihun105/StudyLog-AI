@@ -1,8 +1,9 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
+from sqlalchemy import delete as sa_delete
 from sqlalchemy.orm import selectinload
 from fastapi import HTTPException
-from app.models.post import Category
+from app.models.post import Category, Post
 from app.schemas.category import CategoryCreateRequest
 
 async def get_or_create_default_category(user_id: int, db: AsyncSession) -> Category:
@@ -86,7 +87,9 @@ async def create_category(request: CategoryCreateRequest, user_id: int, db: Asyn
     await db.refresh(new_category)
     return new_category
 
-async def delete_category(category_id: int, user_id: int, db: AsyncSession) -> None:
+async def delete_category(category_id: int, user_id: int, db: AsyncSession) -> list[int]:
+    """카테고리(폴더)를 삭제하고, 그 안에서 같이 삭제된 노트들의 id 목록을 반환함
+    (호출한 라우터가 그 id들로 RAG 임베딩 인덱스도 같이 정리할 수 있도록)."""
     result = await db.execute(
         select(Category).filter(Category.id == category_id, Category.user_id == user_id)
     )
@@ -94,10 +97,24 @@ async def delete_category(category_id: int, user_id: int, db: AsyncSession) -> N
 
     if category is None:
         raise HTTPException(status_code=404, detail="카테고리가 존재하지 않습니다.")
-    
+
+    # 이 폴더와 모든 하위 폴더에 들어있는 노트를 전부 같이 삭제함. Post.category_id의 FK는
+    # ondelete="SET NULL"이라 DB 레벨에서는 카테고리를 지워도 노트가 미분류로 남는데,
+    # 폴더 삭제 시 안의 내용도 같이 사라지길 원하므로 여기서 명시적으로 먼저 지움
+    subtree_ids = await get_category_subtree_ids(category_id, user_id, db)
+    posts_result = await db.execute(
+        select(Post.id).where(Post.category_id.in_(subtree_ids), Post.user_id == user_id)
+    )
+    deleted_post_ids = list(posts_result.scalars().all())
+
+    await db.execute(
+        sa_delete(Post).where(Post.category_id.in_(subtree_ids), Post.user_id == user_id)
+    )
+
     # ON DELETE CASCADE로 하위 카테고리도 자동 삭제
     await db.delete(category)
     await db.commit()
+    return deleted_post_ids
 
 async def rename_category(category_id: int, name: str, user_id: int, db: AsyncSession) -> Category:
     result = await db.execute(

@@ -15,7 +15,7 @@ import {
   History, Plus, Loader2
 } from "lucide-react";
 import ResizableRightPanel from "../components/ResizableRightPanel";
-import SidebarLayout, { SidebarSpacer } from "../components/SidebarLayout";
+import SidebarLayout, { SidebarSpacer, useLeftSidebarCollapsed, useWindowWidth } from "../components/SidebarLayout";
 import { useTheme } from "../context/ThemeContext";
 
 // AI 답변 안의 `코드`와 **굵게** 정도만 최소한으로 렌더링 (줄바꿈은 whitespace-pre-wrap이 처리)
@@ -80,6 +80,22 @@ function PostDetailPage() {
 
   // 읽기 전용 BlockNote 에디터
   const editor = useCreateBlockNote({ codeBlock: getCodeBlockConfig(theme) });
+
+  // 왼쪽 사이드바가 펼쳐진 채로 화면이 좁아지면 우측 AI 패널이 열려있을 때 본문이
+  // 짓눌리는 문제 - 달력/목록/퀴즈 보기와 동일한 방식으로 해결. 우측 패널 자체가
+  // autoCollapseBreakpoint={1024}로 접히므로 기준을 반드시 1024로 똑같이 맞춤(사각지대 방지)
+  const [leftSidebarCollapsed, leftSidebarReporter] = useLeftSidebarCollapsed();
+  const windowWidth = useWindowWidth();
+  const [aiPanelCollapsed, setAiPanelCollapsed] = useState(() => {
+    const saved = localStorage.getItem("postDetailAiPanelCollapsed");
+    if (saved !== null) return saved === "true";
+    return window.innerWidth < 1024;
+  });
+  const POST_SQUEEZE_BREAKPOINT = 1024;
+  const hideMainContent =
+    !leftSidebarCollapsed &&
+    !aiPanelCollapsed &&
+    windowWidth < POST_SQUEEZE_BREAKPOINT;
 
   useEffect(() => {
     const fetchPost = async () => {
@@ -209,9 +225,10 @@ function PostDetailPage() {
 
   return (
     <SidebarLayout selectedCategoryId={post.category_id ?? null} onSelectCategory={handleSelectCategory}>
+      {leftSidebarReporter}
       {/* 메인 본문 - Apple Pages처럼 회색 캔버스 위에 흰 "문서 페이지" 카드가
           떠 있는 느낌으로, 글쓰기/수정 페이지와 동일한 레이아웃을 씀 */}
-      <div className="flex-1 min-w-0 overflow-y-auto bg-gray-50 dark:bg-gray-950">
+      <div className={`flex-1 min-w-0 overflow-y-auto bg-gray-50 dark:bg-gray-950 ${hideMainContent ? "hidden" : ""}`}>
         {/* 상단 헤더 */}
         <div className="sticky top-0 bg-gray-50/90 dark:bg-gray-950/90 backdrop-blur-sm border-b border-gray-200 dark:border-gray-800 px-4 sm:px-8 py-4 flex items-center justify-between gap-3 z-10">
           <div className="flex items-center gap-1.5 text-sm text-gray-400 dark:text-gray-500 min-w-0 overflow-x-auto whitespace-nowrap">
@@ -285,6 +302,7 @@ function PostDetailPage() {
         collapsible
         storageKey="postDetailAiPanelCollapsed"
         autoCollapseBreakpoint={1024}
+        onCollapsedChange={setAiPanelCollapsed}
       >
 
         {/* AI Summary */}

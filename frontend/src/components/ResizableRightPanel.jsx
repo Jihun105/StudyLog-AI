@@ -46,12 +46,14 @@ function ResizableRightPanel({
   const toggleCollapsed = () => {
     const next = !collapsed;
     if (storageKey) localStorage.setItem(storageKey, String(next));
-    if (isControlled) {
-      onCollapsedChange?.(next);
-    } else {
+    if (!isControlled) {
       autoCollapsedRef.current = false;
       setInternalCollapsed(next);
     }
+    // 제어 컴포넌트가 아니어도(부모가 collapsed prop을 안 넘겨도) onCollapsedChange만
+    // 넘겼다면 알림용으로 항상 호출함 - 부모가 이 패널의 접힘 상태를 "제어"하지는 않지만
+    // "관찰"만 하고 싶을 때(예: 다른 콘텐츠 숨김 여부 계산) 쓸 수 있게 하기 위함
+    onCollapsedChange?.(next);
   };
 
   useEffect(() => {
@@ -61,14 +63,23 @@ function ResizableRightPanel({
       if (isSmall && !internalCollapsed) {
         autoCollapsedRef.current = true;
         setInternalCollapsed(true);
+        onCollapsedChange?.(true);
       } else if (!isSmall && internalCollapsed && autoCollapsedRef.current) {
         autoCollapsedRef.current = false;
         setInternalCollapsed(false);
+        onCollapsedChange?.(false);
       }
     };
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
-  }, [collapsible, isControlled, autoCollapseBreakpoint, internalCollapsed]);
+  }, [collapsible, isControlled, autoCollapseBreakpoint, internalCollapsed, onCollapsedChange]);
+
+  // 마운트 시점의 초기 접힘 상태(로컬스토리지/자동접힘 기준으로 계산된 값)도 한 번
+  // 알려줘야, 부모가 들고 있는 값이 처음부터 실제 값과 어긋나지 않음
+  useEffect(() => {
+    if (!isControlled) onCollapsedChange?.(internalCollapsed);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < MOBILE_BREAKPOINT);

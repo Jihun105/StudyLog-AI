@@ -17,7 +17,43 @@ export function SidebarSpacer() {
   return <span className="w-6 shrink-0" />;
 }
 
-const BREAKPOINT = 1024; // 이 너비 미만이면 사이드바 자동으로 숨김
+// SidebarCollapsedContext의 Provider는 <SidebarLayout> "안"에서 만들어지는데, 이 값을
+// 알고 싶어하는 페이지 컴포넌트 자신은 <SidebarLayout>을 자식으로 렌더링하는 쪽이라
+// 트리상 Provider의 부모라서 useContext를 페이지 함수 본문에서 바로 불러도 값을 못 받음.
+// 그래서 <SidebarLayout>의 children으로 이 작은 컴포넌트를 끼워 넣어 Provider "안"에서
+// 값을 읽고, 콜백으로 부모(페이지)에 전달하는 방식을 씀 - 여러 페이지에서 공용으로 사용
+export function LeftSidebarStateReporter({ onChange }) {
+  const collapsed = useContext(SidebarCollapsedContext);
+  useEffect(() => { onChange(collapsed); }, [collapsed, onChange]);
+  return null;
+}
+
+// 왼쪽 사이드바 접힘 상태를 알고 싶은 페이지에서 쓰는 훅. 반환값 중 reporter 엘리먼트를
+// <SidebarLayout> 바로 안(children)에 렌더링해둬야 실제 값이 들어옴 - 안 그러면 초기
+// 추정값(로컬스토리지/화면폭 기준)에 머물러 있음
+export function useLeftSidebarCollapsed() {
+  const [leftCollapsed, setLeftCollapsed] = useState(() => {
+    const saved = localStorage.getItem("sidebarCollapsed");
+    if (saved !== null) return saved === "true";
+    return window.innerWidth < BREAKPOINT;
+  });
+  const reporter = <LeftSidebarStateReporter onChange={setLeftCollapsed} />;
+  return [leftCollapsed, reporter];
+}
+
+// 창 폭을 실시간으로 추적하는 훅 - 왼쪽 사이드바 + 본문 + 오른쪽 패널이 한 화면에
+// 다 들어가기엔 폭이 부족한지 판단할 때 여러 페이지에서 공용으로 사용
+export function useWindowWidth() {
+  const [width, setWidth] = useState(() => window.innerWidth);
+  useEffect(() => {
+    const handleResize = () => setWidth(window.innerWidth);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+  return width;
+}
+
+const BREAKPOINT = 768; // 이 너비 미만이면 사이드바 자동으로 숨김
 const MOBILE_BREAKPOINT = 640; // 이 너비 미만(휴대폰)에서 사이드바를 다시 열면, 콘텐츠를 밀어내는 대신 오버레이(드로어)로 띄움
 const DEFAULT_WIDTH = 256;
 const MIN_WIDTH = 200;

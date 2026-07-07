@@ -45,6 +45,7 @@ async def create_todo(request: TodoCreateRequest, user_id: int, db: AsyncSession
         start_time=request.start_time,
         end_time=_resolve_end_time(request.start_time, request.end_time),
         memo=request.memo,
+        category=request.category,
         position=next_position,
     )
     db.add(todo)
@@ -75,6 +76,7 @@ async def update_todo(todo_id: int, request: TodoUpdateRequest, user_id: int, db
     todo.start_time = request.start_time
     todo.end_time = _resolve_end_time(request.start_time, request.end_time)
     todo.memo = request.memo
+    todo.category = request.category
     await db.commit()
     await db.refresh(todo)
     return todo

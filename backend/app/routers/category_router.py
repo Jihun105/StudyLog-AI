@@ -1,10 +1,11 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, BackgroundTasks
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.database import get_db
 from app.core.dependencies import get_current_user
 from app.models.user import User
 from app.schemas.category import CategoryCreateRequest, CategoryResponse, CategoryTreeResponse, CategoryReorderRequest
 from app.services.category_service import get_categories, create_category, delete_category, rename_category, reorder_categories
+from app.services.ai.embedding_service import delete_post_index
 
 router = APIRouter(prefix="/api/categories", tags=["categories"])
 
@@ -35,14 +36,17 @@ async def update_category(
 ):
     return await rename_category(category_id, request.name, current_user.id, db)
 
-# 카테고리 삭제
+# 카테고리 삭제 (하위 폴더 + 그 안의 노트까지 전부 같이 삭제됨)
 @router.delete("/{category_id}", status_code=204)
 async def remove_category(
     category_id: int,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    await delete_category(category_id, current_user.id, db)
+    deleted_post_ids = await delete_category(category_id, current_user.id, db)
+    for post_id in deleted_post_ids:
+        background_tasks.add_task(delete_post_index, post_id=post_id)
 
 # 드래그 앤 드롭으로 바뀐 폴더 순서/위치를 한 번에 반영 (전체 스냅샷 방식)
 @router.put("/reorder", response_model=list[CategoryResponse])

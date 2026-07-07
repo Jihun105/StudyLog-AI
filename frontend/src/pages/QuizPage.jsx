@@ -13,7 +13,7 @@ import { getCodeBlockConfig } from "../lib/editorSchema";
 import {
   BrainCircuit, CheckCircle2, XCircle, Loader2, RotateCcw, FileText, ArrowLeft, Search, X, Maximize2, Minimize2, ChevronDown
 } from "lucide-react";
-import SidebarLayout, { SidebarSpacer } from "../components/SidebarLayout";
+import SidebarLayout, { SidebarSpacer, useLeftSidebarCollapsed, useWindowWidth } from "../components/SidebarLayout";
 import ResizableRightPanel from "../components/ResizableRightPanel";
 import { useTheme } from "../context/ThemeContext";
 
@@ -139,6 +139,22 @@ function QuizPage() {
   const [viewingPostLoading, setViewingPostLoading] = useState(false);
   // 새 창을 띄우는 대신, 같은 화면 안에서 오버레이로 꽉 채워서 보여주는 방식으로 전체화면 구현
   const [previewFullscreen, setPreviewFullscreen] = useState(false);
+
+  // 왼쪽 사이드바가 펼쳐진 채로 화면이 좁아지면 우측 미리보기 패널이 열려있을 때 본문이
+  // 짓눌리는 문제 - 달력/목록 보기와 동일한 방식으로 해결. 우측 패널 자체가
+  // autoCollapseBreakpoint={1024}로 접히므로 기준을 반드시 1024로 똑같이 맞춤(사각지대 방지)
+  const [leftSidebarCollapsed, leftSidebarReporter] = useLeftSidebarCollapsed();
+  const windowWidth = useWindowWidth();
+  const [previewPanelCollapsed, setPreviewPanelCollapsed] = useState(() => {
+    const saved = localStorage.getItem("quizPreviewPanelCollapsed");
+    if (saved !== null) return saved === "true";
+    return window.innerWidth < 1024;
+  });
+  const QUIZ_SQUEEZE_BREAKPOINT = 1024;
+  const hideMainContent =
+    !leftSidebarCollapsed &&
+    !previewPanelCollapsed &&
+    windowWidth < QUIZ_SQUEEZE_BREAKPOINT;
 
   useEffect(() => {
     const fetchCategories = async () => {
@@ -323,7 +339,8 @@ function QuizPage() {
 
   return (
     <SidebarLayout selectedCategoryId={selectedCategoryId} onSelectCategory={handleSelectCategory}>
-      <div className="flex-1 min-w-0 overflow-y-auto bg-gray-50 dark:bg-gray-900">
+      {leftSidebarReporter}
+      <div className={`flex-1 min-w-0 overflow-y-auto bg-gray-50 dark:bg-gray-900 ${hideMainContent ? "hidden" : ""}`}>
         <div className="sticky top-0 bg-gray-50/90 dark:bg-gray-900/90 backdrop-blur-sm border-b border-gray-200 dark:border-gray-800 px-4 sm:px-8 py-4 flex items-center justify-between z-10">
           <h1 className="flex items-center gap-2 text-lg font-bold text-gray-800 dark:text-gray-100" style={{ fontFamily: "'Newsreader', 'Noto Serif KR', Georgia, serif" }}>
             <SidebarSpacer />
@@ -581,6 +598,7 @@ function QuizPage() {
         collapsible
         storageKey="quizPreviewPanelCollapsed"
         autoCollapseBreakpoint={1024}
+        onCollapsedChange={setPreviewPanelCollapsed}
       >
         {viewingPost ? (
           // 예전엔 새 창(window.open)으로 열었는데, 새 창을 띄우지 않고 같은 화면 안에서
