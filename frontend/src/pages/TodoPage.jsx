@@ -8,7 +8,7 @@ import ResizableRightPanel from "../components/ResizableRightPanel";
 import TimePicker from "../components/TimePicker";
 import {
   ListTodo, Plus, Trash2, GripVertical, Pencil, CheckCircle2, Circle, Calendar, X, Check,
-  List, ChevronLeft, ChevronRight, ChevronDown, CalendarDays, Flag, Clock,
+  List, ChevronLeft, ChevronRight, ChevronDown, CalendarDays, Flag, Clock, ClipboardList,
 } from "lucide-react";
 
 const PRIORITIES = [
@@ -424,7 +424,13 @@ function TodoPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  const [viewMode, setViewMode] = useState("list"); // "list" | "calendar"
+  const [viewMode, setViewMode] = useState("list"); // "list" | "calendar" | "plan"
+
+  // 플랜 보기 - 마감일 없이(due_date=null) 기간 제한 없이 적어두는 할 일 목록.
+  // 목록/달력 보기와 달리 날짜 입력란 자체가 없음 - 언제까지라는 제약 없이 그냥 적어두고 싶을 때 사용
+  const [planTitle, setPlanTitle] = useState("");
+  const [planPriority, setPlanPriority] = useState("medium");
+  const [planAdding, setPlanAdding] = useState(false);
 
   // 목록 보기 - 상단 추가 폼 (마감일은 기본으로 오늘 날짜)
   const [newTitle, setNewTitle] = useState("");
@@ -461,11 +467,33 @@ function TodoPage() {
   const [panelPriority, setPanelPriority] = useState("medium");
   const [panelAdding, setPanelAdding] = useState(false);
 
-  // 달력 패널 접힘 상태를 여기서 직접 들고 있어야 날짜를 클릭했을 때 강제로 펼칠 수 있음
+  // 달력 패널 접힘 상태를 여기서 직접 들고 있어야 날짜를 클릭했을 때 강제로 펼칠 수 있음.
+  // 이 패널은 제어 컴포넌트라 ResizableRightPanel의 autoCollapseBreakpoint가 적용되지 않으므로,
+  // 저장된 값이 없을 때의 기본값을 여기서 직접 화면 폭 기준으로 정해줌 - 안 그러면 좁은 화면에서
+  // 패널이 기본으로 펼쳐진 채 시작해서 왼쪽 사이드바 재오픈 버튼과 겹치는 문제가 생김
   const [calendarPanelCollapsed, setCalendarPanelCollapsed] = useState(() => {
     const saved = localStorage.getItem("todoCalendarPanelCollapsed");
-    return saved === "true";
+    if (saved !== null) return saved === "true";
+    return window.innerWidth < 1024;
   });
+  // 창 폭이 자동으로 접은 건지, 사용자가 버튼으로 직접 접은 건지 구분(SidebarLayout과 동일한 방식) -
+  // 자동으로 접힌 경우에만 창이 다시 넓어질 때 자동으로 펼침
+  const calendarPanelAutoCollapsed = useRef(false);
+
+  useEffect(() => {
+    const handleResize = () => {
+      const isSmall = window.innerWidth < 1024;
+      if (isSmall && !calendarPanelCollapsed) {
+        calendarPanelAutoCollapsed.current = true;
+        setCalendarPanelCollapsed(true);
+      } else if (!isSmall && calendarPanelCollapsed && calendarPanelAutoCollapsed.current) {
+        calendarPanelAutoCollapsed.current = false;
+        setCalendarPanelCollapsed(false);
+      }
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, [calendarPanelCollapsed]);
 
   const handleSelectCategory = (categoryId) => {
     navigate(categoryId === null ? "/notes" : `/notes?category=${categoryId}`);
@@ -507,6 +535,23 @@ function TodoPage() {
       setError(t("todo.saveFailed"));
     } finally {
       setAdding(false);
+    }
+  };
+
+  // 플랜 추가 - due_date를 아예 null로 보내서 어떤 날짜에도 속하지 않는 항목으로 생성
+  const handlePlanAdd = async () => {
+    if (!planTitle.trim()) return;
+    setPlanAdding(true);
+    setError("");
+    try {
+      const created = await createTodo(planTitle.trim(), null, planPriority, token);
+      setTodos((prev) => [...prev, created]);
+      setPlanTitle("");
+      setPlanPriority("medium");
+    } catch (err) {
+      setError(t("todo.saveFailed"));
+    } finally {
+      setPlanAdding(false);
     }
   };
 
@@ -641,6 +686,11 @@ function TodoPage() {
   const activeTodos = todayTodos.filter((td) => !td.is_done);
   const doneTodos = todayTodos.filter((td) => td.is_done);
 
+  // 플랜 보기는 마감일이 아예 없는(due_date=null) 항목만 표시
+  const planTodos = todos.filter((td) => !td.due_date);
+  const planActiveTodos = planTodos.filter((td) => !td.is_done);
+  const planDoneTodos = planTodos.filter((td) => td.is_done);
+
   const rowProps = (todo, draggable, compact = false, hideDate = false) => ({
     todo,
     editing: editingId === todo.id,
@@ -732,8 +782,8 @@ function TodoPage() {
 
   return (
     <SidebarLayout selectedCategoryId={null} onSelectCategory={handleSelectCategory}>
-      <div className="app-serif-panel flex-1 min-w-[520px] overflow-y-auto bg-gray-50 dark:bg-gray-900">
-        <div className="sticky top-0 bg-gray-50/90 dark:bg-gray-900/90 backdrop-blur-sm border-b border-gray-200 dark:border-gray-800 px-8 py-4 flex items-center justify-between z-10">
+      <div className="app-serif-panel flex-1 min-w-0 overflow-y-auto bg-gray-50 dark:bg-gray-900">
+        <div className="sticky top-0 bg-gray-50/90 dark:bg-gray-900/90 backdrop-blur-sm border-b border-gray-200 dark:border-gray-800 px-4 sm:px-8 py-4 flex items-center justify-between z-10">
           <h1 className="flex items-center gap-2 text-lg font-bold text-gray-800 dark:text-gray-100" style={{ fontFamily: "'Newsreader', 'Noto Serif KR', Georgia, serif" }}>
             <SidebarSpacer />
             <ListTodo size={20} className="text-blue-600 dark:text-blue-400" /> {t("sidebar.todo")}
@@ -745,7 +795,7 @@ function TodoPage() {
           )}
         </div>
 
-        <div className={`px-8 py-8 ${viewMode === "calendar" ? "max-w-5xl" : "w-full"}`}>
+        <div className={`px-4 sm:px-8 py-8 ${viewMode === "calendar" ? "max-w-5xl" : viewMode === "plan" ? "max-w-3xl" : "w-full"}`}>
           {/* 보기 전환 */}
           <div className="flex items-center gap-1 mb-4">
             <button
@@ -770,6 +820,16 @@ function TodoPage() {
               }`}
             >
               <CalendarDays size={14} /> {t("todo.viewCalendar")}
+            </button>
+            <button
+              onClick={() => setViewMode("plan")}
+              className={`flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-lg border transition-colors ${
+                viewMode === "plan"
+                  ? "bg-blue-600 text-white border-blue-600"
+                  : "bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-600 hover:border-blue-300 dark:hover:border-blue-500"
+              }`}
+            >
+              <ClipboardList size={14} /> {t("todo.viewPlan")}
             </button>
           </div>
 
@@ -886,6 +946,78 @@ function TodoPage() {
                 </div>
               )}
             </>
+          ) : viewMode === "plan" ? (
+            <>
+              {/* 플랜 추가 폼 - 마감일 입력 없이 제목/우선순위만 (기간 제한 없이 적어두는 용도) */}
+              <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-5 mb-6 flex items-center gap-2 flex-wrap">
+                <input
+                  type="text"
+                  value={planTitle}
+                  onChange={(e) => setPlanTitle(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handlePlanAdd()}
+                  placeholder={t("todo.planAddPlaceholder")}
+                  className="flex-1 min-w-[200px] border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 dark:text-gray-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <PriorityDropdown value={planPriority} onChange={setPlanPriority} />
+                <button
+                  onClick={handlePlanAdd}
+                  disabled={planAdding || !planTitle.trim()}
+                  className="flex items-center gap-1.5 bg-blue-600 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+                >
+                  <Plus size={14} /> {t("todo.add")}
+                </button>
+              </div>
+
+              {/* 필터 - 목록 보기와 동일한 전체/미완료만 토글을 공유 */}
+              <div className="flex items-center gap-1 mb-3">
+                {[
+                  { value: "all", labelKey: "todo.filterAll" },
+                  { value: "active", labelKey: "todo.filterActive" },
+                ].map((f) => (
+                  <button
+                    key={f.value}
+                    onClick={() => setFilter(f.value)}
+                    className={`text-sm px-3 py-1.5 rounded-lg border transition-colors ${
+                      filter === f.value
+                        ? "bg-blue-600 text-white border-blue-600"
+                        : "bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-600 hover:border-blue-300 dark:hover:border-blue-500"
+                    }`}
+                  >
+                    {t(f.labelKey)}
+                  </button>
+                ))}
+              </div>
+
+              {loading ? (
+                <div className="text-center text-gray-400 dark:text-gray-500 py-16">{t("common.loading")}</div>
+              ) : planTodos.length === 0 ? (
+                <div className="text-center text-gray-400 dark:text-gray-500 py-16">
+                  <ClipboardList size={48} className="mx-auto mb-4 text-gray-300 dark:text-gray-600" />
+                  <div>{t("todo.emptyStatePlan")}</div>
+                </div>
+              ) : (
+                <div className="flex flex-col gap-2">
+                  {planActiveTodos.map((todo) => (
+                    <TodoRow key={todo.id} {...rowProps(todo, true)} />
+                  ))}
+
+                  {planActiveTodos.length === 0 && filter === "active" && (
+                    <div className="text-center text-gray-400 dark:text-gray-500 py-10 text-sm">{t("todo.emptyState")}</div>
+                  )}
+
+                  {filter === "all" && planDoneTodos.length > 0 && (
+                    <>
+                      <div className="mt-4 mb-1 px-1 text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
+                        {t("todo.completedSection")}
+                      </div>
+                      {planDoneTodos.map((todo) => (
+                        <TodoRow key={todo.id} {...rowProps(todo, false)} />
+                      ))}
+                    </>
+                  )}
+                </div>
+              )}
+            </>
           ) : (
             <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-5">
               <div className="flex items-center justify-between mb-4">
@@ -976,6 +1108,7 @@ function TodoPage() {
           minLeftWidth={520}
           collapsible
           storageKey="todoTimetablePanelCollapsed"
+          autoCollapseBreakpoint={1024}
         >
           {/* 시작 시간을 넣은 할 일만 여기(타임테이블)에 뜨고, 안 넣은 할 일은 위 본문
               목록에 그대로 나옴. 날짜는 화살표로 골라가며 볼 수 있음(캘린더 보기와 별개) */}

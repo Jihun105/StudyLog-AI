@@ -231,7 +231,7 @@ function RichTextEditor({ initialContent, onChange }) {
       {/* 얇은 상단 툴바 - 아이콘만 있으면 뭔지 알기 어려워서 서식/목차는 글자를
           함께 보여줌. 서식은 맨 왼쪽, 목차는 맨 오른쪽에 두고, 서식과 나머지
           아이콘(표/이미지 삽입)을 구분선으로 나눔 */}
-      <div className="flex items-center gap-1.5 mb-3 pb-2 border-b border-gray-100 dark:border-gray-700">
+      <div className="flex items-center gap-1.5 mb-3 pb-2 border-b border-gray-100 dark:border-gray-700 overflow-x-auto">
         <FormatLabelButton
           active={formatPanelOpen}
           onClick={toggleFormatPanel}

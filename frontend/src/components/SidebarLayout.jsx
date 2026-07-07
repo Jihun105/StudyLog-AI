@@ -18,6 +18,7 @@ export function SidebarSpacer() {
 }
 
 const BREAKPOINT = 1024; // 이 너비 미만이면 사이드바 자동으로 숨김
+const MOBILE_BREAKPOINT = 640; // 이 너비 미만(휴대폰)에서 사이드바를 다시 열면, 콘텐츠를 밀어내는 대신 오버레이(드로어)로 띄움
 const DEFAULT_WIDTH = 256;
 const MIN_WIDTH = 200;
 const MAX_WIDTH = 400;
@@ -39,6 +40,11 @@ function SidebarLayout({ children, ...sidebarProps }) {
   // 자동으로 접힌 경우에만 화면이 다시 넓어질 때 자동으로 펼침.
   const autoCollapsed = useRef(false);
 
+  // 휴대폰 폭(MOBILE_BREAKPOINT 미만)에서 사이드바를 펼치면, 콘텐츠 폭을 밀어내는
+  // 기존 방식 대신 화면 위에 오버레이(드로어)로 띄움 - 안 그러면 사이드바 폭만큼
+  // 본문이 밀려나면서 화면이 옆으로 잘려 보이는 문제가 있음
+  const [isMobile, setIsMobile] = useState(() => window.innerWidth < MOBILE_BREAKPOINT);
+
   useEffect(() => {
     const handleResize = () => {
       const isSmall = window.innerWidth < BREAKPOINT;
@@ -49,6 +55,7 @@ function SidebarLayout({ children, ...sidebarProps }) {
         autoCollapsed.current = false;
         setCollapsed(false);
       }
+      setIsMobile(window.innerWidth < MOBILE_BREAKPOINT);
     };
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
@@ -118,6 +125,23 @@ function SidebarLayout({ children, ...sidebarProps }) {
         >
           <PanelLeftOpen size={18} />
         </button>
+        {children}
+      </SidebarCollapsedContext.Provider>
+    );
+  }
+
+  // 휴대폰 폭에서는 사이드바가 콘텐츠를 밀어내지 않고, 화면 위에 오버레이(드로어)로
+  // 뜨도록 함 - 뒤에 반투명 배경을 깔아서 탭하면 닫히고, 콘텐츠는 원래 폭 그대로 유지됨
+  if (isMobile) {
+    return (
+      <SidebarCollapsedContext.Provider value={false}>
+        <div className="fixed inset-0 bg-black/40 z-30" onClick={toggleCollapsed} />
+        <div
+          style={{ width: `${Math.min(width, 300)}px` }}
+          className="fixed inset-y-0 left-0 z-40 h-full shadow-xl"
+        >
+          <Sidebar {...sidebarProps} onCollapse={toggleCollapsed} />
+        </div>
         {children}
       </SidebarCollapsedContext.Provider>
     );

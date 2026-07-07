@@ -213,7 +213,7 @@ function PostDetailPage() {
           떠 있는 느낌으로, 글쓰기/수정 페이지와 동일한 레이아웃을 씀 */}
       <div className="flex-1 min-w-0 overflow-y-auto bg-gray-50 dark:bg-gray-950">
         {/* 상단 헤더 */}
-        <div className="sticky top-0 bg-gray-50/90 dark:bg-gray-950/90 backdrop-blur-sm border-b border-gray-200 dark:border-gray-800 px-8 py-4 flex items-center justify-between gap-3 z-10">
+        <div className="sticky top-0 bg-gray-50/90 dark:bg-gray-950/90 backdrop-blur-sm border-b border-gray-200 dark:border-gray-800 px-4 sm:px-8 py-4 flex items-center justify-between gap-3 z-10">
           <div className="flex items-center gap-1.5 text-sm text-gray-400 dark:text-gray-500 min-w-0 overflow-x-auto whitespace-nowrap">
             <SidebarSpacer />
             <button onClick={() => navigate("/notes")} className="hover:text-blue-600 dark:hover:text-blue-400 shrink-0">{t("postDetail.allNotes")}</button>
@@ -250,8 +250,8 @@ function PostDetailPage() {
         </div>
 
         {/* 문서 페이지 - 폭을 문서처럼 제한하고 캔버스 위에 흰 카드로 띄움 */}
-        <div className="px-8 py-10">
-          <div className="max-w-3xl mx-auto bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 px-14 py-12">
+        <div className="px-4 sm:px-8 py-10">
+          <div className="max-w-3xl mx-auto bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 px-5 sm:px-14 py-8 sm:py-12">
             <h1 className="text-3xl font-bold text-gray-800 dark:text-gray-100 mb-3 break-words">{post.title}</h1>
             <div className="flex items-center gap-4 text-sm text-gray-400 dark:text-gray-500 mb-4">
               <span className="flex items-center gap-1.5">

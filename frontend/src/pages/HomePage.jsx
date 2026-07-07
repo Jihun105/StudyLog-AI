@@ -202,9 +202,9 @@ function HomePage() {
     selectedCategoryId={selectedCategoryId}
     onSelectCategory={handleSelectCategory}
   >
-    <div className="flex-1 overflow-y-auto bg-gray-50 dark:bg-gray-900">
+    <div className="flex-1 min-w-0 overflow-y-auto bg-gray-50 dark:bg-gray-900">
       {/* 상단 헤더 */}
-      <div className="sticky top-0 bg-gray-50/90 dark:bg-gray-900/90 backdrop-blur-sm border-b border-gray-200 dark:border-gray-800 px-8 py-4 flex items-center justify-between z-10">
+      <div className="sticky top-0 bg-gray-50/90 dark:bg-gray-900/90 backdrop-blur-sm border-b border-gray-200 dark:border-gray-800 px-4 sm:px-8 py-4 flex items-center justify-between z-10">
         <div className="flex items-center gap-2 text-sm text-gray-400 dark:text-gray-500">
           <SidebarSpacer />
           <button onClick={() => handleSelectCategory(null)} className="hover:text-blue-600 dark:hover:text-blue-400">
@@ -221,7 +221,7 @@ function HomePage() {
         </div>
       </div>
 
-      <div className="px-8 py-8">
+      <div className="px-4 sm:px-8 py-8">
         <div className="relative mb-3">
           <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           <input

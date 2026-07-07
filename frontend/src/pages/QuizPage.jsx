@@ -323,15 +323,15 @@ function QuizPage() {
 
   return (
     <SidebarLayout selectedCategoryId={selectedCategoryId} onSelectCategory={handleSelectCategory}>
-      <div className="flex-1 min-w-[480px] overflow-y-auto bg-gray-50 dark:bg-gray-900">
-        <div className="sticky top-0 bg-gray-50/90 dark:bg-gray-900/90 backdrop-blur-sm border-b border-gray-200 dark:border-gray-800 px-8 py-4 flex items-center justify-between z-10">
+      <div className="flex-1 min-w-0 overflow-y-auto bg-gray-50 dark:bg-gray-900">
+        <div className="sticky top-0 bg-gray-50/90 dark:bg-gray-900/90 backdrop-blur-sm border-b border-gray-200 dark:border-gray-800 px-4 sm:px-8 py-4 flex items-center justify-between z-10">
           <h1 className="flex items-center gap-2 text-lg font-bold text-gray-800 dark:text-gray-100" style={{ fontFamily: "'Newsreader', 'Noto Serif KR', Georgia, serif" }}>
             <SidebarSpacer />
             <BrainCircuit size={20} className="text-blue-600 dark:text-blue-400" /> {t("quiz.title")}
           </h1>
         </div>
 
-        <div className="px-8 py-8 max-w-3xl">
+        <div className="px-4 sm:px-8 py-8 max-w-3xl">
           <div className="app-serif-panel bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-6 mb-6">
             <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">{t("quiz.instructions")}</p>
 
@@ -572,7 +572,16 @@ function QuizPage() {
       </div>
 
       {/* 우측 패널: 선택된 폴더의 글 목록 미리보기 / 글 하나 상세 (페이지 이동 없이 그대로) */}
-      <ResizableRightPanel className="p-5 flex flex-col gap-3 sticky top-0 h-screen" defaultWidth={420} maxWidth={800} minLeftWidth={480}>
+      <ResizableRightPanel
+        className="p-5 flex flex-col gap-3 sticky top-0 h-screen"
+        defaultWidth={420}
+        minWidth={280}
+        maxWidth={800}
+        minLeftWidth={480}
+        collapsible
+        storageKey="quizPreviewPanelCollapsed"
+        autoCollapseBreakpoint={1024}
+      >
         {viewingPost ? (
           // 예전엔 새 창(window.open)으로 열었는데, 새 창을 띄우지 않고 같은 화면 안에서
           // 화면 전체를 덮는 오버레이로 꽉 채워 보여주는 방식으로 변경

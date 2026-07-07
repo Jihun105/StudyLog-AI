@@ -90,8 +90,8 @@ function AllFoldersPage() {
   // 않도록 함 - 이 페이지 자체의 선택 표시는 location.pathname 기준으로 따로 처리됨
   return (
     <SidebarLayout onSelectCategory={(id) => navigate(id === null ? "/notes" : `/notes?category=${id}`)}>
-      <div className="flex-1 overflow-y-auto bg-gray-50 dark:bg-gray-900">
-        <div className="sticky top-0 bg-gray-50/90 dark:bg-gray-900/90 backdrop-blur-sm border-b border-gray-200 dark:border-gray-800 px-8 py-4 z-10">
+      <div className="flex-1 min-w-0 overflow-y-auto bg-gray-50 dark:bg-gray-900">
+        <div className="sticky top-0 bg-gray-50/90 dark:bg-gray-900/90 backdrop-blur-sm border-b border-gray-200 dark:border-gray-800 px-4 sm:px-8 py-4 z-10">
           <div className="flex items-center gap-2 text-sm">
             <SidebarSpacer />
             <button
@@ -117,7 +117,7 @@ function AllFoldersPage() {
           </div>
         </div>
 
-        <div className="px-8 py-8">
+        <div className="px-4 sm:px-8 py-8">
           {isFolderBrowsingMode ? (
             <>
               {loadingCategories && (

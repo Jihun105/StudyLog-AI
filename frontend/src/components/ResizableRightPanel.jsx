@@ -1,6 +1,11 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { PanelRightClose, PanelRightOpen } from "lucide-react";
+import { PanelRightClose, PanelRightOpen, X } from "lucide-react";
+
+// 이 폭 미만(휴대폰)에서 패널이 펼쳐지면, 본문 옆에 좁게 끼어드는 대신 화면 전체를 덮는
+// 슬라이드오버로 띄움 - 안 그러면 본문 폭이 얼마 안 남아서 글자가 세로로 한 글자씩
+// 줄바꿈되는 등 레이아웃이 완전히 깨짐
+const MOBILE_BREAKPOINT = 640;
 
 // minLeftWidth: 패널을 늘릴 때 왼쪽 콘텐츠(사이드바 제외)가 이 값보다 좁아지지 않도록 제한.
 // 0이면 기존처럼 제한 없음(다른 페이지의 기존 동작 그대로 유지).
@@ -36,6 +41,7 @@ function ResizableRightPanel({
   // 창 크기 때문에 "자동으로" 접힌 건지, 사용자가 버튼을 눌러 "직접" 접은 건지 구분.
   // 자동으로 접힌 경우에만 창이 다시 넓어질 때 자동으로 펼침.
   const autoCollapsedRef = useRef(false);
+  const [isMobile, setIsMobile] = useState(() => window.innerWidth < MOBILE_BREAKPOINT);
 
   const toggleCollapsed = () => {
     const next = !collapsed;
@@ -63,6 +69,12 @@ function ResizableRightPanel({
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, [collapsible, isControlled, autoCollapseBreakpoint, internalCollapsed]);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < MOBILE_BREAKPOINT);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   const handleMouseDown = useCallback((e) => {
     e.preventDefault();
@@ -125,6 +137,25 @@ function ResizableRightPanel({
     );
   }
 
+  if (collapsible && isMobile) {
+    // 휴대폰 폭에서 펼쳐진 경우: 본문 옆에 좁은 컬럼으로 끼워넣으면 양쪽 다 폭이 모자라서
+    // 레이아웃이 깨지므로, 왼쪽 사이드바 드로어와 마찬가지로 화면 전체를 덮는 오버레이로 띄움
+    return (
+      <div className="fixed inset-0 z-40 bg-gray-50 dark:bg-gray-900 flex flex-col">
+        <button
+          onClick={toggleCollapsed}
+          title={t("common.collapsePanel")}
+          className="absolute top-3 right-3 z-10 text-gray-400 dark:text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-100 dark:hover:bg-gray-700/60 p-2 rounded-lg"
+        >
+          <X size={18} />
+        </button>
+        <div className={`flex-1 min-h-0 overflow-y-auto ${className}`}>
+          {children}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <>
       {/* 드래그 핸들 (+ 접기 버튼) */}
@@ -137,7 +168,7 @@ function ResizableRightPanel({
           <button
             onClick={toggleCollapsed}
             title={t("common.collapsePanel")}
-            className="absolute top-4 -left-2.5 z-10 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm rounded-full p-1 text-gray-400 dark:text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 hover:border-blue-300 dark:hover:border-blue-500"
+            className="absolute top-4 -left-2.5 z-50 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm rounded-full p-1 text-gray-400 dark:text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 hover:border-blue-300 dark:hover:border-blue-500"
           >
             <PanelRightClose size={12} />
           </button>

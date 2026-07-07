@@ -75,9 +75,9 @@ function PostCreatePage() {
     <SidebarLayout selectedCategoryId={categoryId} onSelectCategory={handleSelectCategory}>
       {/* 메인 작성 영역 - Apple Pages처럼 회색 캔버스 위에 흰 "문서 페이지"가
           떠 있는 느낌을 주기 위해 배경(캔버스)과 실제 편집 카드(페이지)를 분리함 */}
-      <div className="flex-1 overflow-y-auto bg-gray-50 dark:bg-gray-950">
+      <div className="flex-1 min-w-0 overflow-y-auto bg-gray-50 dark:bg-gray-950">
         {/* 상단 헤더 */}
-        <div className="sticky top-0 bg-gray-50/90 dark:bg-gray-950/90 backdrop-blur-sm border-b border-gray-200 dark:border-gray-800 px-8 py-4 flex items-center justify-between z-10">
+        <div className="sticky top-0 bg-gray-50/90 dark:bg-gray-950/90 backdrop-blur-sm border-b border-gray-200 dark:border-gray-800 px-4 sm:px-8 py-4 flex items-center justify-between z-10">
           <div className="flex items-center gap-1.5 text-sm text-gray-400 dark:text-gray-500">
             <SidebarSpacer />
             <button onClick={() => navigate("/notes")} className="hover:text-blue-600 dark:hover:text-blue-400">{t("postCreate.allNotes")}</button>
@@ -104,8 +104,8 @@ function PostCreatePage() {
         </div>
 
         {/* 문서 페이지 - 폭을 문서처럼 제한하고 캔버스 위에 흰 카드로 띄움 */}
-        <div className="px-8 py-10">
-          <div className="max-w-3xl mx-auto bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 px-14 py-12">
+        <div className="px-4 sm:px-8 py-10">
+          <div className="max-w-3xl mx-auto bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 px-5 sm:px-14 py-8 sm:py-12">
             {errorMessage && (
               <div className="bg-red-50 dark:bg-red-500/10 text-red-500 dark:text-red-400 px-4 py-3 rounded-lg mb-4 text-sm">{errorMessage}</div>
             )}

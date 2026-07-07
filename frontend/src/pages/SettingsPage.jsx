@@ -109,15 +109,15 @@ function SettingsPage() {
 
   return (
     <SidebarLayout selectedCategoryId={null} onSelectCategory={handleGoToNotes}>
-      <div className="flex-1 overflow-y-auto bg-gray-50 dark:bg-gray-900">
-        <div className="sticky top-0 bg-gray-50/90 dark:bg-gray-900/90 backdrop-blur-sm border-b border-gray-200 dark:border-gray-800 px-8 py-4 flex items-center z-10">
+      <div className="flex-1 min-w-0 overflow-y-auto bg-gray-50 dark:bg-gray-900">
+        <div className="sticky top-0 bg-gray-50/90 dark:bg-gray-900/90 backdrop-blur-sm border-b border-gray-200 dark:border-gray-800 px-4 sm:px-8 py-4 flex items-center z-10">
           <div className="flex items-center gap-2">
             <SidebarSpacer />
             <h1 className="text-lg font-bold text-gray-800 dark:text-gray-100">{t("settings.title")}</h1>
           </div>
         </div>
 
-        <div className="px-8 py-8 max-w-2xl flex flex-col gap-6">
+        <div className="px-4 sm:px-8 py-8 max-w-2xl flex flex-col gap-6">
           {/* 화면 테마 */}
           <section className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-6">
             <div className="flex items-center gap-2 mb-4">
