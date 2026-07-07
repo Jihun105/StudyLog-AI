@@ -1299,6 +1299,10 @@ function TodoPage() {
     ? events.filter((ev) => ev.start_date <= selectedDate && ev.end_date >= selectedDate)
     : [];
 
+  // 일정 아래 구분선 밑에 토글로 접어서 보여주는 그 날짜의 할 일 목록
+  const [showDayTodos, setShowDayTodos] = useState(false);
+  const selectedDateTodos = selectedDate ? (todosByDate[selectedDate] || []) : [];
+
   // 달력에 보이는 6주 전체 범위와 겹치는 일정만 추림
   const calendarViewStart = calendarCells[0]?.dateStr;
   const calendarViewEnd = calendarCells[calendarCells.length - 1]?.dateStr;
@@ -1360,7 +1364,9 @@ function TodoPage() {
           )}
         </div>
 
-        <div className={`px-4 sm:px-8 py-8 ${viewMode === "calendar" ? "max-w-5xl" : viewMode === "plan" ? "max-w-3xl mx-auto" : "w-full"}`}>
+        {/* 창 크기와 상관없이 항상 가운데 정렬 - 보기별로 폭만 다르게(달력은 그리드가
+            넓어서 5xl, 목록/플랜은 카드형 리스트라 3xl) */}
+        <div className={`px-4 sm:px-8 py-8 mx-auto ${viewMode === "calendar" ? "max-w-5xl" : "max-w-3xl"}`}>
           {/* 보기 전환 */}
           <div className="flex items-center gap-1 mb-4">
             <button
@@ -1696,7 +1702,10 @@ function TodoPage() {
                             seg.continuesRight ? "rounded-r-none" : "rounded-r"
                           }`}
                         >
-                          {seg.event.title}
+                          {/* 주가 바뀌면서 막대가 이어질 때(continuesLeft), 이전 주 칸에 이미
+                              제목이 나왔으므로 여기서 또 보여주면 같은 내용이 두 번 나옴 -
+                              실제로 일정이 시작하는 칸(continuesLeft가 아닌 첫 세그먼트)에서만 표시 */}
+                          {!seg.continuesLeft && seg.event.title}
                         </button>
                       ))}
                     </div>
@@ -1808,33 +1817,68 @@ function TodoPage() {
                 <Calendar size={15} /> {selectedDateLabel}
               </div>
 
+              {/* 일정 목록 + 그 아래 할 일 토글을 한 스크롤 영역으로 묶어서, 일정이 몇 개
+                  안 될 때 남는 세로 공간이 이 영역 맨 아래(내용 밖)로 가고 할 일 토글은
+                  항상 일정 바로 아래에 붙어있게 함 */}
               <div className="flex flex-col gap-2 overflow-y-auto flex-1">
-                {selectedDateEvents.length === 0 ? (
-                  <div className="text-sm text-gray-400 dark:text-gray-500 py-6 text-center">{t("todo.emptyStateEvent")}</div>
-                ) : (
-                  selectedDateEvents.map((ev) => (
-                    <EventRow
-                      key={ev.id}
-                      event={ev}
-                      editing={editingEventId === ev.id}
-                      editTitle={editEventTitle}
-                      editStart={editEventStart}
-                      editEnd={editEventEnd}
-                      editColor={editEventCategory}
-                      setEditTitle={setEditEventTitle}
-                      setEditStart={setEditEventStart}
-                      setEditEnd={setEditEventEnd}
-                      setEditColor={setEditEventCategory}
-                      onStartEdit={() => startEventEdit(ev)}
-                      onCancelEdit={cancelEventEdit}
-                      onSaveEdit={() => saveEventEdit(ev.id)}
-                      onDelete={() => handleEventDelete(ev.id)}
-                      onSaveMemo={(memo) => saveEventMemo(ev.id, memo)}
-                      t={t}
-                      i18n={i18n}
-                    />
-                  ))
-                )}
+                <div className="flex flex-col gap-2">
+                  {selectedDateEvents.length === 0 ? (
+                    <div className="text-sm text-gray-400 dark:text-gray-500 py-6 text-center">{t("todo.emptyStateEvent")}</div>
+                  ) : (
+                    selectedDateEvents.map((ev) => (
+                      <EventRow
+                        key={ev.id}
+                        event={ev}
+                        editing={editingEventId === ev.id}
+                        editTitle={editEventTitle}
+                        editStart={editEventStart}
+                        editEnd={editEventEnd}
+                        editColor={editEventCategory}
+                        setEditTitle={setEditEventTitle}
+                        setEditStart={setEditEventStart}
+                        setEditEnd={setEditEventEnd}
+                        setEditColor={setEditEventCategory}
+                        onStartEdit={() => startEventEdit(ev)}
+                        onCancelEdit={cancelEventEdit}
+                        onSaveEdit={() => saveEventEdit(ev.id)}
+                        onDelete={() => handleEventDelete(ev.id)}
+                        onSaveMemo={(memo) => saveEventMemo(ev.id, memo)}
+                        t={t}
+                        i18n={i18n}
+                      />
+                    ))
+                  )}
+                </div>
+
+                {/* 구분선 아래 토글로 그 날짜의 할 일 목록을 접었다 펼 수 있게 표시 -
+                    일정과 할 일이 한 패널에 다 보이면 복잡해 보여서 기본은 접어둠 */}
+                <div className="border-t border-gray-100 dark:border-gray-700 pt-3">
+                  <button
+                    type="button"
+                    onClick={() => setShowDayTodos((prev) => !prev)}
+                    className="w-full flex items-center justify-between text-xs font-semibold text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+                  >
+                    <span className="flex items-center gap-1.5">
+                      <CheckCircle2 size={13} />
+                      {t("todo.dayTodosToggle")}
+                      {selectedDateTodos.length > 0 && (
+                        <span className="text-gray-400 dark:text-gray-500 font-normal">({selectedDateTodos.length})</span>
+                      )}
+                    </span>
+                    <ChevronDown size={14} className={`transition-transform ${showDayTodos ? "rotate-180" : ""}`} />
+                  </button>
+                  {showDayTodos && (
+                    <div className="flex flex-col gap-2 mt-2">
+                      {selectedDateTodos.length === 0 ? (
+                        <div className="text-sm text-gray-400 dark:text-gray-500 py-3 text-center">{t("todo.emptyState")}</div>
+                      ) : (
+                        selectedDateTodos.map((todo) => (
+                          <TodoRow key={todo.id} {...rowProps(todo, false, true, true)} />
+                        ))
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
 
               <div className="pt-3 border-t border-gray-100 dark:border-gray-700 flex flex-col gap-2 shrink-0">

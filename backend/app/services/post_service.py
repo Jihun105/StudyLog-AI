@@ -8,6 +8,7 @@ from app.models.post import Post, Tag
 from app.models.user import User
 from app.schemas.post import PostCreateRequest, PostUpdateRequest
 from app.services.category_service import get_category_subtree_ids, get_or_create_default_category
+from app.services.ai.rag_service import search_similar_chunks
 from app.utils.blocknote import extract_text_from_blocknote
 
 def strip_html(html: str) -> str:
@@ -231,6 +232,53 @@ async def delete_uncategorized_posts(user_id: int, db: AsyncSession) -> list[int
     )
     await db.commit()
     return deleted_post_ids
+
+async def semantic_search_posts(query: str, user_id: int, db: AsyncSession, limit: int = 8) -> list[dict]:
+    """제목 일치(ILIKE)가 아니라 노트 "내용"의 의미로 찾는 검색 - 이미 AI 챗/퀴즈에서
+    쓰던 임베딩 유사도 검색(search_similar_chunks)을 그대로 재사용함. 노트 하나가 여러
+    청크로 쪼개져 인덱싱되어 있어서, post_id별로 가장 점수가 높은 청크 하나만 남기고
+    나머지는 중복 제거한 뒤 점수 순으로 상위 limit개만 돌려줌"""
+    # 게시글 여러 개를 확보하려면 청크 단위로는 limit보다 넉넉하게 가져와야 함
+    # (한 게시글에서 여러 청크가 동시에 상위권을 차지할 수 있어서)
+    chunks = await search_similar_chunks(query, user_id, top_k=max(limit * 3, 15))
+
+    best_score_by_post = {}
+    for chunk in chunks:
+        post_id = chunk["post_id"]
+        if post_id not in best_score_by_post or chunk["score"] > best_score_by_post[post_id]:
+            best_score_by_post[post_id] = chunk["score"]
+
+    if not best_score_by_post:
+        return []
+
+    ranked_ids = sorted(best_score_by_post, key=lambda pid: best_score_by_post[pid], reverse=True)[:limit]
+
+    result = await db.execute(
+        select(Post)
+        .options(selectinload(Post.tags), selectinload(Post.user))
+        .where(Post.id.in_(ranked_ids), Post.user_id == user_id)
+    )
+    posts_by_id = {post.id: post for post in result.scalars().all()}
+
+    # 벡터 DB에는 있는데 이미 삭제된 게시글(인덱스 정리가 아직 안 됐거나 실패한 경우)은
+    # posts_by_id에 없을 수 있어서 조용히 건너뜀
+    posts = []
+    for post_id in ranked_ids:
+        post = posts_by_id.get(post_id)
+        if post is None:
+            continue
+        posts.append({
+            "id": post.id,
+            "title": post.title,
+            "preview": extract_text_from_blocknote(post.content)[:300],
+            "nickname": post.user.nickname,
+            "tags": [tag.name for tag in post.tags],
+            "created_at": post.created_at,
+            "updated_at": post.updated_at,
+            "category_id": post.category_id,
+            "score": best_score_by_post[post_id],
+        })
+    return posts
 
 async def get_all_tags(db: AsyncSession, user_id: int = None, category_id: int = None, include_subcategories: bool = False) -> list[str]:
     query = select(Tag).join(Tag.posts)

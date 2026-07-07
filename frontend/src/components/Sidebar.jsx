@@ -105,8 +105,8 @@ function CategoryItem({
   const isMenuOpen = contextMenu?.categoryId === category.id;
   const isDragOverThis = dragOver?.categoryId === category.id;
   // canAddChild는 실제 카테고리 깊이(depth) 기준 — "기본" 하위로 보여주는 건 화면상의 들여쓰기(indentOffset)일 뿐,
-  // 백엔드의 "최대 3단계" 제약과는 무관하므로 depth로만 판단
-  const canAddChild = depth < 3;
+  // 백엔드의 "최대 5단계"(MAX_CATEGORY_DEPTH) 제약과는 무관하므로 depth로만 판단
+  const canAddChild = depth < 5;
 
   const handleRenameSubmit = () => {
     if (renameValue.trim()) onRename(category.id, renameValue.trim());

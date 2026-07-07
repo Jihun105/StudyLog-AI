@@ -4,7 +4,7 @@ from typing import List, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.database import get_db
 from app.schemas.post import PostCreateRequest, PostUpdateRequest, PostMoveRequest
-from app.services.post_service import get_posts, get_post, create_post, update_post, delete_post, get_all_tags, move_post, delete_uncategorized_posts
+from app.services.post_service import get_posts, get_post, create_post, update_post, delete_post, get_all_tags, move_post, delete_uncategorized_posts, semantic_search_posts
 from app.core.dependencies import get_current_user
 from app.models.user import User
 
@@ -32,6 +32,18 @@ async def read_all_tags(
     current_user: User = Depends(get_current_user)  # 인증 추가
 ):
     return await get_all_tags(db, current_user.id, category_id, include_subcategories)
+
+# 노트 "제목"이 아니라 "내용"의 의미로 찾는 AI 검색 - "/{post_id}"보다 먼저 등록해야
+# "search"가 post_id로 잘못 매칭되지 않음 (미분류 일괄삭제 라우트와 동일한 이유)
+@router.get("/search/semantic")
+async def search_posts_semantic(
+    q: str = Query(..., min_length=1),
+    limit: int = 8,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    posts = await semantic_search_posts(q, current_user.id, db, limit)
+    return {"posts": posts}
 
 @router.get("/{post_id}")
 async def read_post(post_id: int, db: AsyncSession = Depends(get_db)):

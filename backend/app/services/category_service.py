@@ -6,6 +6,10 @@ from fastapi import HTTPException
 from app.models.post import Category, Post
 from app.schemas.category import CategoryCreateRequest
 
+# 카테고리(폴더)가 중첩될 수 있는 최대 깊이. 루트를 1단계로 세서 5단계까지 허용
+# (예전엔 3단계였음). get_categories의 eager-loading 체이닝 개수도 이 값과 맞춰야 함
+MAX_CATEGORY_DEPTH = 5
+
 async def get_or_create_default_category(user_id: int, db: AsyncSession) -> Category:
     """사용자의 "기본" 카테고리를 반환. 없으면 새로 만듦.
     다른 폴더와 완전히 동일한 진짜 카테고리 row이고(이름변경/삭제 다 가능),
@@ -30,11 +34,15 @@ async def get_categories(user_id: int, db: AsyncSession) -> list:
 
     # 최상위 카테고리만 가져오고, 하위 카테고리는 children으로 접근.
     # 정렬은 order_index 기준(드래그 앤 드롭으로 정한 순서) - 하위 카테고리 정렬은
-    # Category.children relationship에 이미 order_by가 걸려 있어서 자동으로 적용됨
+    # Category.children relationship에 이미 order_by가 걸려 있어서 자동으로 적용됨.
+    # 최대 5단계(MAX_CATEGORY_DEPTH)까지 만들 수 있으므로, eager loading도 그만큼
+    # 체이닝해서 미리 불러와야 함 (안 그러면 4~5단계 하위 폴더가 lazy-load 시도로 에러남)
     result = await db.execute(
         select(Category)
         .options(
             selectinload(Category.children)
+            .selectinload(Category.children)
+            .selectinload(Category.children)
             .selectinload(Category.children)
             .selectinload(Category.children)
         )
@@ -56,7 +64,7 @@ async def get_depth(category_id: int, db: AsyncSession) -> int:
     return depth
 
 async def create_category(request: CategoryCreateRequest, user_id: int, db: AsyncSession) -> Category:
-    # 3단계 깊이 제한 체크
+    # 최대 깊이 제한 체크
     if request.parent_id:
         parent_result = await db.execute(
             select(Category).filter(Category.id == request.parent_id, Category.user_id == user_id)
@@ -64,11 +72,11 @@ async def create_category(request: CategoryCreateRequest, user_id: int, db: Asyn
         parent = parent_result.scalar_one_or_none()
         if parent is None:
             raise HTTPException(status_code=404, detail="부모 카테고리가 존재하지 않습니다.")
-        
-        # 부모의 깊이를 계산해서 3단계 초과 여부 확인
+
+        # 부모의 깊이를 계산해서 최대 깊이 초과 여부 확인
         depth = await get_depth(parent.id, db)
-        if depth >= 3:
-            raise HTTPException(status_code=400, detail="카테고리는 최대 3단계 까지만 만들 수 있습니다.")
+        if depth >= MAX_CATEGORY_DEPTH:
+            raise HTTPException(status_code=400, detail=f"카테고리는 최대 {MAX_CATEGORY_DEPTH}단계 까지만 만들 수 있습니다.")
 
     # 새 폴더는 같은 부모 아래 형제들 맨 뒤에 추가되도록 order_index를 형제 수만큼으로 설정
     sibling_count_result = await db.execute(
@@ -146,7 +154,7 @@ async def reorder_categories(items: list, user_id: int, db: AsyncSession) -> lis
         proposed_parent[item["id"]] = item.get("parent_id")
 
     # 2) 사이클/깊이 검증 - 제출된 parent_id 체인을 따라가며 자기 자신으로 되돌아오거나(순환),
-    # 3단계를 초과하는 경우를 막음
+    # 최대 깊이를 초과하는 경우를 막음
     for item in items:
         category_id = item["id"]
         depth = 1
@@ -157,8 +165,8 @@ async def reorder_categories(items: list, user_id: int, db: AsyncSession) -> lis
                 raise HTTPException(status_code=400, detail="폴더를 자기 자신의 하위로 이동할 수 없습니다.")
             visited.add(current_id)
             depth += 1
-            if depth > 3:
-                raise HTTPException(status_code=400, detail="카테고리는 최대 3단계 까지만 만들 수 있습니다.")
+            if depth > MAX_CATEGORY_DEPTH:
+                raise HTTPException(status_code=400, detail=f"카테고리는 최대 {MAX_CATEGORY_DEPTH}단계 까지만 만들 수 있습니다.")
             # 제출된 목록에 있으면 그 값을 쓰고, 없으면(이번에 안 움직인 카테고리) DB에 저장된 값을 씀
             current_id = proposed_parent.get(current_id, my_categories.get(current_id).parent_id if current_id in my_categories else None)
 

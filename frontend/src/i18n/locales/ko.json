@@ -98,7 +98,14 @@
     "categoryPrefix": "카테고리",
     "sortCreated": "만든 날짜순",
     "sortUpdated": "수정한 날짜순",
-    "sortTitle": "제목순"
+    "sortTitle": "제목순",
+    "aiSearchToggle": "AI 검색",
+    "aiSearchHint": "제목이 아니라 노트 내용의 의미로 비슷한 글을 찾아줘요",
+    "aiSearchPlaceholder": "찾고 싶은 내용을 설명해보세요 (제목이 기억 안 나도 괜찮아요)...",
+    "aiSearchEmpty": "관련된 노트를 찾지 못했어요.",
+    "aiSearchPrompt": "검색어를 입력하고 Enter를 눌러 찾아보세요.",
+    "aiSearchResultsTitle": "AI 검색 결과",
+    "relevance": "관련도 {{percent}}%"
   },
   "quiz": {
     "title": "AI 퀴즈",
@@ -182,7 +189,8 @@
     "eventStartDateLabel": "시작일",
     "eventEndDateLabel": "종료일 (비워두면 하루짜리 일정)",
     "emptyStateEvent": "이 날짜에 등록된 일정이 없습니다.",
-    "confirmDeleteEvent": "이 일정을 삭제할까요?"
+    "confirmDeleteEvent": "이 일정을 삭제할까요?",
+    "dayTodosToggle": "이 날짜의 할 일"
   },
   "settings": {
     "title": "설정",

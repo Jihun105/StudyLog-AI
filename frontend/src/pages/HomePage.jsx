@@ -1,12 +1,12 @@
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { getPosts, getAllTags, deletePost } from "../api/posts";
+import { getPosts, getAllTags, deletePost, searchSemanticPosts } from "../api/posts";
 import { getCategories } from "../api/categories";
 import { useAuth } from "../context/AuthContext";
 import {
   Search, SlidersHorizontal, FileText,
-  Play, Plus, Folder, X, ArrowUpDown, Check
+  Play, Plus, Folder, X, ArrowUpDown, Check, Sparkles
 } from "lucide-react";
 import SidebarLayout, { SidebarSpacer } from "../components/SidebarLayout";
 import { POST_DRAG_TYPE } from "../components/Sidebar";
@@ -120,6 +120,14 @@ function HomePage() {
   // 노트 정렬 기준 - 제목순 / 만든 날짜순 / 수정한 날짜순
   const [sortBy, setSortBy] = useState("created_at");
 
+  // 제목 일치가 아니라 노트 "내용"의 의미로 찾는 AI(RAG) 검색 모드 - 켜져 있으면
+  // 폴더/태그/정렬/페이지네이션과 무관하게 그 사용자의 전체 노트 중 관련도 순으로
+  // 상위 몇 개만 보여줌 (지금 보고 있는 폴더에 갇히지 않고 어디 있는지 몰라도 찾을 수 있게)
+  const [aiMode, setAiMode] = useState(false);
+  const [aiResults, setAiResults] = useState([]);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiSearched, setAiSearched] = useState(false);
+
   const { token } = useAuth();
   const navigate = useNavigate();
 
@@ -183,8 +191,43 @@ function HomePage() {
   }, [page, keyword, selectedTags, selectedCategoryId, sortBy]);
 
   const handleSearch = () => {
+    if (aiMode) {
+      handleAiSearch();
+      return;
+    }
     setPage(1);
     setKeyword(inputKeyword.trim() || null);
+  };
+
+  const handleAiSearch = async () => {
+    const q = inputKeyword.trim();
+    if (!q) {
+      setAiResults([]);
+      setAiSearched(false);
+      return;
+    }
+    setAiLoading(true);
+    setAiSearched(true);
+    setErrorMessage("");
+    try {
+      const data = await searchSemanticPosts(q, token, 8);
+      setAiResults(data.posts);
+    } catch (error) {
+      setAiResults([]);
+      setErrorMessage(t("postDetail.loadFailed"));
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+  // AI 검색 모드를 켜고 끌 때 - 서로 다른 검색 결과가 섞여 보이지 않도록 반대쪽 상태를 정리
+  const handleToggleAiMode = () => {
+    setAiMode((prev) => !prev);
+    setInputKeyword("");
+    setKeyword(null);
+    setAiResults([]);
+    setAiSearched(false);
+    setPage(1);
   };
 
   const handleKeyDown = (e) => {
@@ -235,6 +278,11 @@ function HomePage() {
     setInputKeyword("");
     setKeyword(null);
     setSelectedTags([]);
+    // AI 검색은 폴더 구분 없이 전체 노트를 대상으로 하는 기능이라, 폴더를 클릭하면
+    // 헷갈리지 않도록 일반 검색/목록 모드로 되돌림
+    setAiMode(false);
+    setAiResults([]);
+    setAiSearched(false);
   };
 
   // 지금 보고 있는 폴더에서 글쓰기를 누르면 그 폴더가 선택된 채로 작성 페이지로 이동
@@ -248,6 +296,10 @@ function HomePage() {
   };
 
   const totalPages = Math.ceil(total / limit);
+
+  // AI 검색 모드일 땐 일반 목록(posts/loading) 대신 별도로 관리하는 결과(aiResults/aiLoading)를 보여줌
+  const displayPosts = aiMode ? aiResults : posts;
+  const displayLoading = aiMode ? aiLoading : loading;
 
   // 선택된 카테고리에 하위 폴더가 있으면 노트 대신 하위 폴더를 먼저 보여주고,
   // 하위 폴더가 없는(리프) 카테고리거나 전체보기일 땐 노트를 바로 보여줌
@@ -296,41 +348,70 @@ function HomePage() {
             value={inputKeyword}
             onChange={(e) => setInputKeyword(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder={t("notes.searchPlaceholder")}
-            className="w-full pl-9 pr-4 py-2.5 border border-gray-200 dark:border-gray-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 dark:bg-gray-900 dark:text-gray-100"
+            placeholder={aiMode ? t("notes.aiSearchPlaceholder") : t("notes.searchPlaceholder")}
+            className="w-full pl-9 pr-28 py-2.5 border border-gray-200 dark:border-gray-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 dark:bg-gray-900 dark:text-gray-100"
           />
-        </div>
-        <div className="flex items-center gap-3 mb-6 flex-wrap">
+          {/* 제목 일치 검색과 AI(의미 기반) 검색을 전환하는 토글 - 켜져 있으면 카테고리/태그/
+              정렬/페이지네이션은 의미가 없어져서 아래 필터들을 통째로 숨김 */}
           <button
-            onClick={handleSearch}
-            className="flex items-center gap-2 border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-900 text-gray-600 dark:text-gray-300 text-sm px-4 py-2.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
+            type="button"
+            onClick={handleToggleAiMode}
+            title={t("notes.aiSearchHint")}
+            className={`absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-md transition-colors ${
+              aiMode
+                ? "bg-blue-600 text-white"
+                : "text-gray-400 dark:text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-100 dark:hover:bg-gray-700/60"
+            }`}
           >
-            <SlidersHorizontal size={14} /> {t("notes.category")}
+            <Sparkles size={13} /> {t("notes.aiSearchToggle")}
           </button>
-          <SortDropdown value={sortBy} onChange={handleSortChange} t={t} />
-          {allTags.map((tag) => (
-            <button
-              key={tag}
-              onClick={() => handleTagToggle(tag)}
-              className={`text-sm px-3 py-2 rounded-full border transition-colors ${
-                selectedTags.includes(tag)
-                  ? "bg-blue-600 text-white border-blue-600"
-                  : "bg-gray-50 dark:bg-gray-900 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-600 hover:border-blue-400 dark:hover:border-blue-500"
-              }`}
-            >
-              # {tag}
-            </button>
-          ))}
         </div>
 
-        {(keyword || selectedTags.length > 0) && (
+        {!aiMode && (
+          <div className="flex items-center gap-3 mb-6 flex-wrap">
+            <button
+              onClick={handleSearch}
+              className="flex items-center gap-2 border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-900 text-gray-600 dark:text-gray-300 text-sm px-4 py-2.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
+            >
+              <SlidersHorizontal size={14} /> {t("notes.category")}
+            </button>
+            <SortDropdown value={sortBy} onChange={handleSortChange} t={t} />
+            {allTags.map((tag) => (
+              <button
+                key={tag}
+                onClick={() => handleTagToggle(tag)}
+                className={`text-sm px-3 py-2 rounded-full border transition-colors ${
+                  selectedTags.includes(tag)
+                    ? "bg-blue-600 text-white border-blue-600"
+                    : "bg-gray-50 dark:bg-gray-900 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-600 hover:border-blue-400 dark:hover:border-blue-500"
+                }`}
+              >
+                # {tag}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {!aiMode && (keyword || selectedTags.length > 0) && (
           <div className="flex items-center gap-2 mb-4 text-sm text-gray-500 dark:text-gray-400">
             <span>{t("notes.searchResults", { count: total })}</span>
             <button onClick={handleReset} className="text-blue-500 dark:text-blue-400 hover:underline">{t("notes.reset")}</button>
           </div>
         )}
 
-        {subCategories.length > 0 && (
+        {aiMode && aiSearched && (
+          <div className="flex items-center gap-2 mb-4 text-sm text-gray-500 dark:text-gray-400">
+            <span>{t("notes.searchResults", { count: aiResults.length })}</span>
+            <button
+              onClick={() => { setInputKeyword(""); setAiResults([]); setAiSearched(false); }}
+              className="text-blue-500 dark:text-blue-400 hover:underline"
+            >
+              {t("notes.reset")}
+            </button>
+          </div>
+        )}
+
+        {!aiMode && subCategories.length > 0 && (
           <div className="mb-6">
             <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100 mb-3">{t("notes.subfolders")}</h2>
             <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
@@ -349,11 +430,15 @@ function HomePage() {
         )}
 
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100">{notesSectionTitle}</h2>
-          <button className="text-sm text-blue-600 dark:text-blue-400 hover:underline">{t("notes.viewAll")} →</button>
+          <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100">
+            {aiMode ? t("notes.aiSearchResultsTitle") : notesSectionTitle}
+          </h2>
+          {!aiMode && (
+            <button className="text-sm text-blue-600 dark:text-blue-400 hover:underline">{t("notes.viewAll")} →</button>
+          )}
         </div>
 
-        {loading && (
+        {displayLoading && (
           <div className="text-center text-gray-400 dark:text-gray-500 py-12">{t("common.loading")}</div>
         )}
 
@@ -361,24 +446,28 @@ function HomePage() {
           <div className="bg-red-50 dark:bg-red-500/10 text-red-500 dark:text-red-400 px-4 py-3 rounded-lg mb-4 text-sm">{errorMessage}</div>
         )}
 
-        {!loading && posts.length === 0 ? (
+        {!displayLoading && displayPosts.length === 0 ? (
           <div className="text-center text-gray-400 dark:text-gray-500 py-16">
-            <FileText size={48} className="mx-auto mb-4 text-gray-300 dark:text-gray-600" />
+            {aiMode ? <Sparkles size={48} className="mx-auto mb-4 text-gray-300 dark:text-gray-600" /> : <FileText size={48} className="mx-auto mb-4 text-gray-300 dark:text-gray-600" />}
             <div className="font-medium text-gray-500 dark:text-gray-400">
-              {keyword || selectedTags.length > 0
-                ? t("notes.noSearchResults")
-                : t("notes.noPostsYet")}
+              {aiMode
+                ? (aiSearched ? t("notes.aiSearchEmpty") : t("notes.aiSearchPrompt"))
+                : (keyword || selectedTags.length > 0
+                  ? t("notes.noSearchResults")
+                  : t("notes.noPostsYet"))}
             </div>
-            <button
-              onClick={handleCreatePost}
-              className="mt-4 text-blue-600 dark:text-blue-400 text-sm hover:underline flex items-center gap-1 mx-auto"
-            >
-              <Plus size={14} /> {t("notes.writeFirstNote")}
-            </button>
+            {!aiMode && (
+              <button
+                onClick={handleCreatePost}
+                className="mt-4 text-blue-600 dark:text-blue-400 text-sm hover:underline flex items-center gap-1 mx-auto"
+              >
+                <Plus size={14} /> {t("notes.writeFirstNote")}
+              </button>
+            )}
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
-            {posts.map((post) => (
+            {displayPosts.map((post) => (
               <div
                 key={post.id}
                 onClick={() => navigate(`/posts/${post.id}`)}
@@ -427,6 +516,13 @@ function HomePage() {
                 <div className="text-xs text-gray-400 dark:text-gray-500 mb-2 flex items-center gap-1 pr-5">
                   <FileText size={12} />
                   <span>{post.category_id ? (findCategoryName(categories, post.category_id) || t("notes.categoryPrefix")) : t("notes.uncategorized")}</span>
+                  {/* AI 검색 결과에만 있는 score(코사인 유사도)를 관련도(%)로 보여줘서
+                      왜 이 노트가 뜨는지, 얼마나 비슷한지 감을 잡을 수 있게 함 */}
+                  {aiMode && typeof post.score === "number" && (
+                    <span className="ml-auto shrink-0 flex items-center gap-1 text-blue-500 dark:text-blue-400">
+                      <Sparkles size={11} /> {t("notes.relevance", { percent: Math.round(post.score * 100) })}
+                    </span>
+                  )}
                 </div>
                 <h3 className="text-base font-semibold text-gray-800 dark:text-gray-100 mb-1.5 line-clamp-2">
                   {post.title}
@@ -456,7 +552,7 @@ function HomePage() {
           </div>
         )}
 
-        {totalPages > 1 && (
+        {!aiMode && totalPages > 1 && (
           <div className="flex justify-center gap-2 mt-8">
             {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
               <button

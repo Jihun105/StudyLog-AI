@@ -98,7 +98,14 @@
     "categoryPrefix": "Category",
     "sortCreated": "Date created",
     "sortUpdated": "Date updated",
-    "sortTitle": "Title"
+    "sortTitle": "Title",
+    "aiSearchToggle": "AI Search",
+    "aiSearchHint": "Finds similar notes by meaning, not just title",
+    "aiSearchPlaceholder": "Describe what you're looking for (even if you don't remember the title)...",
+    "aiSearchEmpty": "Couldn't find any related notes.",
+    "aiSearchPrompt": "Type what you're looking for and press Enter.",
+    "aiSearchResultsTitle": "AI Search Results",
+    "relevance": "{{percent}}% match"
   },
   "quiz": {
     "title": "AI Quiz",
@@ -182,7 +189,8 @@
     "eventStartDateLabel": "Start date",
     "eventEndDateLabel": "End date (leave blank for a single-day event)",
     "emptyStateEvent": "No events on this date.",
-    "confirmDeleteEvent": "Delete this event?"
+    "confirmDeleteEvent": "Delete this event?",
+    "dayTodosToggle": "To-dos on this date"
   },
   "settings": {
     "title": "Settings",

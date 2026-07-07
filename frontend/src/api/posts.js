@@ -94,3 +94,12 @@ export const getAllTags = async (token, categoryId = null, includeSubcategories 
   });
   return response.data;
 };
+
+// 제목이 아니라 노트 "내용"의 의미로 찾는 AI(RAG) 검색 (인증 필요)
+export const searchSemanticPosts = async (query, token, limit = 8) => {
+  const response = await axios.get(`${BASE_URL}/api/posts/search/semantic`, {
+    params: { q: query, limit },
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+  return response.data;
+};
