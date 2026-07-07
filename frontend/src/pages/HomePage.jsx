@@ -2,14 +2,16 @@ import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { getPosts, getAllTags, deletePost, searchSemanticPosts } from "../api/posts";
-import { getCategories } from "../api/categories";
+import { getCategories, createCategory, renameCategory, deleteCategory, updateCategoryColor } from "../api/categories";
 import { useAuth } from "../context/AuthContext";
 import {
   Search, SlidersHorizontal, FileText,
-  Play, Plus, Folder, X, ArrowUpDown, Check, Sparkles
+  Play, Plus, FolderPlus, Pencil, FilePlus2, Trash2, X, ArrowUpDown, Check, Sparkles, Palette
 } from "lucide-react";
 import SidebarLayout, { SidebarSpacer } from "../components/SidebarLayout";
 import { POST_DRAG_TYPE } from "../components/Sidebar";
+import FolderTile from "../components/FolderTile";
+import ColorDotPicker from "../components/ColorPicker";
 
 // 카테고리 id로 이름 찾기 (트리 재귀 탐색)
 function findCategoryName(categories, id) {
@@ -127,6 +129,17 @@ function HomePage() {
   const [aiResults, setAiResults] = useState([]);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiSearched, setAiSearched] = useState(false);
+
+  // 특정 카테고리를 보고 있을 때(전체 보기가 아니라 실제 폴더 안에 들어와 있을 때)
+  // 이 페이지 안에서 바로 우클릭해서 하위 폴더를 만들거나, 하위 폴더 타일 위에서
+  // Sidebar와 동일한 메뉴(하위 폴더 추가/글쓰기/이름변경/삭제)를 쓸 수 있는 기능 -
+  // AllFoldersPage.jsx와 완전히 같은 패턴
+  const [contextMenu, setContextMenu] = useState(null); // {x, y} | null
+  const [addingFolderInMenu, setAddingFolderInMenu] = useState(false);
+  const [newFolderName, setNewFolderName] = useState("");
+  const [folderMenu, setFolderMenu] = useState(null); // {x, y, folder} | null
+  const [folderMenuMode, setFolderMenuMode] = useState(null); // null | "addSubfolder" | "rename" | "color"
+  const [folderMenuInput, setFolderMenuInput] = useState("");
 
   const { token } = useAuth();
   const navigate = useNavigate();
@@ -272,6 +285,125 @@ function HomePage() {
     }
   };
 
+  // 우클릭 폴더 추가 메뉴가 열려 있을 때 바깥을 클릭하거나 Esc를 누르면 닫힘
+  // (AllFoldersPage.jsx와 완전히 같은 패턴)
+  useEffect(() => {
+    if (!contextMenu) return;
+    const closeMenu = () => { setContextMenu(null); setAddingFolderInMenu(false); setNewFolderName(""); };
+    const handleEsc = (e) => { if (e.key === "Escape") closeMenu(); };
+    document.addEventListener("click", closeMenu);
+    document.addEventListener("keydown", handleEsc);
+    return () => {
+      document.removeEventListener("click", closeMenu);
+      document.removeEventListener("keydown", handleEsc);
+    };
+  }, [contextMenu]);
+
+  // 폴더 타일 컨텍스트 메뉴도 마찬가지로 바깥 클릭/Esc로 닫힘
+  useEffect(() => {
+    if (!folderMenu) return;
+    const closeMenu = () => { setFolderMenu(null); setFolderMenuMode(null); setFolderMenuInput(""); };
+    const handleEsc = (e) => { if (e.key === "Escape") closeMenu(); };
+    document.addEventListener("click", closeMenu);
+    document.addEventListener("keydown", handleEsc);
+    return () => {
+      document.removeEventListener("click", closeMenu);
+      document.removeEventListener("keydown", handleEsc);
+    };
+  }, [folderMenu]);
+
+  // 카테고리 목록을 다시 불러오고, Sidebar에도 알려줌(Sidebar는 폴더 목록을 독립적으로
+  // fetch해서 들고 있어서, 여기서 생성/이름변경/삭제한 게 바로 반영되려면 전역 이벤트가 필요함)
+  const refreshCategories = async () => {
+    const data = await getCategories(token);
+    setCategories(data);
+    window.dispatchEvent(new Event("studylog:categories-changed"));
+  };
+
+  // 지금 선택된 카테고리 안에 하위 폴더를 만듦. "기본"(-1)은 실제 카테고리가 아니라
+  // 화면상 최상위 폴더들을 보여주는 자리라서, 여기서 만들면 진짜 최상위(부모 없음)로 생성됨
+  const contextMenuParentId = selectedCategoryId === -1 ? null : selectedCategoryId;
+
+  // 전체 보기(카테고리 선택 안 함)나 AI 검색 모드에서는 이 기능을 켜지 않음 -
+  // "전체 보기페이지에서가 아니라" 특정 카테고리 폴더 안에 들어와 있을 때만 동작해야 함
+  const handleOpenContentMenu = (e) => {
+    if (selectedCategoryId === null || aiMode) return;
+    e.preventDefault();
+    setFolderMenu(null); // 폴더 타일 메뉴가 열려있었다면 닫음(하나만 열려있어야 함)
+    setContextMenu({ x: e.clientX, y: e.clientY });
+    setAddingFolderInMenu(false);
+    setNewFolderName("");
+  };
+
+  const handleCreateFolderFromContent = async () => {
+    if (!newFolderName.trim()) return;
+    try {
+      await createCategory(newFolderName.trim(), contextMenuParentId, token);
+      await refreshCategories();
+      setContextMenu(null);
+      setAddingFolderInMenu(false);
+      setNewFolderName("");
+    } catch (error) {
+      alert(error.response?.data?.detail || t("sidebar.addFolderFailed"));
+    }
+  };
+
+  // 폴더 타일 위에서 우클릭 - Sidebar의 CategoryItem 컨텍스트 메뉴와 동일한 기능
+  // (하위 폴더 추가 / 글쓰기 / 이름변경 / 삭제)을 이 페이지 안에서도 쓸 수 있게 함
+  const openFolderMenu = (e, folder) => {
+    e.preventDefault();
+    e.stopPropagation(); // 배경 우클릭 메뉴(하위 폴더 추가)가 같이 뜨지 않도록
+    setContextMenu(null); // 배경 메뉴가 열려있었다면 닫음
+    setFolderMenu({ x: e.clientX, y: e.clientY, folder });
+    setFolderMenuMode(null);
+    setFolderMenuInput("");
+  };
+
+  const closeFolderMenu = () => {
+    setFolderMenu(null);
+    setFolderMenuMode(null);
+    setFolderMenuInput("");
+  };
+
+  const handleWriteInFolder = (folder) => {
+    navigate(`/posts/create?category=${folder.id}`);
+  };
+
+  const submitFolderMenuInput = async () => {
+    if (!folderMenuInput.trim() || !folderMenu) return;
+    try {
+      if (folderMenuMode === "addSubfolder") {
+        await createCategory(folderMenuInput.trim(), folderMenu.folder.id, token);
+      } else if (folderMenuMode === "rename") {
+        await renameCategory(folderMenu.folder.id, folderMenuInput.trim(), token);
+      }
+      await refreshCategories();
+      closeFolderMenu();
+    } catch (error) {
+      alert(error.response?.data?.detail || t("sidebar.addFolderFailed"));
+    }
+  };
+
+  const handleDeleteFolderFromMenu = async (folder) => {
+    if (!window.confirm(t("sidebar.confirmDeleteFolder"))) return;
+    try {
+      await deleteCategory(folder.id, token);
+      await refreshCategories();
+      closeFolderMenu();
+    } catch (error) {}
+  };
+
+  // 색상 점을 누르면 바로 적용됨 (별도 저장 버튼 없음) - colorKey가 null이면 색상을 없앰
+  const handleChangeFolderColor = async (folder, colorKey) => {
+    try {
+      await updateCategoryColor(folder.id, colorKey, token);
+      await refreshCategories();
+      closeFolderMenu();
+    } catch (error) {
+      alert(error.response?.data?.detail || t("sidebar.addFolderFailed"));
+    }
+  };
+
   const handleSelectCategory = (categoryId) => {
     setSelectedCategoryId(categoryId);
     setPage(1);
@@ -321,7 +453,7 @@ function HomePage() {
     selectedCategoryId={selectedCategoryId}
     onSelectCategory={handleSelectCategory}
   >
-    <div className="flex-1 min-w-0 overflow-y-auto bg-gray-50 dark:bg-gray-900">
+    <div className="flex-1 min-w-0 overflow-y-auto bg-gray-50 dark:bg-gray-900" onContextMenu={handleOpenContentMenu}>
       {/* 상단 헤더 */}
       <div className="sticky top-0 bg-gray-50/90 dark:bg-gray-900/90 backdrop-blur-sm border-b border-gray-200 dark:border-gray-800 px-4 sm:px-8 py-4 flex items-center justify-between z-10">
         <div className="flex items-center gap-2 text-sm text-gray-400 dark:text-gray-500">
@@ -414,16 +546,15 @@ function HomePage() {
         {!aiMode && subCategories.length > 0 && (
           <div className="mb-6">
             <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100 mb-3">{t("notes.subfolders")}</h2>
-            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
+            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-4">
               {subCategories.map((child) => (
-                <button
+                <FolderTile
                   key={child.id}
+                  name={child.name}
+                  color={child.color}
                   onClick={() => handleSelectCategory(child.id)}
-                  className="flex flex-col items-center gap-1 bg-gray-100 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-2.5 text-center hover:border-blue-200 dark:hover:border-blue-500/40 hover:shadow-sm transition-all"
-                >
-                  <Folder size={18} className="text-blue-500 dark:text-blue-400 shrink-0" />
-                  <span className="text-xs font-medium text-gray-700 dark:text-gray-200 truncate w-full">{child.name}</span>
-                </button>
+                  onContextMenu={(e) => openFolderMenu(e, child)}
+                />
               ))}
             </div>
           </div>
@@ -478,6 +609,7 @@ function HomePage() {
                   setDraggingPostId(post.id);
                 }}
                 onDragEnd={() => setDraggingPostId(null)}
+                onContextMenu={(e) => e.stopPropagation()}
                 className={`corner-bracket relative bg-gray-100 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 cursor-pointer hover:shadow-md hover:border-blue-100 dark:hover:border-blue-500/40 transition-all ${
                   draggingPostId === post.id ? "opacity-40" : ""
                 }`}
@@ -569,6 +701,138 @@ function HomePage() {
             ))}
           </div>
         )}
+
+        {/* 우클릭 폴더 추가 메뉴 - Sidebar/AllFoldersPage의 우클릭 메뉴와 같은 스타일
+            (prompt() 대신 인라인 입력). 전체보기/AI 검색 모드에선 애초에 안 열림 */}
+        {contextMenu && (
+          <div
+            className="fixed z-50 w-48 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg py-1 text-sm"
+            style={{ top: contextMenu.y, left: contextMenu.x }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {!addingFolderInMenu ? (
+              <button
+                onClick={() => setAddingFolderInMenu(true)}
+                className="w-full flex items-center gap-2 px-3 py-1.5 text-left text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/60"
+              >
+                <FolderPlus size={14} className="shrink-0" />
+                {contextMenuParentId !== null ? t("sidebar.addSubfolder") : t("sidebar.newFolder")}
+              </button>
+            ) : (
+              <div className="px-2 py-1.5">
+                <input
+                  autoFocus
+                  value={newFolderName}
+                  onChange={(e) => setNewFolderName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") handleCreateFolderFromContent();
+                    if (e.key === "Escape") { setContextMenu(null); setAddingFolderInMenu(false); }
+                  }}
+                  placeholder={t("sidebar.folderNamePlaceholder")}
+                  className="w-full text-sm border border-blue-300 dark:border-blue-500 dark:bg-gray-700 dark:text-gray-100 rounded-lg px-2 py-1 focus:outline-none mb-1.5"
+                />
+                <div className="flex gap-1">
+                  <button
+                    onClick={handleCreateFolderFromContent}
+                    className="text-xs bg-blue-500 text-white px-2 py-1 rounded-lg hover:bg-blue-600"
+                  >
+                    {t("sidebar.add")}
+                  </button>
+                  <button
+                    onClick={() => { setContextMenu(null); setAddingFolderInMenu(false); }}
+                    className="text-xs text-gray-500 dark:text-gray-400 px-2 py-1 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700/60"
+                  >
+                    {t("sidebar.cancel")}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* 폴더 타일 위 우클릭 메뉴 - Sidebar의 CategoryItem 컨텍스트 메뉴와 동일한 구성
+            (하위 폴더 추가 / 글쓰기 / 이름변경 / 삭제) */}
+        {folderMenu && (
+          <div
+            className="fixed z-50 w-44 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg py-1 text-sm"
+            style={{ top: folderMenu.y, left: folderMenu.x }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {folderMenuMode === null && (
+              <>
+                <button
+                  onClick={() => { setFolderMenuMode("addSubfolder"); setFolderMenuInput(""); }}
+                  className="w-full flex items-center gap-2 px-3 py-1.5 text-left text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/60"
+                >
+                  <FolderPlus size={14} className="shrink-0" /> {t("sidebar.addSubfolder")}
+                </button>
+                <button
+                  onClick={() => { handleWriteInFolder(folderMenu.folder); closeFolderMenu(); }}
+                  className="w-full flex items-center gap-2 px-3 py-1.5 text-left text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/60"
+                >
+                  <FilePlus2 size={14} className="shrink-0" /> {t("sidebar.writeNote")}
+                </button>
+                <button
+                  onClick={() => { setFolderMenuMode("rename"); setFolderMenuInput(folderMenu.folder.name); }}
+                  className="w-full flex items-center gap-2 px-3 py-1.5 text-left text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/60"
+                >
+                  <Pencil size={14} className="shrink-0" /> {t("sidebar.rename")}
+                </button>
+                <button
+                  onClick={() => setFolderMenuMode("color")}
+                  className="w-full flex items-center gap-2 px-3 py-1.5 text-left text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/60"
+                >
+                  <Palette size={14} className="shrink-0" /> {t("sidebar.changeColor")}
+                </button>
+                <div className="my-1 border-t border-gray-100 dark:border-gray-700" />
+                <button
+                  onClick={() => handleDeleteFolderFromMenu(folderMenu.folder)}
+                  className="w-full flex items-center gap-2 px-3 py-1.5 text-left text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10"
+                >
+                  <Trash2 size={14} className="shrink-0" /> {t("sidebar.delete")}
+                </button>
+              </>
+            )}
+            {(folderMenuMode === "addSubfolder" || folderMenuMode === "rename") && (
+              <div className="px-2 py-1.5">
+                <input
+                  autoFocus
+                  value={folderMenuInput}
+                  onChange={(e) => setFolderMenuInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") submitFolderMenuInput();
+                    if (e.key === "Escape") closeFolderMenu();
+                  }}
+                  placeholder={t("sidebar.folderNamePlaceholder")}
+                  className="w-full text-sm border border-blue-300 dark:border-blue-500 dark:bg-gray-700 dark:text-gray-100 rounded-lg px-2 py-1 focus:outline-none mb-1.5"
+                />
+                <div className="flex gap-1">
+                  <button
+                    onClick={submitFolderMenuInput}
+                    className="text-xs bg-blue-500 text-white px-2 py-1 rounded-lg hover:bg-blue-600"
+                  >
+                    {folderMenuMode === "rename" ? t("common.save") : t("sidebar.add")}
+                  </button>
+                  <button
+                    onClick={closeFolderMenu}
+                    className="text-xs text-gray-500 dark:text-gray-400 px-2 py-1 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700/60"
+                  >
+                    {t("sidebar.cancel")}
+                  </button>
+                </div>
+              </div>
+            )}
+            {folderMenuMode === "color" && (
+              <div className="px-3 py-2">
+                <ColorDotPicker
+                  value={folderMenu.folder.color}
+                  onChange={(colorKey) => handleChangeFolderColor(folderMenu.folder, colorKey)}
+                />
+              </div>
+            )}
+          </div>
+        )}
+
       </div>
     </div>
   </SidebarLayout>

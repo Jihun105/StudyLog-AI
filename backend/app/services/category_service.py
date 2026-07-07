@@ -124,7 +124,9 @@ async def delete_category(category_id: int, user_id: int, db: AsyncSession) -> l
     await db.commit()
     return deleted_post_ids
 
-async def rename_category(category_id: int, name: str, user_id: int, db: AsyncSession) -> Category:
+# 이름 수정과 색상 변경을 하나로 합침 - 프론트에서 이름만 보낼 수도, 색상만 보낼 수도,
+# 둘 다 보낼 수도 있어서 None이 아닌 필드만 반영함
+async def update_category(category_id: int, user_id: int, db: AsyncSession, name: str | None = None, color: str | None = None) -> Category:
     result = await db.execute(
         select(Category).filter(Category.id == category_id, Category.user_id == user_id)
     )
@@ -132,8 +134,13 @@ async def rename_category(category_id: int, name: str, user_id: int, db: AsyncSe
 
     if category is None:
         raise HTTPException(status_code=404, detail="카테고리가 존재하지 않습니다.")
-    
-    category.name = name
+
+    if name is not None:
+        category.name = name
+    if color is not None:
+        # 빈 문자열은 "색상 없앰(기본 회색으로)"을 의미하므로 None으로 저장
+        category.color = color if color else None
+
     await db.commit()
     await db.refresh(category)
     return category

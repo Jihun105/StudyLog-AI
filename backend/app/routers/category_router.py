@@ -3,8 +3,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.database import get_db
 from app.core.dependencies import get_current_user
 from app.models.user import User
-from app.schemas.category import CategoryCreateRequest, CategoryResponse, CategoryTreeResponse, CategoryReorderRequest
-from app.services.category_service import get_categories, create_category, delete_category, rename_category, reorder_categories
+from app.schemas.category import CategoryCreateRequest, CategoryUpdateRequest, CategoryResponse, CategoryTreeResponse, CategoryReorderRequest
+from app.services.category_service import get_categories, create_category, delete_category, update_category, reorder_categories
 from app.services.ai.embedding_service import delete_post_index
 
 router = APIRouter(prefix="/api/categories", tags=["categories"])
@@ -26,15 +26,15 @@ async def write_category(
 ):
     return await create_category(request, current_user.id, db)
 
-# 카테고리 이름 수정
+# 카테고리 이름 수정 / 색상 변경 (둘 다 선택 필드라 보낸 것만 반영됨)
 @router.patch("/{category_id}", response_model=CategoryResponse)
-async def update_category(
-    category_id: int, 
-    request: CategoryCreateRequest,
+async def edit_category(
+    category_id: int,
+    request: CategoryUpdateRequest,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    return await rename_category(category_id, request.name, current_user.id, db)
+    return await update_category(category_id, current_user.id, db, name=request.name, color=request.color)
 
 # 카테고리 삭제 (하위 폴더 + 그 안의 노트까지 전부 같이 삭제됨)
 @router.delete("/{category_id}", status_code=204)

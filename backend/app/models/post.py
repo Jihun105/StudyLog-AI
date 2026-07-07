@@ -50,6 +50,10 @@ class Category(Base):
     # 같은 부모 아래 형제 카테고리들 사이의 정렬 순서 (드래그 앤 드롭 순서 변경용).
     # 값 자체엔 의미가 없고, 같은 parent_id를 가진 카테고리끼리 오름차순으로만 비교함
     order_index = Column(Integer, nullable=False, server_default="0")
+    # 폴더 색상 - Event.category와 같은 방식으로, 자유 입력이 아니라 프론트에서 고정된
+    # 8개 팔레트 중 하나의 색상 키(예: "blue", "rose")를 그대로 저장함. 지정 안 하면 NULL
+    # (색 없는 기본 회색 폴더로 표시됨)
+    color = Column(String(20), nullable=True)
 
     # 자기 자신을 참조하는 관계 (하위 카테고리 목록) - order_index 순으로 정렬해서 가져옴
     children = relationship(

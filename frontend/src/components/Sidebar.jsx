@@ -2,14 +2,15 @@ import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate, useLocation } from "react-router-dom";
-import { getCategories, createCategory, deleteCategory, renameCategory, reorderCategories } from "../api/categories";
+import { getCategories, createCategory, deleteCategory, renameCategory, reorderCategories, updateCategoryColor } from "../api/categories";
 import { movePost } from "../api/posts";
 import {
   LayoutDashboard, FileText, BrainCircuit, Settings,
   LogOut, FolderPlus, Folder, FolderOpen, FolderTree,
   ChevronDown, ChevronRight, Plus, Pencil, X, ClipboardList,
-  PanelLeftClose, FilePlus2, Trash2, ListTodo
+  PanelLeftClose, FilePlus2, Trash2, ListTodo, Palette
 } from "lucide-react";
+import ColorDotPicker, { colorByKey } from "./ColorPicker";
 
 // 노트(글) 드래그 앤 드롭에 쓰는 dataTransfer 타입 - HomePage 등 다른 페이지의 노트 카드에서
 // 이 타입으로 값을 실어 보내면 Sidebar의 폴더가 받아서 카테고리를 옮겨줌
@@ -89,7 +90,7 @@ function computeDropZone(e) {
 }
 
 function CategoryItem({
-  category, depth, indentOffset = 0, selectedCategoryId, onSelect, onAdd, onDelete, onRename, onWrite,
+  category, depth, indentOffset = 0, selectedCategoryId, onSelect, onAdd, onDelete, onRename, onWrite, onChangeColor,
   contextMenu, onOpenMenu, onCloseMenu,
   draggingId, onDragStartItem, onDragEndItem, dragOver, onDragOverItem, onDropItem,
 }) {
@@ -99,6 +100,9 @@ function CategoryItem({
   const [renameValue, setRenameValue] = useState(category.name);
   const [isAddingChild, setIsAddingChild] = useState(false);
   const [newChildName, setNewChildName] = useState("");
+  // 우클릭 메뉴에서 "색상 변경"을 누르면 메뉴가 닫히는 대신 그 자리에서 점 선택기로 바뀜
+  const [isChoosingColor, setIsChoosingColor] = useState(false);
+  const colorTone = colorByKey(category.color);
 
   const isSelected = selectedCategoryId === category.id;
   const hasChildren = category.children && category.children.length > 0;
@@ -107,6 +111,17 @@ function CategoryItem({
   // canAddChild는 실제 카테고리 깊이(depth) 기준 — "기본" 하위로 보여주는 건 화면상의 들여쓰기(indentOffset)일 뿐,
   // 백엔드의 "최대 5단계"(MAX_CATEGORY_DEPTH) 제약과는 무관하므로 depth로만 판단
   const canAddChild = depth < 5;
+
+  // 메뉴 자체가 닫히면(바깥 클릭/Esc 등) 색상 선택 화면도 같이 초기화
+  useEffect(() => {
+    if (!isMenuOpen) setIsChoosingColor(false);
+  }, [isMenuOpen]);
+
+  const handleChangeColorSubmit = (colorKey) => {
+    onChangeColor(category.id, colorKey);
+    setIsChoosingColor(false);
+    onCloseMenu();
+  };
 
   const handleRenameSubmit = () => {
     if (renameValue.trim()) onRename(category.id, renameValue.trim());
@@ -174,8 +189,8 @@ function CategoryItem({
               : <span className="w-3" />}
           </span>
           {isOpen && hasChildren
-            ? <FolderOpen size={14} className="shrink-0 text-gray-400 dark:text-gray-500" />
-            : <Folder size={14} className="shrink-0 text-gray-400 dark:text-gray-500" />}
+            ? <FolderOpen size={14} className={`shrink-0 ${colorTone ? colorTone.text : "text-gray-400 dark:text-gray-500"}`} />
+            : <Folder size={14} className={`shrink-0 ${colorTone ? colorTone.text : "text-gray-400 dark:text-gray-500"}`} />}
           {isRenaming ? (
             <input
               autoFocus
@@ -220,40 +235,55 @@ function CategoryItem({
         </div>
       </div>
 
-      {/* 우클릭 컨텍스트 메뉴: 폴더 생성 / 글쓰기 / 이름변경 / 삭제 */}
+      {/* 우클릭 컨텍스트 메뉴: 폴더 생성 / 글쓰기 / 이름변경 / 색상 / 삭제.
+          "색상 변경"을 누르면 메뉴가 닫히지 않고 같은 자리에서 점 선택기로 바뀜 */}
       {isMenuOpen && (
         <div
           className="fixed z-50 w-44 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg py-1 text-sm"
           style={{ top: contextMenu.y, left: contextMenu.x }}
           onClick={(e) => e.stopPropagation()}
         >
-          {canAddChild && (
-            <button
-              onClick={() => { startAddChild(); onCloseMenu(); }}
-              className="w-full flex items-center gap-2 px-3 py-1.5 text-left text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/60"
-            >
-              <FolderPlus size={14} className="shrink-0" /> {t("sidebar.addSubfolder")}
-            </button>
+          {!isChoosingColor ? (
+            <>
+              {canAddChild && (
+                <button
+                  onClick={() => { startAddChild(); onCloseMenu(); }}
+                  className="w-full flex items-center gap-2 px-3 py-1.5 text-left text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/60"
+                >
+                  <FolderPlus size={14} className="shrink-0" /> {t("sidebar.addSubfolder")}
+                </button>
+              )}
+              <button
+                onClick={() => { onWrite(category.id); onCloseMenu(); }}
+                className="w-full flex items-center gap-2 px-3 py-1.5 text-left text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/60"
+              >
+                <FilePlus2 size={14} className="shrink-0" /> {t("sidebar.writeNote")}
+              </button>
+              <button
+                onClick={() => { setIsRenaming(true); onCloseMenu(); }}
+                className="w-full flex items-center gap-2 px-3 py-1.5 text-left text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/60"
+              >
+                <Pencil size={14} className="shrink-0" /> {t("sidebar.rename")}
+              </button>
+              <button
+                onClick={() => setIsChoosingColor(true)}
+                className="w-full flex items-center gap-2 px-3 py-1.5 text-left text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/60"
+              >
+                <Palette size={14} className="shrink-0" /> {t("sidebar.changeColor")}
+              </button>
+              <div className="my-1 border-t border-gray-100 dark:border-gray-700" />
+              <button
+                onClick={() => { onDelete(category.id); onCloseMenu(); }}
+                className="w-full flex items-center gap-2 px-3 py-1.5 text-left text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10"
+              >
+                <Trash2 size={14} className="shrink-0" /> {t("sidebar.delete")}
+              </button>
+            </>
+          ) : (
+            <div className="px-3 py-2">
+              <ColorDotPicker value={category.color} onChange={handleChangeColorSubmit} />
+            </div>
           )}
-          <button
-            onClick={() => { onWrite(category.id); onCloseMenu(); }}
-            className="w-full flex items-center gap-2 px-3 py-1.5 text-left text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/60"
-          >
-            <FilePlus2 size={14} className="shrink-0" /> {t("sidebar.writeNote")}
-          </button>
-          <button
-            onClick={() => { setIsRenaming(true); onCloseMenu(); }}
-            className="w-full flex items-center gap-2 px-3 py-1.5 text-left text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/60"
-          >
-            <Pencil size={14} className="shrink-0" /> {t("sidebar.rename")}
-          </button>
-          <div className="my-1 border-t border-gray-100 dark:border-gray-700" />
-          <button
-            onClick={() => { onDelete(category.id); onCloseMenu(); }}
-            className="w-full flex items-center gap-2 px-3 py-1.5 text-left text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10"
-          >
-            <Trash2 size={14} className="shrink-0" /> {t("sidebar.delete")}
-          </button>
         </div>
       )}
 
@@ -271,6 +301,7 @@ function CategoryItem({
               onDelete={onDelete}
               onRename={onRename}
               onWrite={onWrite}
+              onChangeColor={onChangeColor}
               contextMenu={contextMenu}
               onOpenMenu={onOpenMenu}
               onCloseMenu={onCloseMenu}
@@ -359,6 +390,15 @@ function Sidebar({ selectedCategoryId, onSelectCategory, onCollapse }) {
 
   useEffect(() => { fetchCategories(); }, []);
 
+  // 다른 페이지(예: HomePage 본문 영역의 우클릭 메뉴)에서 폴더를 새로 만들었을 때도
+  // Sidebar가 독립적으로 카테고리 목록을 들고 있어서 자동 반영이 안 됨 - 아래
+  // "studylog:posts-changed"와 같은 형제 컴포넌트 간 전역 이벤트 패턴으로 새로고침함
+  useEffect(() => {
+    const handleCategoriesChanged = () => fetchCategories();
+    window.addEventListener("studylog:categories-changed", handleCategoriesChanged);
+    return () => window.removeEventListener("studylog:categories-changed", handleCategoriesChanged);
+  }, []);
+
   // 다른 페이지(예: 노트 목록)에서 드래그로 노트를 옮겼을 때, 그쪽에서 자기 목록을
   // 새로고침할 수 있도록 알려주는 전역 이벤트 - Sidebar와 페이지가 형제 컴포넌트라
   // props로 직접 콜백을 못 넘기기 때문에 이 방식을 씀
@@ -395,6 +435,13 @@ function Sidebar({ selectedCategoryId, onSelectCategory, onCollapse }) {
   const handleRename = async (categoryId, name) => {
     try {
       await renameCategory(categoryId, name, token);
+      fetchCategories();
+    } catch (error) {}
+  };
+
+  const handleChangeColor = async (categoryId, color) => {
+    try {
+      await updateCategoryColor(categoryId, color, token);
       fetchCategories();
     } catch (error) {}
   };
@@ -652,6 +699,7 @@ function Sidebar({ selectedCategoryId, onSelectCategory, onCollapse }) {
               onDelete={handleDelete}
               onRename={handleRename}
               onWrite={handleWriteInFolder}
+              onChangeColor={handleChangeColor}
               contextMenu={contextMenu}
               onOpenMenu={openCategoryMenu}
               onCloseMenu={closeMenu}

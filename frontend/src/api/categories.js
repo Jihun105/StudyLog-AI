@@ -22,15 +22,23 @@ export const createCategory = async (name, parentId = null, token) => {
   return response.data;
 };
 
-// 카테고리 이름 수정
-export const renameCategory = async (categoryId, name, token) => {
+// 카테고리 이름 수정 / 색상 변경 공통 - 보낸 필드만 반영됨 ({name}만, {color}만, 둘 다 등)
+export const updateCategory = async (categoryId, updates, token) => {
   const response = await axios.patch(
     `${BASE_URL}/api/categories/${categoryId}`,
-    { name },
+    updates,
     authHeader(token)
   );
   return response.data;
 };
+
+// 카테고리 이름 수정
+export const renameCategory = async (categoryId, name, token) =>
+  updateCategory(categoryId, { name }, token);
+
+// 카테고리 색상 변경 - color를 null/빈 문자열로 보내면 색상 없앰(기본 회색으로)
+export const updateCategoryColor = async (categoryId, color, token) =>
+  updateCategory(categoryId, { color: color || "" }, token);
 
 // 카테고리 삭제
 export const deleteCategory = async (categoryId, token) => {
