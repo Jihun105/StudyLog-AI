@@ -1133,6 +1133,21 @@ function TodoPage() {
   const activeTodos = todayTodos.filter((td) => !td.is_done);
   const doneTodos = todayTodos.filter((td) => td.is_done);
 
+  // 목록 보기를 오늘/내일/이번주 3칸으로 나눠서 보여주기 위한 날짜 범위 계산.
+  // "이번주"는 내일 다음날부터 이번주 토요일까지(오늘/내일과 안 겹치게) - 오늘이
+  // 금/토/일이라 이번주에 남은 날이 얼마 없거나 아예 없으면 그 칸은 그냥 비어 보임
+  const tomorrowStr = addDaysToDateStr(todayStr, 1);
+  const todayWeekday = parseLocalDate(todayStr).getDay(); // 0(일)~6(토)
+  const weekEndStr = addDaysToDateStr(todayStr, 6 - todayWeekday);
+
+  const tomorrowTodos = todos.filter((td) => td.due_date === tomorrowStr);
+  const tomorrowActiveTodos = tomorrowTodos.filter((td) => !td.is_done);
+  const tomorrowDoneTodos = tomorrowTodos.filter((td) => td.is_done);
+
+  const thisWeekTodos = todos.filter((td) => td.due_date > tomorrowStr && td.due_date <= weekEndStr);
+  const thisWeekActiveTodos = thisWeekTodos.filter((td) => !td.is_done);
+  const thisWeekDoneTodos = thisWeekTodos.filter((td) => td.is_done);
+
   // 플랜 보기는 마감일이 아예 없는(due_date=null) 항목만 표시
   const planTodos = todos.filter((td) => !td.due_date);
   const planActiveTodos = planTodos.filter((td) => !td.is_done);
@@ -1234,6 +1249,46 @@ function TodoPage() {
     planMode,
   });
 
+  // 목록 보기의 오늘/내일/이번주 칸을 각각 그려주는 헬퍼 - 3칸 다 구조가 동일해서
+  // (활성 항목 -> 필터가 "전체"일 때만 완료 항목 -> 둘 다 없으면 빈 상태) 중복을 줄임.
+  // hideDate: 오늘/내일 칸은 헤더 자체가 날짜를 말해주니 행마다 날짜 배지를 또 안 보여줌
+  const renderTodoColumn = (title, activeList, doneList, hideDate) => {
+    const total = activeList.length + doneList.length;
+    // 필터가 "미완료만"이면 활성 항목만 기준으로, "전체"면 활성+완료 둘 다 없을 때 빈 상태
+    const isEmpty = filter === "active" ? activeList.length === 0 : total === 0;
+    return (
+      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-4 flex flex-col gap-2 min-w-0">
+        <div className="flex items-center justify-between mb-1">
+          <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-200">{title}</h3>
+          {total > 0 && (
+            <span className="text-xs text-gray-400 dark:text-gray-500">
+              {t("todo.completedCount", { done: doneList.length, total })}
+            </span>
+          )}
+        </div>
+        {isEmpty ? (
+          <div className="text-center text-gray-400 dark:text-gray-500 py-6 text-xs">{t("todo.emptyState")}</div>
+        ) : (
+          <>
+            {activeList.map((todo) => (
+              <TodoRow key={todo.id} {...rowProps(todo, true, true, hideDate)} />
+            ))}
+            {filter === "all" && doneList.length > 0 && (
+              <>
+                <div className="mt-2 mb-1 px-1 text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
+                  {t("todo.completedSection")}
+                </div>
+                {doneList.map((todo) => (
+                  <TodoRow key={todo.id} {...rowProps(todo, false, true, hideDate)} />
+                ))}
+              </>
+            )}
+          </>
+        )}
+      </div>
+    );
+  };
+
   // 달력 보기 관련 파생값
   const todosByDate = useMemo(() => {
     const map = {};
@@ -1299,8 +1354,9 @@ function TodoPage() {
     ? events.filter((ev) => ev.start_date <= selectedDate && ev.end_date >= selectedDate)
     : [];
 
-  // 일정 아래 구분선 밑에 토글로 접어서 보여주는 그 날짜의 할 일 목록
-  const [showDayTodos, setShowDayTodos] = useState(false);
+  // 일정 아래 구분선 밑에 토글로 접어서 보여주는 그 날짜의 할 일 목록 - 기본으로
+  // 펼쳐진 채로 시작하고, 누르면 접히게 함
+  const [showDayTodos, setShowDayTodos] = useState(true);
   const selectedDateTodos = selectedDate ? (todosByDate[selectedDate] || []) : [];
 
   // 달력에 보이는 6주 전체 범위와 겹치는 일정만 추림
@@ -1353,7 +1409,7 @@ function TodoPage() {
       <LeftSidebarStateReporter onChange={setLeftSidebarCollapsed} />
       <div className={`app-serif-panel flex-1 min-w-0 overflow-y-auto bg-gray-50 dark:bg-gray-900 ${hideMainContent ? "hidden" : ""}`}>
         <div className="sticky top-0 bg-gray-50/90 dark:bg-gray-900/90 backdrop-blur-sm border-b border-gray-200 dark:border-gray-800 px-4 sm:px-8 py-4 flex items-center justify-between z-10">
-          <h1 className="flex items-center gap-2 text-lg font-bold text-gray-800 dark:text-gray-100" style={{ fontFamily: "'Newsreader', 'Noto Serif KR', Georgia, serif" }}>
+          <h1 className="flex items-center gap-2 text-lg font-bold text-gray-800 dark:text-gray-100" style={{ fontFamily: "'Newsreader', 'Pretendard', Georgia, serif" }}>
             <SidebarSpacer />
             <ListTodo size={20} className="text-blue-600 dark:text-blue-400" /> {t("sidebar.todo")}
           </h1>
@@ -1365,8 +1421,9 @@ function TodoPage() {
         </div>
 
         {/* 창 크기와 상관없이 항상 가운데 정렬 - 보기별로 폭만 다르게(달력은 그리드가
-            넓어서 5xl, 목록/플랜은 카드형 리스트라 3xl) */}
-        <div className={`px-4 sm:px-8 py-8 mx-auto ${viewMode === "calendar" ? "max-w-5xl" : "max-w-3xl"}`}>
+            넓어서 5xl, 목록도 오늘/내일/이번주 3칸을 나란히 보여주려면 그만큼 필요해서
+            같이 5xl, 플랜은 세로로 쌓이는 카드형 리스트라 3xl로 좁게 유지) */}
+        <div className={`px-4 sm:px-8 py-8 mx-auto ${viewMode === "plan" ? "max-w-3xl" : "max-w-5xl"}`}>
           {/* 보기 전환 */}
           <div className="flex items-center gap-1 mb-4">
             <button
@@ -1489,31 +1546,17 @@ function TodoPage() {
 
               {loading ? (
                 <div className="text-center text-gray-400 dark:text-gray-500 py-16">{t("common.loading")}</div>
-              ) : todayTodos.length === 0 ? (
+              ) : todayTodos.length === 0 && tomorrowTodos.length === 0 && thisWeekTodos.length === 0 ? (
                 <div className="text-center text-gray-400 dark:text-gray-500 py-16">
                   <ListTodo size={48} className="mx-auto mb-4 text-gray-300 dark:text-gray-600" />
                   <div>{t("todo.emptyStateToday")}</div>
                 </div>
               ) : (
-                <div className="flex flex-col gap-2">
-                  {activeTodos.map((todo) => (
-                    <TodoRow key={todo.id} {...rowProps(todo, true)} />
-                  ))}
-
-                  {activeTodos.length === 0 && filter === "active" && (
-                    <div className="text-center text-gray-400 dark:text-gray-500 py-10 text-sm">{t("todo.emptyState")}</div>
-                  )}
-
-                  {filter === "all" && doneTodos.length > 0 && (
-                    <>
-                      <div className="mt-4 mb-1 px-1 text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
-                        {t("todo.completedSection")}
-                      </div>
-                      {doneTodos.map((todo) => (
-                        <TodoRow key={todo.id} {...rowProps(todo, false)} />
-                      ))}
-                    </>
-                  )}
+                // 오늘 / 내일 / 이번주를 위에서 아래로 3줄 - 각 줄이 가로로 폭 전체를 채움
+                <div className="flex flex-col gap-4">
+                  {renderTodoColumn(t("todo.today"), activeTodos, doneTodos, true)}
+                  {renderTodoColumn(t("todo.columnTomorrow"), tomorrowActiveTodos, tomorrowDoneTodos, true)}
+                  {renderTodoColumn(t("todo.columnThisWeek"), thisWeekActiveTodos, thisWeekDoneTodos, false)}
                 </div>
               )}
             </>

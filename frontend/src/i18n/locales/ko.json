@@ -184,6 +184,8 @@
     "endTimeOptional": "종료 시간 (선택)",
     "memoPlaceholder": "메모를 입력하세요",
     "emptyStateToday": "오늘 마감인 할 일이 없습니다.",
+    "columnTomorrow": "내일",
+    "columnThisWeek": "이번주",
     "timetableEmpty": "이 날짜에 시작 시간을 넣은 할 일이 없습니다.",
     "postpone": "날짜변경",
     "eventAddPlaceholder": "일정 제목을 입력하세요",

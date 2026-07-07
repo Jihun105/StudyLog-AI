@@ -28,10 +28,17 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 app.add_middleware(SlowAPIMiddleware)
 
 # CORS 설정
-# 프론트엔드(localhost:3000)에서 백엔드로 요청을 허용합니다.
+# 로컬 개발(localhost:3000)과 배포된 프론트엔드(EC2 퍼블릭 IP) 둘 다에서
+# 백엔드로 요청을 허용합니다. 나중에 도메인/HTTPS로 바뀌면 이 목록에 새 주소를
+# 추가해줘야 함 - 안 그러면 브라우저가 CORS로 요청을 막아서, GET 요청은 되는데
+# (단순 요청이라 브라우저가 프리플라이트 없이 그냥 보내버리는 경우가 있음) 글쓰기 같은
+# POST 요청만 원인 모를 "실패" 에러로 보이는 경우가 있음 - 지금 겪은 문제가 이 경우
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],  # 허용할 프론트 주소
+    allow_origins=[
+        "http://localhost:3000",
+        "http://15.165.35.74",
+    ],
     allow_credentials=True,
     allow_methods=["*"],   # 모든 HTTP 메서드 허용 (GET, POST, PUT, DELETE)
     allow_headers=["*"],   # 모든 헤더 허용

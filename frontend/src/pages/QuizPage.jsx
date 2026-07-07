@@ -342,7 +342,7 @@ function QuizPage() {
       {leftSidebarReporter}
       <div className={`flex-1 min-w-0 overflow-y-auto bg-gray-50 dark:bg-gray-900 ${hideMainContent ? "hidden" : ""}`}>
         <div className="sticky top-0 bg-gray-50/90 dark:bg-gray-900/90 backdrop-blur-sm border-b border-gray-200 dark:border-gray-800 px-4 sm:px-8 py-4 flex items-center justify-between z-10">
-          <h1 className="flex items-center gap-2 text-lg font-bold text-gray-800 dark:text-gray-100" style={{ fontFamily: "'Newsreader', 'Noto Serif KR', Georgia, serif" }}>
+          <h1 className="flex items-center gap-2 text-lg font-bold text-gray-800 dark:text-gray-100" style={{ fontFamily: "'Newsreader', 'Pretendard', Georgia, serif" }}>
             <SidebarSpacer />
             <BrainCircuit size={20} className="text-blue-600 dark:text-blue-400" /> {t("quiz.title")}
           </h1>

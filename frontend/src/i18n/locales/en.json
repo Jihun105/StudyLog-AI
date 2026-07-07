@@ -184,6 +184,8 @@
     "endTimeOptional": "End time (optional)",
     "memoPlaceholder": "Add a note",
     "emptyStateToday": "No tasks due today.",
+    "columnTomorrow": "Tomorrow",
+    "columnThisWeek": "This week",
     "timetableEmpty": "No tasks with a start time on this date.",
     "postpone": "Postpone",
     "eventAddPlaceholder": "Enter an event title",

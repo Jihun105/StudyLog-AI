@@ -7,9 +7,11 @@ module.exports = {
   theme: {
     extend: {
       fontFamily: {
-        // 사용자가 준 디자인 시스템의 실제 폰트: Headline = Newsreader(세리프).
-        // Newsreader엔 한글이 없어서 한글은 Noto Serif KR로 자연스럽게 폴백됨
-        serif: ["'Newsreader'", "'Noto Serif KR'", "Georgia", "serif"],
+        // Headline 폰트: 영어는 원래 라이트모드 폰트였던 Newsreader(세리프)로, 한글은
+        // Newsreader에 글리프가 없어서 자동으로 다음 폰트인 Pretendard로 폴백됨
+        // (index.css의 전역 h1~h6 규칙과 동일한 스택 - font-serif 유틸리티 클래스를
+        // 직접 쓰는 곳들도 같이 맞추기 위해 여기서도 동일하게 지정)
+        serif: ["'Newsreader'", "'Pretendard'", "Georgia", "serif"],
         // Label = JetBrains Mono. 한글은 Nanum Gothic Coding(한글 모노스페이스)으로 폴백
         mono: ["'JetBrains Mono'", "'Nanum Gothic Coding'", "monospace"],
       },
