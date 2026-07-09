@@ -7,6 +7,7 @@ from openai import AsyncOpenAI
 from app.core.config import settings
 from app.services.ai.rag_service import search_similar_chunks
 from app.services.conversation_service import save_message
+from app.services.ai.usage_service import record_usage
 
 logger = logging.getLogger(__name__)
 
@@ -45,6 +46,9 @@ async def _chat_completion(messages: list[dict], temperature: float | None = Non
     if temperature is not None:
         kwargs["temperature"] = temperature
     response = await openai_client.chat.completions.create(**kwargs)
+    usage = response.usage
+    if usage is not None:
+        record_usage("chat", "gpt-4o-mini", usage.prompt_tokens, usage.completion_tokens)
     return response.choices[0].message.content or ""
 
 

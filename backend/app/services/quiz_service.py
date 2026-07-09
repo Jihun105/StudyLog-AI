@@ -12,6 +12,7 @@ from app.models.post import Post
 from app.models.quiz import Quiz, QuizAttempt
 from app.services.category_service import get_category_subtree_ids
 from app.utils.blocknote import extract_text_from_blocknote
+from app.services.ai.usage_service import record_usage
 
 logger = logging.getLogger(__name__)
 
@@ -87,6 +88,8 @@ async def _generate_questions_for_post(post: Post, quiz_type: str, count: int) -
             messages=[{"role": "system", "content": system_prompt}],
             response_format={"type": "json_object"},
         )
+        if response.usage is not None:
+            record_usage("quiz", "gpt-4o-mini", response.usage.prompt_tokens, response.usage.completion_tokens)
         parsed = json.loads(response.choices[0].message.content)
         return parsed["quizzes"][:count]
     except (json.JSONDecodeError, KeyError, TypeError, IndexError):

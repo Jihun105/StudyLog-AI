@@ -5,6 +5,7 @@ from qdrant_client.models import Distance, VectorParams, PointStruct, Filter, Fi
 from openai import OpenAI
 from app.core.config import settings
 from app.utils.chunking import chunk_blocknote
+from app.services.ai.usage_service import record_usage
 import uuid
 
 logger = logging.getLogger(__name__)
@@ -28,6 +29,7 @@ def _embed(text: str) -> list[float]:
         model="text-embedding-3-small",
         input=text,
     )
+    record_usage("embedding", "text-embedding-3-small", response.usage.prompt_tokens)
     return response.data[0].embedding
 
 def index_post(

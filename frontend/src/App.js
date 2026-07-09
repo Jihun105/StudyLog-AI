@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
 import { useAuth } from "./context/AuthContext";
 import { ThemeProvider } from "./context/ThemeContext";
@@ -15,12 +15,24 @@ import DocumentsPage from "./pages/DocumentsPage";
 import TodoPage from "./pages/TodoPage";
 import AllFoldersPage from "./pages/AllFoldersPage";
 import SettingsPage from "./pages/SettingsPage";
+import AdminDashboard from "./pages/AdminDashboard";
 import Sidebar from "./components/Sidebar";
 import SessionExpiredBanner from "./components/SessionExpiredBanner";
+import PresenceConnector from "./components/PresenceConnector";
 
 function PrivateRoute({ children }) {
   const { user } = useAuth();
-  return user ? children : <Navigate to="/login" />;
+  const location = useLocation();
+  // 로그인 화면에 "원래 어디로 가려 했는지"를 같이 넘겨서, 로그인 성공 후 그 자리로
+  // 돌아갈 수 있게 함(글쓰기 중 세션 만료 -> 재로그인 시 작성하던 페이지로 복귀)
+  return user ? children : <Navigate to="/login" state={{ from: location }} replace />;
+}
+
+// 로그인은 했지만 관리자가 아닌 사용자가 주소창에 직접 /admin-dashboard를 쳐서
+// 들어오는 경우를 막기 위한 가드. PrivateRoute와 중첩해서 사용.
+function AdminRoute({ children }) {
+  const { user } = useAuth();
+  return user?.is_admin ? children : <Navigate to="/" replace />;
 }
 
 function RootRoute() {
@@ -48,6 +60,7 @@ function App() {
     <AuthProvider>
       <BrowserRouter>
         <SessionExpiredBanner />
+        <PresenceConnector />
         <Routes>
           {/* 비로그인 페이지 */}
           <Route path="/login" element={<LoginPage />} />
@@ -64,6 +77,7 @@ function App() {
           <Route path="/documents" element={<AppLayout><PrivateRoute><DocumentsPage /></PrivateRoute></AppLayout>} />
           <Route path="/todos" element={<AppLayout><PrivateRoute><TodoPage /></PrivateRoute></AppLayout>} />
           <Route path="/settings" element={<AppLayout><PrivateRoute><SettingsPage /></PrivateRoute></AppLayout>} />
+          <Route path="/admin-dashboard" element={<AppLayout><PrivateRoute><AdminRoute><AdminDashboard /></AdminRoute></PrivateRoute></AppLayout>} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>

@@ -8,8 +8,8 @@ from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 from app.core.limiter import limiter
 from app.db.database import Base, engine
-from app.models import user, post, conversation, quiz, todo, event
-from app.routers import auth_router, post_router, category_router, ai_router, conversation_router, quiz_router, user_router, upload_router, todo_router, event_router
+from app.models import user, post, conversation, quiz, todo, event, usage
+from app.routers import auth_router, post_router, category_router, ai_router, conversation_router, quiz_router, user_router, upload_router, todo_router, event_router, admin_router, presence_router
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 logging.getLogger("app").setLevel(logging.INFO)
@@ -54,6 +54,8 @@ app.include_router(user_router.router)
 app.include_router(upload_router.router)
 app.include_router(todo_router.router)
 app.include_router(event_router.router)
+app.include_router(admin_router.router)
+app.include_router(presence_router.router)
 
 # 업로드된 이미지 정적 서빙 (노트에 삽입된 이미지)
 app.mount("/api/uploads/files", StaticFiles(directory=upload_router.UPLOAD_DIR), name="uploaded_images")

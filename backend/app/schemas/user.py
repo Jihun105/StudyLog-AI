@@ -24,6 +24,7 @@ class UserResponse(BaseModel):
     email: str
     nickname: str
     profile_image: str | None = None
+    is_admin: bool = False
     created_at: datetime
 
     class Config:

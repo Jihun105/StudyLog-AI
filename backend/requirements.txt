@@ -8,6 +8,9 @@ slowapi
 sqlalchemy[asyncio]
 aiomysql
 alembic
+# aiomysql이 내부적으로 물고 오지만, OpenAI 사용량 기록(usage_service)이 백그라운드
+# 태스크/동기 코드에서도 동작하도록 동기 커넥션을 직접 여는 데 써서 명시적으로 선언
+pymysql
 
 # Auth
 python-jose[cryptography]

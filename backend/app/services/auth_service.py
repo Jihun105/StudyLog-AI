@@ -48,6 +48,7 @@ async def authenticate_user(username: str, password: str, db: AsyncSession) -> d
         "user": {
             "id": user.id,
             "username": user.username,
-            "nickname": user.nickname
+            "nickname": user.nickname,
+            "is_admin": user.is_admin,
         }
     }

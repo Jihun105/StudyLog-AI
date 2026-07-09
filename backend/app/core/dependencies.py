@@ -27,5 +27,13 @@ async def get_current_user(
 
     if user is None:
         raise HTTPException(status_code=401, detail="존재하지 않는 유저입니다.")
-    
+
     return user
+
+# 관리자 대시보드 전용 - get_current_user로 정상 로그인은 확인하되, is_admin이 아니면
+# 403으로 막음. 별도 관리자 계정 체계가 아니라 기존 계정에 얹은 플래그 방식이라
+# 이 dependency 하나로 관리자 전용 라우트를 간단히 보호할 수 있음
+async def get_current_admin_user(current_user: User = Depends(get_current_user)) -> User:
+    if not current_user.is_admin:
+        raise HTTPException(status_code=403, detail="관리자만 접근할 수 있습니다.")
+    return current_user
