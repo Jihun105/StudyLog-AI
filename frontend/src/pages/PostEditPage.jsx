@@ -7,8 +7,10 @@ import { useAuth } from "../context/AuthContext";
 import RichTextEditor from "../components/RichTextEditor";
 import TagInput from "../components/TagInput";
 import CategorySelect from "../components/CategorySelect";
+import DraftRestoreBanner from "../components/DraftRestoreBanner";
 import { ChevronRight } from "lucide-react";
 import SidebarLayout, { SidebarSpacer } from "../components/SidebarLayout";
+import { useDraftAutosave, useBeforeUnloadWarning, loadDraft, clearDraft } from "../hooks/useDraftAutosave";
 
 function flattenCategories(categories, depth = 0) {
   const result = [];
@@ -31,8 +33,13 @@ function PostEditPage() {
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [draftBanner, setDraftBanner] = useState(null);
+  // 임시저장본을 불러올 때 BlockNote 에디터가 새 initialContent로 다시 만들어지도록
+  // key를 바꿔서 강제 리마운트시킴 (에디터는 마운트 시점의 initialContent만 사용하므로)
+  const [editorKey, setEditorKey] = useState(0);
   const { token } = useAuth();
   const navigate = useNavigate();
+  const draftKey = `studylog:draft:edit:${id}`;
 
   useEffect(() => {
     const fetchData = async () => {
@@ -46,12 +53,36 @@ function PostEditPage() {
         setTags(postData.tags);
         setCategoryId(postData.category_id != null ? Number(postData.category_id) : null);
         setCategories(flattenCategories(categoryData));
+
+        // 서버에서 글을 불러온 뒤, 이 글을 편집하던 중 저장 안 된 임시저장본이 남아있는지 확인
+        const draft = loadDraft(draftKey);
+        if (draft && (draft.title || draft.content)) {
+          setDraftBanner(draft);
+        }
       } catch (error) {
         setErrorMessage(t("postEdit.loadFailed"));
       }
     };
     fetchData();
   }, [id]);
+
+  const hasContent = Boolean(title || content);
+  useDraftAutosave(draftKey, { title, content, tags, categoryId }, hasContent);
+  useBeforeUnloadWarning(hasContent && !loading);
+
+  const handleRestoreDraft = () => {
+    setTitle(draftBanner.title || "");
+    setContent(draftBanner.content || "");
+    setTags(draftBanner.tags || []);
+    if (draftBanner.categoryId !== undefined) setCategoryId(draftBanner.categoryId);
+    setEditorKey((key) => key + 1);
+    setDraftBanner(null);
+  };
+
+  const handleDiscardDraft = () => {
+    clearDraft(draftKey);
+    setDraftBanner(null);
+  };
 
   // 사이드바에서 카테고리를 누르면 노트 목록 페이지로 이동 (다른 페이지들과 동일한 동작)
   const handleSelectCategory = (catId) => {
@@ -67,6 +98,7 @@ function PostEditPage() {
     setErrorMessage("");
     try {
       await updatePost(id, title, content, tags, token, categoryId);
+      clearDraft(draftKey);
       navigate(`/posts/${id}`);
     } catch (error) {
       setErrorMessage(error.response?.data?.detail || t("postEdit.updateFailed"));
@@ -114,6 +146,16 @@ function PostEditPage() {
         {/* 문서 페이지 - 폭을 문서처럼 제한하고 캔버스 위에 흰 카드로 띄움 */}
         <div className="px-4 sm:px-8 py-10">
           <div className="max-w-3xl mx-auto bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 px-5 sm:px-14 py-8 sm:py-12">
+            {draftBanner && (
+              <DraftRestoreBanner
+                message={t("postEdit.draftFound")}
+                restoreLabel={t("postEdit.restoreDraft")}
+                discardLabel={t("postEdit.discardDraft")}
+                onRestore={handleRestoreDraft}
+                onDiscard={handleDiscardDraft}
+              />
+            )}
+
             {errorMessage && (
               <div className="bg-red-50 dark:bg-red-500/10 text-red-500 dark:text-red-400 px-4 py-3 rounded-lg mb-4 text-sm">{errorMessage}</div>
             )}
@@ -136,7 +178,7 @@ function PostEditPage() {
             </div>
 
             {content !== null && (
-              <RichTextEditor initialContent={content} onChange={setContent} />
+              <RichTextEditor key={editorKey} initialContent={content} onChange={setContent} />
             )}
 
             <div className="mt-6">

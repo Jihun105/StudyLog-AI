@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, useLocation, Link } from "react-router-dom";
 import { login } from "../api/auth";
 import { useAuth } from "../context/AuthContext";
 
@@ -12,6 +12,10 @@ function LoginPage() {
   const [loading, setLoading] = useState(false);
   const { loginAction } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  // PrivateRoute나 세션 만료 배너가 "원래 있던 페이지"를 state로 넘겨줬으면 그 자리로,
+  // 아니면(직접 /login으로 온 경우) 기존대로 대시보드로 이동
+  const from = location.state?.from;
 
   const handleLogin = async () => {
     if (!username || !password) {
@@ -23,7 +27,7 @@ function LoginPage() {
     try {
       const data = await login(username, password);
       loginAction(data.access_token, data.user);
-      navigate("/");
+      navigate(from ? `${from.pathname}${from.search || ""}` : "/", { replace: true });
     } catch (error) {
       setErrorMessage(error.response?.data?.detail || t("login.loginFailed"));
     } finally {

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 import { useTranslation } from "react-i18next";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
 // 로그인/회원가입 자체의 401(아이디/비번 오류)까지 "세션 만료"로 착각하면 안 되니 제외
@@ -15,6 +15,7 @@ function SessionExpiredBanner() {
   const { t } = useTranslation();
   const { logoutAction } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [expired, setExpired] = useState(false);
 
   useEffect(() => {
@@ -35,7 +36,9 @@ function SessionExpiredBanner() {
   const handleReLogin = () => {
     setExpired(false);
     logoutAction();
-    navigate("/login");
+    // 지금 있던 페이지(글쓰기/수정 중이었을 수 있음)를 같이 넘겨서, 재로그인 후
+    // 다시 이 페이지로 돌아올 수 있게 함 - 자동 임시저장된 draft를 바로 복구할 수 있음
+    navigate("/login", { state: { from: location } });
   };
 
   if (!expired) return null;

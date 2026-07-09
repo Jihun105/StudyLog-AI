@@ -7,8 +7,12 @@ import { useAuth } from "../context/AuthContext";
 import RichTextEditor from "../components/RichTextEditor";
 import TagInput from "../components/TagInput";
 import CategorySelect from "../components/CategorySelect";
+import DraftRestoreBanner from "../components/DraftRestoreBanner";
 import { ChevronRight } from "lucide-react";
 import SidebarLayout, { SidebarSpacer } from "../components/SidebarLayout";
+import { useDraftAutosave, useBeforeUnloadWarning, loadDraft, clearDraft } from "../hooks/useDraftAutosave";
+
+const DRAFT_KEY = "studylog:draft:new";
 
 function flattenCategories(categories, depth = 0) {
   const result = [];
@@ -36,6 +40,10 @@ function PostCreatePage() {
   const [categories, setCategories] = useState([]);
   const [errorMessage, setErrorMessage] = useState("");
   const [loading, setLoading] = useState(false);
+  const [draftBanner, setDraftBanner] = useState(null);
+  // 임시저장본을 불러올 때 BlockNote 에디터가 새 initialContent로 다시 만들어지도록
+  // key를 바꿔서 강제 리마운트시킴 (에디터는 마운트 시점의 initialContent만 사용하므로)
+  const [editorKey, setEditorKey] = useState(0);
   const { token } = useAuth();
   const navigate = useNavigate();
 
@@ -48,6 +56,33 @@ function PostCreatePage() {
     };
     fetchCategories();
   }, []);
+
+  // 마운트 시 1회, 브라우저에 남아있는 임시저장본이 있는지 확인
+  useEffect(() => {
+    const draft = loadDraft(DRAFT_KEY);
+    if (draft && (draft.title || draft.content)) {
+      setDraftBanner(draft);
+    }
+  }, []);
+
+  const hasContent = Boolean(title || content);
+  // 실패로 사라지는 걸 막는 게 목적이므로, 내용이 하나라도 있을 때만 자동 저장/이탈 경고
+  useDraftAutosave(DRAFT_KEY, { title, content, tags, categoryId }, hasContent);
+  useBeforeUnloadWarning(hasContent && !loading);
+
+  const handleRestoreDraft = () => {
+    setTitle(draftBanner.title || "");
+    setContent(draftBanner.content || "");
+    setTags(draftBanner.tags || []);
+    if (draftBanner.categoryId !== undefined) setCategoryId(draftBanner.categoryId);
+    setEditorKey((key) => key + 1);
+    setDraftBanner(null);
+  };
+
+  const handleDiscardDraft = () => {
+    clearDraft(DRAFT_KEY);
+    setDraftBanner(null);
+  };
 
   // 사이드바에서 카테고리를 누르면 노트 목록 페이지로 이동 (다른 페이지들과 동일한 동작)
   const handleSelectCategory = (id) => {
@@ -63,6 +98,7 @@ function PostCreatePage() {
     setErrorMessage("");
     try {
       const data = await createPost(title, content, tags, token, categoryId);
+      clearDraft(DRAFT_KEY);
       navigate(`/posts/${data.id}`);
     } catch (error) {
       setErrorMessage(error.response?.data?.detail || t("postCreate.createFailed"));
@@ -106,6 +142,16 @@ function PostCreatePage() {
         {/* 문서 페이지 - 폭을 문서처럼 제한하고 캔버스 위에 흰 카드로 띄움 */}
         <div className="px-4 sm:px-8 py-10">
           <div className="max-w-3xl mx-auto bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 px-5 sm:px-14 py-8 sm:py-12">
+            {draftBanner && (
+              <DraftRestoreBanner
+                message={t("postCreate.draftFound")}
+                restoreLabel={t("postCreate.restoreDraft")}
+                discardLabel={t("postCreate.discardDraft")}
+                onRestore={handleRestoreDraft}
+                onDiscard={handleDiscardDraft}
+              />
+            )}
+
             {errorMessage && (
               <div className="bg-red-50 dark:bg-red-500/10 text-red-500 dark:text-red-400 px-4 py-3 rounded-lg mb-4 text-sm">{errorMessage}</div>
             )}
@@ -127,7 +173,7 @@ function PostCreatePage() {
               />
             </div>
 
-            <RichTextEditor initialContent={content} onChange={setContent} />
+            <RichTextEditor key={editorKey} initialContent={content} onChange={setContent} />
 
             <div className="mt-6">
               <TagInput tags={tags} onChange={setTags} placeholder={`🏷 ${t("postCreate.tagsPlaceholder")}`} />
