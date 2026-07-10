@@ -16,9 +16,12 @@ import TodoPage from "./pages/TodoPage";
 import AllFoldersPage from "./pages/AllFoldersPage";
 import SettingsPage from "./pages/SettingsPage";
 import AdminDashboard from "./pages/AdminDashboard";
+import ContactPage from "./pages/ContactPage";
+import MaintenancePage from "./pages/MaintenancePage";
 import Sidebar from "./components/Sidebar";
 import SessionExpiredBanner from "./components/SessionExpiredBanner";
 import PresenceConnector from "./components/PresenceConnector";
+import { useMaintenanceStatus } from "./hooks/useMaintenanceStatus";
 
 function PrivateRoute({ children }) {
   const { user } = useAuth();
@@ -38,6 +41,21 @@ function AdminRoute({ children }) {
 function RootRoute() {
   const { user } = useAuth();
   return user ? <Dashboard /> : <LandingPage />;
+}
+
+// 점검모드가 켜져 있으면 관리자를 제외한 모두에게 점검 페이지를 보여줌. "/login"만 예외로
+// 통과시켜서 관리자가 로그인 자체는 할 수 있게 함(로그인해야 is_admin 여부를 알 수 있으므로).
+// 백엔드가 완전히 죽어도 useMaintenanceStatus가 같은 방식으로 감지하므로 이 게이트가
+// nginx의 정적 프론트엔드 서빙과 함께 "사용자는 항상 정상적인 점검 페이지를 본다"를 보장함
+function MaintenanceGate({ children }) {
+  const maintenanceOn = useMaintenanceStatus();
+  const { user } = useAuth();
+  const location = useLocation();
+
+  if (maintenanceOn && !user?.is_admin && location.pathname !== "/login") {
+    return <MaintenancePage />;
+  }
+  return children;
 }
 
 // 로그인 후 보이는 레이아웃: 사이드바 + 메인 콘텐츠
@@ -61,24 +79,27 @@ function App() {
       <BrowserRouter>
         <SessionExpiredBanner />
         <PresenceConnector />
-        <Routes>
-          {/* 비로그인 페이지 */}
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/signup" element={<SignupPage />} />
+        <MaintenanceGate>
+          <Routes>
+            {/* 비로그인 페이지 */}
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/signup" element={<SignupPage />} />
 
-          {/* 로그인 후 페이지 (사이드바 포함) */}
-          <Route path="/" element={<AppLayout><RootRoute /></AppLayout>} />
-          <Route path="/notes" element={<AppLayout><PrivateRoute><HomePage /></PrivateRoute></AppLayout>} />
-          <Route path="/folders" element={<AppLayout><PrivateRoute><AllFoldersPage /></PrivateRoute></AppLayout>} />
-          <Route path="/posts/:id" element={<AppLayout><PrivateRoute><PostDetailPage /></PrivateRoute></AppLayout>} />
-          <Route path="/posts/create" element={<AppLayout><PrivateRoute><PostCreatePage /></PrivateRoute></AppLayout>} />
-          <Route path="/posts/:id/edit" element={<AppLayout><PrivateRoute><PostEditPage /></PrivateRoute></AppLayout>} />
-          <Route path="/quiz" element={<AppLayout><PrivateRoute><QuizPage /></PrivateRoute></AppLayout>} />
-          <Route path="/documents" element={<AppLayout><PrivateRoute><DocumentsPage /></PrivateRoute></AppLayout>} />
-          <Route path="/todos" element={<AppLayout><PrivateRoute><TodoPage /></PrivateRoute></AppLayout>} />
-          <Route path="/settings" element={<AppLayout><PrivateRoute><SettingsPage /></PrivateRoute></AppLayout>} />
-          <Route path="/admin-dashboard" element={<AppLayout><PrivateRoute><AdminRoute><AdminDashboard /></AdminRoute></PrivateRoute></AppLayout>} />
-        </Routes>
+            {/* 로그인 후 페이지 (사이드바 포함) */}
+            <Route path="/" element={<AppLayout><RootRoute /></AppLayout>} />
+            <Route path="/notes" element={<AppLayout><PrivateRoute><HomePage /></PrivateRoute></AppLayout>} />
+            <Route path="/folders" element={<AppLayout><PrivateRoute><AllFoldersPage /></PrivateRoute></AppLayout>} />
+            <Route path="/posts/:id" element={<AppLayout><PrivateRoute><PostDetailPage /></PrivateRoute></AppLayout>} />
+            <Route path="/posts/create" element={<AppLayout><PrivateRoute><PostCreatePage /></PrivateRoute></AppLayout>} />
+            <Route path="/posts/:id/edit" element={<AppLayout><PrivateRoute><PostEditPage /></PrivateRoute></AppLayout>} />
+            <Route path="/quiz" element={<AppLayout><PrivateRoute><QuizPage /></PrivateRoute></AppLayout>} />
+            <Route path="/documents" element={<AppLayout><PrivateRoute><DocumentsPage /></PrivateRoute></AppLayout>} />
+            <Route path="/todos" element={<AppLayout><PrivateRoute><TodoPage /></PrivateRoute></AppLayout>} />
+            <Route path="/settings" element={<AppLayout><PrivateRoute><SettingsPage /></PrivateRoute></AppLayout>} />
+            <Route path="/contact" element={<AppLayout><PrivateRoute><ContactPage /></PrivateRoute></AppLayout>} />
+            <Route path="/admin-dashboard" element={<AppLayout><PrivateRoute><AdminRoute><AdminDashboard /></AdminRoute></PrivateRoute></AppLayout>} />
+          </Routes>
+        </MaintenanceGate>
       </BrowserRouter>
     </AuthProvider>
     </ThemeProvider>

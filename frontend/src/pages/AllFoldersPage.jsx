@@ -8,6 +8,7 @@ import { FolderTree, FileText, ChevronRight, Trash2, FolderPlus, Pencil, FilePlu
 import SidebarLayout, { SidebarSpacer } from "../components/SidebarLayout";
 import FolderTile from "../components/FolderTile";
 import ColorDotPicker from "../components/ColorPicker";
+import { getErrorMessage } from "../utils/errors";
 
 // 실제 카테고리가 아니라 "어떤 폴더에도 속하지 않은 노트"를 모아 보여주는 가짜 폴더의 id.
 // 예전에는 폴더를 삭제하면 안의 노트가 미분류로 남았는데(지금은 같이 삭제되도록 고침),
@@ -184,7 +185,7 @@ function AllFoldersPage() {
       setAddingFolderInMenu(false);
       setNewFolderName("");
     } catch (error) {
-      alert(error.response?.data?.detail || t("sidebar.addFolderFailed"));
+      alert(getErrorMessage(error, t("sidebar.addFolderFailed")));
     }
   };
 
@@ -220,7 +221,7 @@ function AllFoldersPage() {
       await refreshCategories();
       closeFolderMenu();
     } catch (error) {
-      alert(error.response?.data?.detail || t("sidebar.addFolderFailed"));
+      alert(getErrorMessage(error, t("sidebar.addFolderFailed")));
     }
   };
 
@@ -240,7 +241,7 @@ function AllFoldersPage() {
       await refreshCategories();
       closeFolderMenu();
     } catch (error) {
-      alert(error.response?.data?.detail || t("sidebar.addFolderFailed"));
+      alert(getErrorMessage(error, t("sidebar.addFolderFailed")));
     }
   };
 

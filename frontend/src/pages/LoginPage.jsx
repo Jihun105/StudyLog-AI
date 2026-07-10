@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { useNavigate, useLocation, Link } from "react-router-dom";
 import { login } from "../api/auth";
 import { useAuth } from "../context/AuthContext";
+import { getErrorMessage } from "../utils/errors";
 
 function LoginPage() {
   const { t } = useTranslation();
@@ -29,7 +30,7 @@ function LoginPage() {
       loginAction(data.access_token, data.user);
       navigate(from ? `${from.pathname}${from.search || ""}` : "/", { replace: true });
     } catch (error) {
-      setErrorMessage(error.response?.data?.detail || t("login.loginFailed"));
+      setErrorMessage(getErrorMessage(error, t("login.loginFailed")));
     } finally {
       setLoading(false);
     }

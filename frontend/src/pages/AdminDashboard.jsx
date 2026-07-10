@@ -2,12 +2,13 @@ import { useEffect, useState, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { getOnlineUsers, getUsageSummary } from "../api/admin";
+import { getOnlineUsers, getUsageSummary, getContacts, markContactRead, getMaintenanceStatus, setMaintenanceMode } from "../api/admin";
 import SidebarLayout, { SidebarSpacer } from "../components/SidebarLayout";
-import { ShieldCheck, Users, DollarSign, RefreshCw } from "lucide-react";
+import { ShieldCheck, Users, DollarSign, RefreshCw, Mail, MailOpen, Wrench } from "lucide-react";
 
 const ONLINE_POLL_MS = 10000;
 const USAGE_POLL_MS = 30000;
+const CONTACTS_POLL_MS = 30000;
 
 const FEATURE_LABEL_KEYS = {
   embedding: "adminDashboard.featureEmbedding",
@@ -22,7 +23,50 @@ function AdminDashboard() {
 
   const [onlineUsers, setOnlineUsers] = useState(null);
   const [usage, setUsage] = useState(null);
+  const [contacts, setContacts] = useState(null);
+  const [maintenance, setMaintenance] = useState(null);
+  const [maintenanceBusy, setMaintenanceBusy] = useState(false);
   const [error, setError] = useState("");
+
+  const loadMaintenance = useCallback(async () => {
+    try {
+      const data = await getMaintenanceStatus(token);
+      setMaintenance(data.enabled);
+    } catch (err) {
+      // 조용히 실패 - 아래 토글 섹션이 로딩 상태로 남아있는 정도로만 영향
+    }
+  }, [token]);
+
+  const handleToggleMaintenance = async () => {
+    setMaintenanceBusy(true);
+    try {
+      const data = await setMaintenanceMode(!maintenance, token);
+      setMaintenance(data.enabled);
+    } catch (err) {
+      setError(t("adminDashboard.maintenanceToggleFailed"));
+    } finally {
+      setMaintenanceBusy(false);
+    }
+  };
+
+  const loadContacts = useCallback(async () => {
+    try {
+      const data = await getContacts(token);
+      setContacts(data);
+    } catch (err) {
+      setError(t("adminDashboard.loadFailed"));
+    }
+  }, [token, t]);
+
+  const handleMarkContactRead = async (contactId) => {
+    // 낙관적 업데이트 - 클릭하자마자 바로 읽음으로 표시하고, 실패하면 다시 불러와서 되돌림
+    setContacts((prev) => prev?.map((c) => (c.id === contactId ? { ...c, is_read: true } : c)));
+    try {
+      await markContactRead(contactId, token);
+    } catch (err) {
+      loadContacts();
+    }
+  };
 
   const loadOnlineUsers = useCallback(async () => {
     try {
@@ -46,13 +90,17 @@ function AdminDashboard() {
   useEffect(() => {
     loadOnlineUsers();
     loadUsage();
+    loadContacts();
+    loadMaintenance();
     const onlineTimer = setInterval(loadOnlineUsers, ONLINE_POLL_MS);
     const usageTimer = setInterval(loadUsage, USAGE_POLL_MS);
+    const contactsTimer = setInterval(loadContacts, CONTACTS_POLL_MS);
     return () => {
       clearInterval(onlineTimer);
       clearInterval(usageTimer);
+      clearInterval(contactsTimer);
     };
-  }, [loadOnlineUsers, loadUsage]);
+  }, [loadOnlineUsers, loadUsage, loadContacts, loadMaintenance]);
 
   const handleGoToNotes = (categoryId) => {
     navigate(categoryId === null ? "/notes" : `/notes?category=${categoryId}`);
@@ -69,7 +117,7 @@ function AdminDashboard() {
           </div>
         </div>
 
-        <div className="px-4 sm:px-8 py-8 max-w-3xl flex flex-col gap-6">
+        <div className="px-4 sm:px-8 py-8 max-w-3xl mx-auto flex flex-col gap-6">
           {error && (
             <div className="bg-red-50 dark:bg-red-500/10 text-red-500 dark:text-red-400 px-4 py-3 rounded-lg text-sm">
               {error}
@@ -156,6 +204,93 @@ function AdminDashboard() {
                   </table>
                 )}
                 <p className="text-[11px] text-gray-300 dark:text-gray-600 mt-4">{t("adminDashboard.estimateDisclaimer")}</p>
+              </>
+            )}
+          </section>
+
+          {/* 문의함 - 소개 페이지의 문의 폼으로 들어온 문의. 이메일 알림 대신 여기서 확인하는 방식 */}
+          <section className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-6">
+            <div className="flex items-center gap-2 mb-4">
+              <Mail size={16} className="text-blue-600 dark:text-blue-400" />
+              <h2 className="text-sm font-semibold text-gray-800 dark:text-gray-100">{t("adminDashboard.contactsTitle")}</h2>
+              {contacts && contacts.some((c) => !c.is_read) && (
+                <span className="text-[11px] font-medium bg-red-100 text-red-600 dark:bg-red-500/20 dark:text-red-400 rounded-full px-1.5 py-0.5">
+                  {contacts.filter((c) => !c.is_read).length}
+                </span>
+              )}
+              <span className="text-xs text-gray-400 dark:text-gray-500 ml-auto flex items-center gap-1">
+                <RefreshCw size={11} /> {t("adminDashboard.autoRefresh", { seconds: CONTACTS_POLL_MS / 1000 })}
+              </span>
+            </div>
+
+            {contacts === null ? (
+              <p className="text-xs text-gray-400 dark:text-gray-500">{t("common.loading")}</p>
+            ) : contacts.length === 0 ? (
+              <p className="text-xs text-gray-400 dark:text-gray-500">{t("adminDashboard.contactsEmpty")}</p>
+            ) : (
+              <div className="flex flex-col gap-2">
+                {contacts.map((c) => (
+                  <div
+                    key={c.id}
+                    className={`border rounded-lg p-3 text-sm ${
+                      c.is_read
+                        ? "border-gray-100 dark:border-gray-700"
+                        : "border-blue-200 bg-blue-50/50 dark:border-blue-500/30 dark:bg-blue-500/5"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between gap-2 mb-1">
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <span className="font-medium text-gray-800 dark:text-gray-100 truncate">{c.name}</span>
+                        <span className="text-gray-400 dark:text-gray-500 text-xs truncate">{c.email}</span>
+                      </div>
+                      <span className="text-[11px] text-gray-300 dark:text-gray-600 shrink-0">
+                        {new Date(c.created_at).toLocaleString()}
+                      </span>
+                    </div>
+                    <p className="text-gray-600 dark:text-gray-300 whitespace-pre-wrap mb-2">{c.message}</p>
+                    {!c.is_read && (
+                      <button
+                        onClick={() => handleMarkContactRead(c.id)}
+                        className="flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                      >
+                        <MailOpen size={12} /> {t("adminDashboard.markAsRead")}
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+
+          {/* 점검모드 - nginx 레벨에서 실제 차단이 일어나고, 여기는 그 플래그를 켜고 끄는 버튼 */}
+          <section className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-6">
+            <div className="flex items-center gap-2 mb-4">
+              <Wrench size={16} className="text-blue-600 dark:text-blue-400" />
+              <h2 className="text-sm font-semibold text-gray-800 dark:text-gray-100">{t("adminDashboard.maintenanceTitle")}</h2>
+            </div>
+
+            {maintenance === null ? (
+              <p className="text-xs text-gray-400 dark:text-gray-500">{t("common.loading")}</p>
+            ) : (
+              <>
+                <div className="flex items-center gap-2 mb-1">
+                  <span className={`w-2 h-2 rounded-full shrink-0 ${maintenance ? "bg-emerald-500" : "bg-amber-500"}`} />
+                  <p className="text-sm font-medium text-gray-700 dark:text-gray-200">
+                    {maintenance ? t("adminDashboard.maintenanceOn") : t("adminDashboard.maintenanceOff")}
+                  </p>
+                </div>
+                <p className="text-xs text-gray-400 dark:text-gray-500 mb-4">{t("adminDashboard.maintenanceDesc")}</p>
+                <button
+                  onClick={handleToggleMaintenance}
+                  disabled={maintenanceBusy}
+                  className={`text-sm font-medium px-4 py-2 rounded-lg transition-colors disabled:opacity-60 ${
+                    maintenance
+                      ? "bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
+                      : "bg-amber-500 text-white hover:bg-amber-600"
+                  }`}
+                >
+                  {maintenance ? t("adminDashboard.maintenanceTurnOff") : t("adminDashboard.maintenanceTurnOn")}
+                </button>
               </>
             )}
           </section>

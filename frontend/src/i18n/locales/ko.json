@@ -50,6 +50,7 @@
     "rename": "이름 수정",
     "changeColor": "색상 변경",
     "adminDashboard": "관리자 대시보드",
+    "contact": "문의하기",
     "delete": "삭제",
     "allNotes": "전체 보기",
     "allFolders": "전체 폴더보기",
@@ -242,7 +243,17 @@
     "featureQuiz": "AI 퀴즈 생성",
     "estimateDisclaimer": "* 자체 로그 기반 추정치이며, OpenAI 청구 금액과 다를 수 있습니다.",
     "autoRefresh": "{{seconds}}초마다 자동 갱신",
-    "loadFailed": "데이터를 불러오지 못했습니다."
+    "loadFailed": "데이터를 불러오지 못했습니다.",
+    "contactsTitle": "문의함",
+    "contactsEmpty": "아직 들어온 문의가 없습니다.",
+    "markAsRead": "읽음으로 표시",
+    "maintenanceTitle": "점검모드",
+    "maintenanceDesc": "켜면 관리자를 제외한 모든 사용자에게 점검 중 화면이 표시됩니다.",
+    "maintenanceOn": "점검모드가 켜져 있습니다.",
+    "maintenanceOff": "점검모드가 꺼져 있습니다.",
+    "maintenanceTurnOn": "점검모드 켜기",
+    "maintenanceTurnOff": "점검모드 끄기",
+    "maintenanceToggleFailed": "점검모드 전환에 실패했습니다."
   },
   "postDetail": {
     "allNotes": "전체 보기",
@@ -321,11 +332,29 @@
     "featureNotesDesc": "리치 텍스트 에디터로 코드 블록, 표, 이미지 등을 포함한 학습 노트를 작성하세요.",
     "featureQuizTitle": "AI 퀴즈",
     "featureQuizDesc": "작성한 노트를 기반으로 AI가 퀴즈를 생성해 학습 내용을 복습할 수 있어요.",
+    "featureTodoTitle": "할일 · 캘린더",
+    "featureTodoDesc": "공부 계획을 할 일과 캘린더로 관리하고, 오늘 해야 할 일을 대시보드에서 바로 확인하세요.",
     "featureRagTitle": "RAG 질문 답변",
     "featureRagDesc": "내가 쓴 노트를 기반으로 AI가 질문에 답변해 나만의 지식 베이스를 활용하세요.",
     "statVectors": "임베딩된 벡터",
     "statNotes": "요약된 노트",
-    "statQuizzes": "진행한 퀴즈"
+    "statQuizzes": "진행한 퀴즈",
+    "faqTitle": "자주 묻는 질문",
+    "faqQ1": "무료로 사용할 수 있나요?",
+    "faqA1": "네, 회원가입 후 노트 작성, AI 퀴즈 생성, 시맨틱 검색 등 핵심 기능을 무료로 이용하실 수 있습니다.",
+    "faqQ2": "작성한 노트는 안전하게 보관되나요?",
+    "faqA2": "AI 검색(RAG)은 항상 본인 계정으로 필터링되어 다른 사용자의 노트가 섞이지 않으며, 설정 페이지에서 언제든 계정과 데이터를 삭제할 수 있습니다.",
+    "faqQ3": "모바일에서도 사용할 수 있나요?",
+    "faqA3": "현재는 웹 브라우저 기반 서비스이며, 모바일 앱은 준비 중입니다.",
+    "contactTitle": "문의하기",
+    "contactDesc": "궁금한 점이나 제안하고 싶은 내용을 남겨주시면 확인 후 답변드리겠습니다.",
+    "contactNamePlaceholder": "이름",
+    "contactEmailPlaceholder": "이메일",
+    "contactMessagePlaceholder": "문의 내용을 입력해주세요",
+    "contactSubmit": "문의 보내기",
+    "contactSubmitting": "보내는 중...",
+    "contactSuccess": "문의가 접수되었습니다. 감사합니다!",
+    "contactError": "문의 접수에 실패했습니다. 입력 내용을 확인해주세요."
   },
   "login": {
     "brandTitle": "나만의\nAI 기반\n지식 베이스.",
@@ -345,6 +374,10 @@
     "signup": "회원가입",
     "requiredFields": "아이디와 비밀번호를 입력해주세요.",
     "loginFailed": "로그인에 실패했습니다."
+  },
+  "maintenance": {
+    "title": "점검 중입니다",
+    "desc": "서비스 안정성을 높이기 위한 점검이 진행 중입니다. 잠시 후 다시 시도해주세요."
   },
   "signup": {
     "brandTitle": "나만의\n지식 베이스를\n만들어보세요.",

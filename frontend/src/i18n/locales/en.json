@@ -50,6 +50,7 @@
     "rename": "Rename",
     "changeColor": "Change color",
     "adminDashboard": "Admin Dashboard",
+    "contact": "Contact Us",
     "delete": "Delete",
     "allNotes": "All Notes",
     "allFolders": "All Folders",
@@ -242,7 +243,17 @@
     "featureQuiz": "AI Quiz Generation",
     "estimateDisclaimer": "* Estimated from self-logged usage; may differ from your actual OpenAI bill.",
     "autoRefresh": "Refreshes every {{seconds}}s",
-    "loadFailed": "Failed to load data."
+    "loadFailed": "Failed to load data.",
+    "contactsTitle": "Inquiries",
+    "contactsEmpty": "No inquiries yet.",
+    "markAsRead": "Mark as read",
+    "maintenanceTitle": "Maintenance Mode",
+    "maintenanceDesc": "When on, everyone except admins sees a maintenance screen.",
+    "maintenanceOn": "Maintenance mode is on.",
+    "maintenanceOff": "Maintenance mode is off.",
+    "maintenanceTurnOn": "Turn on maintenance mode",
+    "maintenanceTurnOff": "Turn off maintenance mode",
+    "maintenanceToggleFailed": "Failed to toggle maintenance mode."
   },
   "postDetail": {
     "allNotes": "All Notes",
@@ -321,11 +332,29 @@
     "featureNotesDesc": "Write study notes with a rich text editor that supports code blocks, tables, and images.",
     "featureQuizTitle": "AI Quiz",
     "featureQuizDesc": "AI generates quizzes from your notes so you can review what you've learned.",
+    "featureTodoTitle": "To-dos & Calendar",
+    "featureTodoDesc": "Manage your study plan with tasks and a calendar, and see what's due today right on your dashboard.",
     "featureRagTitle": "RAG Q&A",
     "featureRagDesc": "Ask AI questions grounded in your own notes — your personal knowledge base.",
     "statVectors": "Vectors Embedded",
     "statNotes": "Notes Summarized",
-    "statQuizzes": "Quizzes Taken"
+    "statQuizzes": "Quizzes Taken",
+    "faqTitle": "Frequently Asked Questions",
+    "faqQ1": "Is it free to use?",
+    "faqA1": "Yes — after signing up, core features like note-taking, AI quiz generation, and semantic search are free to use.",
+    "faqQ2": "Are my notes kept safe?",
+    "faqA2": "AI search (RAG) is always filtered to your own account so other users' notes never mix in, and you can delete your account and data anytime from Settings.",
+    "faqQ3": "Is there a mobile app?",
+    "faqA3": "Right now it's a web-based service; a mobile app is in the works.",
+    "contactTitle": "Contact Us",
+    "contactDesc": "Have a question or suggestion? Send us a message and we'll get back to you.",
+    "contactNamePlaceholder": "Name",
+    "contactEmailPlaceholder": "Email",
+    "contactMessagePlaceholder": "Write your message",
+    "contactSubmit": "Send Message",
+    "contactSubmitting": "Sending...",
+    "contactSuccess": "Your message has been received. Thank you!",
+    "contactError": "Failed to send your message. Please check your input."
   },
   "login": {
     "brandTitle": "Your personal\nAI-powered\nknowledge base.",
@@ -345,6 +374,10 @@
     "signup": "Sign up",
     "requiredFields": "Please enter your username and password.",
     "loginFailed": "Failed to log in."
+  },
+  "maintenance": {
+    "title": "Under Maintenance",
+    "desc": "We're currently performing maintenance to improve reliability. Please check back shortly."
   },
   "signup": {
     "brandTitle": "Start building\nyour personal\nknowledge base.",

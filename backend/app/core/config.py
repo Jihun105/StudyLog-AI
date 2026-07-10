@@ -15,6 +15,11 @@ class Settings(BaseSettings):
     ALGORITHM: str
     ACCESS_TOKEN_EXPIRE_MINUTES: int
     OPENAI_API_KEY: str
+    # 점검모드 플래그 파일 경로. nginx도 같은 경로(공유 볼륨)를 보고 있다가 파일이 있으면
+    # 백엔드까지 가지 않고 바로 점검 페이지를 응답함 - docker-compose에서는
+    # /shared/maintenance/ON 으로 오버라이드되고, 로컬 개발(도커 밖)에서는 이 기본값(프로젝트
+    # 상대 경로)이 그대로 쓰임
+    MAINTENANCE_FLAG_PATH: str = "./maintenance/ON"
 
     class Config:
         env_file = ENV_PATH

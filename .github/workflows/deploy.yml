@@ -51,8 +51,17 @@ jobs:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
+          # set -e가 핵심: 아래 어느 명령이라도 실패하면 스크립트가 그 자리에서 즉시 중단되고,
+          # 맨 마지막의 "점검모드 끄기"는 절대 실행되지 않음 - 그래서 배포/마이그레이션이
+          # 실패한 상태로는 점검모드가 계속 켜진 채로 남아 사용자에게 깨진 화면 대신 점검
+          # 페이지가 보임 (nginx가 이 플래그 파일을 보고 백엔드를 거치지 않고 바로 응답하므로
+          # 이 시점의 backend/frontend 컨테이너가 얼마나 망가졌는지와 무관하게 항상 동작함)
           script: |
+            set -e
             cd ~/StudyLog-AI
+            mkdir -p maintenance
+            touch maintenance/ON
             git pull
             docker compose up -d --build
             docker compose exec -T backend alembic upgrade head
+            rm -f maintenance/ON

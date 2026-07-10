@@ -18,6 +18,32 @@ export const getUsageSummary = async (token) => {
   return response.data;
 };
 
+// 소개 페이지 문의 폼으로 들어온 문의 목록 (안 읽은 것부터, 최신순)
+export const getContacts = async (token) => {
+  const response = await axios.get(`${BASE_URL}/api/admin/contacts`, authHeader(token));
+  return response.data;
+};
+
+export const markContactRead = async (contactId, token) => {
+  const response = await axios.patch(`${BASE_URL}/api/admin/contacts/${contactId}/read`, {}, authHeader(token));
+  return response.data;
+};
+
+// 점검모드 현재 상태 + 켜기/끄기
+export const getMaintenanceStatus = async (token) => {
+  const response = await axios.get(`${BASE_URL}/api/admin/maintenance`, authHeader(token));
+  return response.data;
+};
+
+export const setMaintenanceMode = async (enabled, token) => {
+  const response = await axios.post(
+    `${BASE_URL}/api/admin/maintenance/${enabled ? "on" : "off"}`,
+    {},
+    authHeader(token)
+  );
+  return response.data;
+};
+
 // http(s)://... 형태의 BASE_URL을 ws(s)://...로 바꿔줌. 프로덕션 빌드에서는
 // REACT_APP_API_URL이 빈 문자열(동일 출처)이라 현재 페이지 주소 기준으로 구성
 export const getPresenceWsUrl = (token) => {

@@ -1,6 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
-import { FileText, BrainCircuit, Sparkles, Database, ArrowRight } from "lucide-react";
+import { FileText, BrainCircuit, Sparkles, Database, ArrowRight, ListTodo } from "lucide-react";
+import ContactSection from "../components/ContactSection";
 
 function LandingPage() {
   const { t } = useTranslation();
@@ -63,8 +64,9 @@ function LandingPage() {
         </div>
       </div>
 
-      {/* 기능 카드 */}
-      <div className="grid grid-cols-3 gap-6 px-12 pb-24 max-w-5xl mx-auto">
+      {/* 기능 카드 - next.md 소개 페이지 스펙의 핵심 기능 4가지(노트 작성, AI 퀴즈 생성,
+          캘린더/할일 관리, AI 시맨틱 검색·RAG 질문답변)를 사용자 관점에서 소개 */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-6 px-12 pb-24 max-w-6xl mx-auto">
         <div className="bg-gray-50 dark:bg-gray-800 rounded-2xl p-6">
           <div className="w-10 h-10 bg-blue-100 dark:bg-blue-500/20 rounded-xl flex items-center justify-center mb-4">
             <FileText size={20} className="text-blue-600 dark:text-blue-400" />
@@ -81,6 +83,15 @@ function LandingPage() {
           <h3 className="font-semibold text-gray-800 dark:text-gray-100 mb-2">{t("landing.featureQuizTitle")}</h3>
           <p className="text-sm text-gray-400 dark:text-gray-500 leading-relaxed">
             {t("landing.featureQuizDesc")}
+          </p>
+        </div>
+        <div className="bg-gray-50 dark:bg-gray-800 rounded-2xl p-6">
+          <div className="w-10 h-10 bg-amber-100 dark:bg-amber-500/20 rounded-xl flex items-center justify-center mb-4">
+            <ListTodo size={20} className="text-amber-600 dark:text-amber-400" />
+          </div>
+          <h3 className="font-semibold text-gray-800 dark:text-gray-100 mb-2">{t("landing.featureTodoTitle")}</h3>
+          <p className="text-sm text-gray-400 dark:text-gray-500 leading-relaxed">
+            {t("landing.featureTodoDesc")}
           </p>
         </div>
         <div className="bg-gray-50 dark:bg-gray-800 rounded-2xl p-6">
@@ -118,6 +129,13 @@ function LandingPage() {
             </div>
             <div className="text-blue-200 text-sm">{t("landing.statQuizzes")}</div>
           </div>
+        </div>
+      </div>
+
+      {/* FAQ + 문의 - 로그인 후에도 사이드바의 "문의하기"(ContactPage)에서 같은 컴포넌트로 접근 가능 */}
+      <div className="bg-gray-50 dark:bg-gray-800/50 px-8 py-24">
+        <div className="max-w-2xl mx-auto">
+          <ContactSection />
         </div>
       </div>
     </div>

@@ -10,6 +10,7 @@ import { BlockNoteView } from "@blocknote/mantine";
 import "@blocknote/core/fonts/inter.css";
 import "@blocknote/mantine/style.css";
 import { getCodeBlockConfig } from "../lib/editorSchema";
+import { getErrorMessage } from "../utils/errors";
 import {
   BrainCircuit, CheckCircle2, XCircle, Loader2, RotateCcw, FileText, ArrowLeft, Search, X, Maximize2, Minimize2, ChevronDown
 } from "lucide-react";
@@ -269,7 +270,7 @@ function QuizPage() {
       const data = await generateQuiz(postIds ? null : scopeToCategoryId(), quizType, token, postIds);
       setQuizzes(data);
     } catch (err) {
-      setError(err.response?.data?.detail || t("quiz.generateError"));
+      setError(getErrorMessage(err, t("quiz.generateError")));
     } finally {
       setGenerating(false);
     }

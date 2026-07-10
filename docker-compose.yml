@@ -27,8 +27,12 @@ services:
     environment:
       DATABASE_URL: mysql+aiomysql://root:${MYSQL_ROOT_PASSWORD}@mysql:3306/${MYSQL_DATABASE}
       QDRANT_HOST: qdrant
+      # 점검모드 플래그 파일 경로 - frontend(nginx)의 /shared/maintenance 와 같은 호스트
+      # 디렉토리를 바라봐야 관리자 대시보드 토글이 nginx 차단에 즉시 반영됨
+      MAINTENANCE_FLAG_PATH: /shared/maintenance/ON
     volumes:
       - uploaded_images:/app/uploaded_images
+      - ./maintenance:/shared/maintenance
     depends_on:
       mysql:
         condition: service_healthy
@@ -51,6 +55,8 @@ services:
     restart: unless-stopped
     ports:
       - "80:80"
+    volumes:
+      - ./maintenance:/shared/maintenance:ro
     depends_on:
       - backend
       - admin

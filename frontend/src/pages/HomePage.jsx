@@ -12,6 +12,7 @@ import SidebarLayout, { SidebarSpacer } from "../components/SidebarLayout";
 import { POST_DRAG_TYPE } from "../components/Sidebar";
 import FolderTile from "../components/FolderTile";
 import ColorDotPicker from "../components/ColorPicker";
+import { getErrorMessage } from "../utils/errors";
 
 // 카테고리 id로 이름 찾기 (트리 재귀 탐색)
 function findCategoryName(categories, id) {
@@ -344,7 +345,7 @@ function HomePage() {
       setAddingFolderInMenu(false);
       setNewFolderName("");
     } catch (error) {
-      alert(error.response?.data?.detail || t("sidebar.addFolderFailed"));
+      alert(getErrorMessage(error, t("sidebar.addFolderFailed")));
     }
   };
 
@@ -380,7 +381,7 @@ function HomePage() {
       await refreshCategories();
       closeFolderMenu();
     } catch (error) {
-      alert(error.response?.data?.detail || t("sidebar.addFolderFailed"));
+      alert(getErrorMessage(error, t("sidebar.addFolderFailed")));
     }
   };
 
@@ -400,7 +401,7 @@ function HomePage() {
       await refreshCategories();
       closeFolderMenu();
     } catch (error) {
-      alert(error.response?.data?.detail || t("sidebar.addFolderFailed"));
+      alert(getErrorMessage(error, t("sidebar.addFolderFailed")));
     }
   };
 

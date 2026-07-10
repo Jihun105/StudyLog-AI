@@ -8,9 +8,10 @@ import {
   LayoutDashboard, FileText, BrainCircuit, Settings,
   LogOut, FolderPlus, Folder, FolderOpen, FolderTree,
   ChevronDown, ChevronRight, Plus, Pencil, X, ClipboardList,
-  PanelLeftClose, FilePlus2, Trash2, ListTodo, Palette, ShieldCheck
+  PanelLeftClose, FilePlus2, Trash2, ListTodo, Palette, ShieldCheck, Mail
 } from "lucide-react";
 import ColorDotPicker, { colorByKey } from "./ColorPicker";
+import { getErrorMessage } from "../utils/errors";
 
 // 노트(글) 드래그 앤 드롭에 쓰는 dataTransfer 타입 - HomePage 등 다른 페이지의 노트 카드에서
 // 이 타입으로 값을 실어 보내면 Sidebar의 폴더가 받아서 카테고리를 옮겨줌
@@ -419,7 +420,7 @@ function Sidebar({ selectedCategoryId, onSelectCategory, onCollapse }) {
       await createCategory(name, parentId, token);
       fetchCategories();
     } catch (error) {
-      alert(error.response?.data?.detail || t("sidebar.addFolderFailed"));
+      alert(getErrorMessage(error, t("sidebar.addFolderFailed")));
     }
   };
 
@@ -479,7 +480,7 @@ function Sidebar({ selectedCategoryId, onSelectCategory, onCollapse }) {
         await movePost(Number(postId), targetCategory.id, token);
         notifyPostsChanged();
       } catch (error) {
-        alert(error.response?.data?.detail || t("sidebar.moveFailed"));
+        alert(getErrorMessage(error, t("sidebar.moveFailed")));
       }
       return;
     }
@@ -519,7 +520,7 @@ function Sidebar({ selectedCategoryId, onSelectCategory, onCollapse }) {
       await reorderCategories(flatItems, token);
       fetchCategories(); // 서버 기준으로 다시 동기화
     } catch (error) {
-      alert(error.response?.data?.detail || t("sidebar.moveFailed"));
+      alert(getErrorMessage(error, t("sidebar.moveFailed")));
       fetchCategories(); // 실패했으면 서버의 실제 상태로 되돌림
     }
   };
@@ -550,7 +551,7 @@ function Sidebar({ selectedCategoryId, onSelectCategory, onCollapse }) {
       await reorderCategories(flatItems, token);
       fetchCategories();
     } catch (error) {
-      alert(error.response?.data?.detail || t("sidebar.moveFailed"));
+      alert(getErrorMessage(error, t("sidebar.moveFailed")));
       fetchCategories();
     }
   };
@@ -750,6 +751,15 @@ function Sidebar({ selectedCategoryId, onSelectCategory, onCollapse }) {
             <ShieldCheck size={16} /> {t("sidebar.adminDashboard")}
           </button>
         )}
+        <button
+          onClick={() => navigate("/contact")}
+          className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm mb-0.5 transition-colors
+            ${location.pathname === "/contact"
+              ? "bg-blue-100 text-blue-600 font-medium dark:bg-transparent dark:text-gray-100 dark:font-semibold"
+              : "text-gray-500 hover:bg-gray-200 dark:text-gray-400 dark:hover:bg-gray-700/60"}`}
+        >
+          <Mail size={16} /> {t("sidebar.contact")}
+        </button>
         <button
           onClick={() => navigate("/settings")}
           className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm mb-0.5 transition-colors

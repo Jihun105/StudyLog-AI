@@ -11,6 +11,7 @@ import DraftRestoreBanner from "../components/DraftRestoreBanner";
 import { ChevronRight } from "lucide-react";
 import SidebarLayout, { SidebarSpacer } from "../components/SidebarLayout";
 import { useDraftAutosave, useBeforeUnloadWarning, loadDraft, clearDraft } from "../hooks/useDraftAutosave";
+import { getErrorMessage } from "../utils/errors";
 
 const DRAFT_KEY = "studylog:draft:new";
 
@@ -101,7 +102,7 @@ function PostCreatePage() {
       clearDraft(DRAFT_KEY);
       navigate(`/posts/${data.id}`);
     } catch (error) {
-      setErrorMessage(error.response?.data?.detail || t("postCreate.createFailed"));
+      setErrorMessage(getErrorMessage(error, t("postCreate.createFailed")));
     } finally {
       setLoading(false);
     }

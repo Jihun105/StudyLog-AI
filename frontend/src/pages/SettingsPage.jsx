@@ -6,6 +6,7 @@ import { useTheme } from "../context/ThemeContext";
 import { getMyProfile, updateMyProfile, changeMyPassword, deleteMyAccount } from "../api/users";
 import SidebarLayout, { SidebarSpacer } from "../components/SidebarLayout";
 import { User, KeyRound, Trash2, Loader2, Check, Sun, Moon, Languages } from "lucide-react";
+import { getErrorMessage } from "../utils/errors";
 
 function SettingsPage() {
   const { t, i18n } = useTranslation();
@@ -63,7 +64,7 @@ function SettingsPage() {
       updateUser({ nickname: data.nickname });
       setProfileMessage(t("settings.saved"));
     } catch (error) {
-      setProfileError(error.response?.data?.detail || t("settings.saveFailed"));
+      setProfileError(getErrorMessage(error, t("settings.saveFailed")));
     } finally {
       setProfileSaving(false);
     }
@@ -87,7 +88,7 @@ function SettingsPage() {
       setNewPassword("");
       setNewPasswordConfirm("");
     } catch (error) {
-      setPasswordError(error.response?.data?.detail || t("settings.passwordChangeFailed"));
+      setPasswordError(getErrorMessage(error, t("settings.passwordChangeFailed")));
     } finally {
       setPasswordSaving(false);
     }

@@ -15,6 +15,9 @@ venv/
 # Uploaded images (note attachments)
 backend/uploaded_images/
 
+# 점검모드 플래그 파일 (docker-compose 공유 볼륨의 호스트 쪽 디렉토리)
+maintenance/
+
 # IDE
 .vscode/
 .idea/

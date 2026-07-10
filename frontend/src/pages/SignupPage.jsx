@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, Link } from "react-router-dom";
 import { signup } from "../api/auth";
+import { getErrorMessage } from "../utils/errors";
 
 function SignupPage() {
   const { t } = useTranslation();
@@ -27,7 +28,7 @@ function SignupPage() {
       setSuccessMessage(t("signup.signupSuccess"));
       setTimeout(() => navigate("/login"), 1500);
     } catch (error) {
-      setErrorMessage(error.response?.data?.detail || t("signup.signupFailed"));
+      setErrorMessage(getErrorMessage(error, t("signup.signupFailed")));
     } finally {
       setLoading(false);
     }

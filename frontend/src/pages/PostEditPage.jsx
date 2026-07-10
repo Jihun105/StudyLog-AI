@@ -11,6 +11,7 @@ import DraftRestoreBanner from "../components/DraftRestoreBanner";
 import { ChevronRight } from "lucide-react";
 import SidebarLayout, { SidebarSpacer } from "../components/SidebarLayout";
 import { useDraftAutosave, useBeforeUnloadWarning, loadDraft, clearDraft } from "../hooks/useDraftAutosave";
+import { getErrorMessage } from "../utils/errors";
 
 function flattenCategories(categories, depth = 0) {
   const result = [];
@@ -101,7 +102,7 @@ function PostEditPage() {
       clearDraft(draftKey);
       navigate(`/posts/${id}`);
     } catch (error) {
-      setErrorMessage(error.response?.data?.detail || t("postEdit.updateFailed"));
+      setErrorMessage(getErrorMessage(error, t("postEdit.updateFailed")));
     } finally {
       setLoading(false);
     }
